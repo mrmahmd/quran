@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#103c86" />
+    <meta name="description" content="منصة المدرسة القرآنية بمدارس الأندلس الأهلية لمتابعة الحفظ والمراجعة والتقييم." />
+    <title>المدرسة القرآنية | مدارس الأندلس الأهلية</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Alexandria:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="assets/styles.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="topbar">
+        <a class="brand" href="#" aria-label="الصفحة الرئيسية للمدرسة القرآنية">
+          <img src="assets/alandalus-logo.png" alt="شعار مدارس الأندلس الأهلية" />
+          <span class="brand-copy">
+            <strong>المدرسة القرآنية</strong>
+            <small>المسار المصري - فرع الحمدانية</small>
+          </span>
+        </a>
+
+        <nav aria-label="التنقل الرئيسي">
+          <a class="active" href="#home">الرئيسية</a>
+          <a href="#about">عن المنصة</a>
+          <a href="#support">الدعم</a>
+        </nav>
+
+        <a class="top-login" href="#login">دخول المنصة</a>
+      </header>
+
+      <main id="home">
+        <section class="hero" aria-labelledby="hero-title">
+          <div class="hero-copy">
+            <div class="eyebrow"><span></span> بيئة تربوية لمتابعة كتاب الله</div>
+            <h1 id="hero-title">معًا نرعى رحلة<br /><em>الحفظ والإتقان</em></h1>
+            <p>
+              منصة موحّدة تساعد معلمي القرآن على تسجيل الحفظ والمراجعة،
+              ومتابعة تقدّم كل طالب بصورة واضحة ومنتظمة.
+            </p>
+
+            <div class="hero-actions">
+              <a class="primary-action" href="#login">
+                الدخول إلى حسابي
+                <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6" /></svg>
+              </a>
+              <a class="text-action" href="#about">تعرّف على المنصة</a>
+            </div>
+
+            <div class="trust-row" aria-label="مميزات المنصة">
+              <div><span class="check">✓</span><span>متابعة يومية سهلة</span></div>
+              <div><span class="check">✓</span><span>تقارير شهرية دقيقة</span></div>
+              <div><span class="check">✓</span><span>بيانات محفوظة وآمنة</span></div>
+            </div>
+          </div>
+
+          <div class="login-wrap" id="login">
+            <div class="ornament ornament-one"></div>
+            <div class="ornament ornament-two"></div>
+            <section class="login-card" aria-labelledby="login-title">
+              <div class="card-heading">
+                <span class="login-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24"><path d="M12 3a4 4 0 1 1 0 8 4 4 0 0 1 0-8Zm-7 16c0-3.3 3.1-6 7-6s7 2.7 7 6v1H5v-1Z" /></svg>
+                </span>
+                <div>
+                  <h2 id="login-title">مرحبًا بعودتك</h2>
+                  <p>اختر نوع الحساب وأدخل بياناتك</p>
+                </div>
+              </div>
+
+              <div class="role-tabs" role="tablist" aria-label="نوع الحساب">
+                <button class="role-tab active" type="button" data-role="معلم" role="tab" aria-selected="true">معلم</button>
+                <button class="role-tab" type="button" data-role="مشرف" role="tab" aria-selected="false">مشرف</button>
+                <button class="role-tab" type="button" data-role="إدارة" role="tab" aria-selected="false">إدارة</button>
+              </div>
+
+              <form id="login-form">
+                <label for="username">اسم المستخدم</label>
+                <div class="input-box">
+                  <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm7 8a7 7 0 0 0-14 0" /></svg>
+                  <input id="username" type="text" placeholder="أدخل اسم المستخدم" autocomplete="username" required />
+                </div>
+
+                <div class="label-row">
+                  <label for="password">كلمة المرور</label>
+                  <a href="#support">نسيت كلمة المرور؟</a>
+                </div>
+                <div class="input-box">
+                  <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M7 10V8a5 5 0 0 1 10 0v2m-11 0h12v10H6V10Z" /></svg>
+                  <input id="password" type="password" placeholder="أدخل كلمة المرور" autocomplete="current-password" required />
+                  <button class="show-password" type="button" aria-label="إظهار كلمة المرور">
+                    <svg viewBox="0 0 24 24"><path d="M3 12s3-5 9-5 9 5 9 5-3 5-9 5-9-5-9-5Zm9 2a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" /></svg>
+                  </button>
+                </div>
+
+                <label class="remember"><input type="checkbox" /> <span>تذكّرني على هذا الجهاز</span></label>
+                <button class="submit-button" type="submit">دخول لوحة التحكم</button>
+                <p class="form-note">للدخول لأول مرة، تواصل مع مسؤول المدرسة القرآنية.</p>
+              </form>
+            </section>
+          </div>
+        </section>
+
+        <section class="feature-strip" id="about" aria-label="خدمات المنصة">
+          <article>
+            <span class="feature-icon blue"><svg viewBox="0 0 24 24"><path d="M4 5h16v14H4V5Zm4-2v4m8-4v4M7 11h10m-8 3h2m2 0h2" /></svg></span>
+            <div><strong>تسجيل الحصص</strong><p>حفظ ومراجعة وحضور في خطوات سريعة</p></div>
+          </article>
+          <article>
+            <span class="feature-icon cyan"><svg viewBox="0 0 24 24"><path d="M5 20V10m7 10V4m7 16v-7M3 20h18" /></svg></span>
+            <div><strong>متابعة التقدّم</strong><p>سجل واضح ومتدرّج لكل طالب</p></div>
+          </article>
+          <article>
+            <span class="feature-icon purple"><svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6V3Zm8 0v5h5M9 13h6m-6 4h6" /></svg></span>
+            <div><strong>التقييم الشهري</strong><p>ملخص شامل يصل إلى إدارة المدرسة</p></div>
+          </article>
+        </section>
+      </main>
+
+      <footer id="support">
+        <span>© <span id="year"></span> مدارس الأندلس الأهلية</span>
+        <span>المدرسة القرآنية · نحو جيلٍ يتلو ويرتقي</span>
+      </footer>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script src="assets/app.js"></script>
+  </body>
+</html>
