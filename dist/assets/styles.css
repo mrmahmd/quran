@@ -151,9 +151,8 @@ h1 em::after {
 .login-icon svg { fill: currentColor; stroke: none; }
 .card-heading h2 { margin: 0 0 5px; color: var(--navy-dark); font-size: 1.36rem; }
 .card-heading p { margin: 0; color: var(--muted); font-size: 0.85rem; }
-.role-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; padding: 5px; border-radius: 12px; background: #f1f5fa; margin-bottom: 22px; }
-.role-tab { border: 0; border-radius: 9px; color: #6d788a; background: transparent; padding: 9px 6px; cursor: pointer; font-weight: 700; transition: 160ms ease; }
-.role-tab.active { color: var(--navy); background: white; box-shadow: 0 3px 10px rgba(18, 59, 129, 0.09); }
+.secure-role-note { display: flex; align-items: center; gap: 9px; margin-bottom: 22px; padding: 11px 13px; border-radius: 11px; color: #526176; background: #f1f7fb; font-size: 0.76rem; line-height: 1.65; }
+.secure-role-note span { display: grid; place-items: center; flex: 0 0 auto; width: 21px; height: 21px; border-radius: 50%; color: white; background: var(--cyan); font-weight: 800; }
 form > label, .label-row label { display: block; color: #344258; font-size: 0.83rem; font-weight: 700; margin-bottom: 8px; }
 .label-row { display: flex; justify-content: space-between; align-items: center; margin-top: 17px; }
 .label-row a { color: var(--blue); font-size: 0.76rem; }
@@ -169,6 +168,17 @@ form > label, .label-row label { display: block; color: #344258; font-size: 0.83
 .submit-button { width: 100%; min-height: 49px; margin-top: 15px; border: 0; border-radius: 11px; color: white; background: linear-gradient(135deg, var(--navy-dark), var(--blue)); cursor: pointer; font-weight: 800; box-shadow: 0 10px 20px rgba(18, 59, 129, 0.18); transition: 180ms ease; }
 .submit-button:hover { transform: translateY(-1px); filter: brightness(1.06); }
 .form-note { margin: 16px 0 0; color: #8a95a6; text-align: center; font-size: 0.75rem; line-height: 1.7; }
+.form-error { display: none; margin: 12px 0 0; padding: 9px 11px; border-radius: 9px; color: #a12938; background: #fff0f2; text-align: center; font-size: 0.77rem; line-height: 1.6; }
+.form-error.show { display: block; }
+.form-error.success { color: #167248; background: #eaf8ef; }
+.inline-link { border: 0; padding: 0; color: var(--blue); background: none; font: inherit; font-weight: 700; cursor: pointer; text-decoration: underline; }
+.form-intro { color: var(--muted); font-size: 0.82rem; line-height: 1.8; margin: -3px 0 18px; }
+#activation-form > label { margin-top: 14px; }
+.account-panel { color: var(--muted); line-height: 1.8; }
+.account-panel h3 { color: var(--navy-dark); margin: 0 0 10px; }
+.account-panel p { margin: 7px 0; }
+[hidden] { display: none !important; }
+.submit-button[disabled] { cursor: wait; opacity: 0.72; transform: none; }
 
 .feature-strip {
   width: min(1180px, calc(100% - 40px));

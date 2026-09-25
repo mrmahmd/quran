@@ -1,0 +1,4 @@
+window.QURAN_PLATFORM_CONFIG = Object.freeze({
+  supabaseUrl: 'https://ufytwtyjdlrgibaskzxg.supabase.co',
+  supabasePublishableKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVmeXR3dHlqZGxyZ2liYXNrenhnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAzNTUwMDMsImV4cCI6MjEwNTkzMTAwM30.S8jljAp5UPPFRzCbAfXpOXnThu2G56cMXj8v9WNARH4'
+});

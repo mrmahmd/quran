@@ -66,21 +66,20 @@
                 </span>
                 <div>
                   <h2 id="login-title">مرحبًا بعودتك</h2>
-                  <p>اختر نوع الحساب وأدخل بياناتك</p>
+                  <p>ادخل باسم المستخدم وكلمة المرور</p>
                 </div>
               </div>
 
-              <div class="role-tabs" role="tablist" aria-label="نوع الحساب">
-                <button class="role-tab active" type="button" data-role="معلم" role="tab" aria-selected="true">معلم</button>
-                <button class="role-tab" type="button" data-role="مشرف" role="tab" aria-selected="false">مشرف</button>
-                <button class="role-tab" type="button" data-role="إدارة" role="tab" aria-selected="false">إدارة</button>
+              <div class="secure-role-note">
+                <span>✓</span>
+                يخصص النظام الفصل للمعلم بعد تفعيل حسابه
               </div>
 
               <form id="login-form">
                 <label for="username">اسم المستخدم</label>
                 <div class="input-box">
                   <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm7 8a7 7 0 0 0-14 0" /></svg>
-                  <input id="username" type="text" placeholder="أدخل اسم المستخدم" autocomplete="username" required />
+                  <input id="username" type="text" placeholder="مثال: quran01" autocomplete="username" autocapitalize="none" spellcheck="false" required />
                 </div>
 
                 <div class="label-row">
@@ -95,10 +94,29 @@
                   </button>
                 </div>
 
-                <label class="remember"><input type="checkbox" /> <span>تذكّرني على هذا الجهاز</span></label>
-                <button class="submit-button" type="submit">دخول لوحة التحكم</button>
-                <p class="form-note">للدخول لأول مرة، تواصل مع مسؤول المدرسة القرآنية.</p>
+                <button class="submit-button" type="submit"><span>دخول لوحة التحكم</span></button>
+                <p class="form-note">أول مرة؟ <button id="show-activation" class="inline-link" type="button">فعّل حسابك برمز المدرسة</button></p>
+                <p class="form-error" id="login-error" role="alert"></p>
               </form>
+              <form id="activation-form" hidden>
+                <p class="form-intro">استخدم اسم المستخدم ورمز التفعيل الذي تسلمته من إدارة المدرسة، ثم اختر كلمة مرور خاصة بك.</p>
+                <label for="activation-username">اسم المستخدم</label>
+                <div class="input-box"><input id="activation-username" type="text" placeholder="مثال: quran01" autocomplete="username" autocapitalize="none" spellcheck="false" required /></div>
+                <label for="activation-code">رمز التفعيل</label>
+                <div class="input-box"><input id="activation-code" type="text" inputmode="text" autocomplete="one-time-code" maxlength="32" required /></div>
+                <label for="activation-password">كلمة مرور جديدة (12 حرفًا على الأقل)</label>
+                <div class="input-box"><input id="activation-password" type="password" autocomplete="new-password" minlength="12" required /></div>
+                <button class="submit-button" type="submit">تفعيل الحساب</button>
+                <p class="form-note"><button id="show-login" class="inline-link" type="button">العودة لتسجيل الدخول</button></p>
+                <p class="form-error" id="activation-error" role="alert"></p>
+              </form>
+              <section id="account-panel" class="account-panel" hidden aria-live="polite">
+                <h3>تم تسجيل الدخول</h3>
+                <p id="account-name"></p>
+                <p id="account-class"></p>
+                <p>لوحة المتابعة وتسجيل الطلاب ستكون الخطوة التالية.</p>
+                <button id="logout-button" class="inline-link" type="button">تسجيل الخروج</button>
+              </section>
             </section>
           </div>
         </section>
@@ -126,6 +144,8 @@
     </div>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.1/dist/umd/supabase.min.js"></script>
+    <script src="assets/supabase-config.js"></script>
     <script src="assets/app.js"></script>
   </body>
 </html>
