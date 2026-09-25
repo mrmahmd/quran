@@ -23,7 +23,7 @@ function showForm(form) {
   accountPanel.hidden = form !== 'account';
   document.querySelector('#login-error').classList.remove('show');
   document.querySelector('#activation-error').classList.remove('show');
-  document.querySelector('#login-title').textContent = form === 'activation' ? 'تفعيل حساب المعلم' : 'مرحبًا بعودتك';
+  document.querySelector('#login-title').textContent = form === 'activation' ? 'تفعيل الحساب' : 'مرحبًا بعودتك';
   document.querySelector('.card-heading p').textContent = form === 'activation'
     ? 'أنشئ كلمة مرورك لأول مرة'
     : 'ادخل باسم المستخدم وكلمة المرور';
