@@ -11,6 +11,12 @@ function showMessage(element, message, success = false) {
   element.classList.add('show');
 }
 
+function normalizeDigits(value) {
+  return value.trim()
+    .replace(/[٠-٩]/g, digit => String(digit.charCodeAt(0) - 0x0660))
+    .replace(/[۰-۹]/g, digit => String(digit.charCodeAt(0) - 0x06f0));
+}
+
 function showForm(form) {
   loginForm.hidden = form !== 'login';
   activationForm.hidden = form !== 'activation';
@@ -24,6 +30,16 @@ function showForm(form) {
 }
 
 async function showAccount(user) {
+  const { data: adminAccount } = await client.from('admin_accounts')
+    .select('email, active')
+    .eq('auth_user_id', user.id)
+    .maybeSingle();
+  if (adminAccount?.active) {
+    document.querySelector('#account-name').textContent = `إدارة المدرسة القرآنية: ${adminAccount.email}`;
+    document.querySelector('#account-class').textContent = 'الصلاحية: مدير عام للمنصة';
+    showForm('account');
+    return;
+  }
   const { data, error } = await client.from('teacher_accounts')
     .select('full_name, class_name, active')
     .eq('auth_user_id', user.id)
@@ -56,14 +72,15 @@ loginForm.addEventListener('submit', async (event) => {
   event.preventDefault();
   const button = loginForm.querySelector('.submit-button');
   const username = document.querySelector('#username').value.trim().toLowerCase();
-  if (!/^quran\d{2}$/.test(username)) {
-    showMessage(document.querySelector('#login-error'), 'اكتب اسم المستخدم بالشكل quran01.');
+  const isEmail = username.includes('@');
+  if ((!isEmail && !/^quran\d{2}$/.test(username)) || (isEmail && !/^\S+@\S+\.\S+$/.test(username))) {
+    showMessage(document.querySelector('#login-error'), 'اكتب اسم مستخدم المعلم أو بريد الإدارة بشكل صحيح.');
     return;
   }
   button.disabled = true;
   try {
     const { data, error } = await client.auth.signInWithPassword({
-      email: `${username}@quran-school.invalid`,
+      email: isEmail ? username : `${username}@quran-school.invalid`,
       password: password.value,
     });
     if (error || !data.user) throw error || new Error('login_failed');
@@ -79,9 +96,16 @@ activationForm.addEventListener('submit', async (event) => {
   event.preventDefault();
   const button = activationForm.querySelector('.submit-button');
   const status = document.querySelector('#activation-error');
+  const code = normalizeDigits(document.querySelector('#activation-code').value);
+  if (!/^\d{6}$/.test(code)) {
+    showMessage(status, 'رمز التفعيل يجب أن يكون ٦ أرقام.');
+    return;
+  }
   button.disabled = true;
   try {
-    const response = await fetch(`${config.supabaseUrl}/functions/v1/activate-teacher`, {
+    const identifier = document.querySelector('#activation-username').value.trim().toLowerCase();
+    const isAdmin = identifier.includes('@');
+    const response = await fetch(`${config.supabaseUrl}/functions/v1/${isAdmin ? 'activate-admin' : 'activate-teacher'}`, {
       method: 'POST',
       headers: {
         apikey: config.supabasePublishableKey,
@@ -89,8 +113,8 @@ activationForm.addEventListener('submit', async (event) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        username: document.querySelector('#activation-username').value,
-        code: document.querySelector('#activation-code').value,
+        ...(isAdmin ? { email: identifier } : { username: identifier }),
+        code,
         password: document.querySelector('#activation-password').value,
       }),
     });

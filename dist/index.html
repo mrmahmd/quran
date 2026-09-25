@@ -76,10 +76,10 @@
               </div>
 
               <form id="login-form">
-                <label for="username">اسم المستخدم</label>
+                <label for="username">اسم المستخدم أو بريد الإدارة</label>
                 <div class="input-box">
                   <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm7 8a7 7 0 0 0-14 0" /></svg>
-                  <input id="username" type="text" placeholder="مثال: quran01" autocomplete="username" autocapitalize="none" spellcheck="false" required />
+                  <input id="username" type="text" placeholder="quran01 أو بريد الإدارة" autocomplete="username" autocapitalize="none" spellcheck="false" required />
                 </div>
 
                 <div class="label-row">
@@ -100,12 +100,12 @@
               </form>
               <form id="activation-form" hidden>
                 <p class="form-intro">استخدم اسم المستخدم ورمز التفعيل الذي تسلمته من إدارة المدرسة، ثم اختر كلمة مرور خاصة بك.</p>
-                <label for="activation-username">اسم المستخدم</label>
-                <div class="input-box"><input id="activation-username" type="text" placeholder="مثال: quran01" autocomplete="username" autocapitalize="none" spellcheck="false" required /></div>
+                <label for="activation-username">اسم المستخدم أو بريد الإدارة</label>
+                <div class="input-box"><input id="activation-username" type="text" placeholder="quran01 أو بريد الإدارة" autocomplete="username" autocapitalize="none" spellcheck="false" required /></div>
                 <label for="activation-code">رمز التفعيل</label>
-                <div class="input-box"><input id="activation-code" type="text" inputmode="text" autocomplete="one-time-code" maxlength="32" required /></div>
-                <label for="activation-password">كلمة مرور جديدة (12 حرفًا على الأقل)</label>
-                <div class="input-box"><input id="activation-password" type="password" autocomplete="new-password" minlength="12" required /></div>
+                <div class="input-box"><input id="activation-code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="٦ أرقام" required /></div>
+                <label for="activation-password">كلمة مرور جديدة (٦ أحرف على الأقل)</label>
+                <div class="input-box"><input id="activation-password" type="password" autocomplete="new-password" minlength="6" required /></div>
                 <button class="submit-button" type="submit">تفعيل الحساب</button>
                 <p class="form-note"><button id="show-login" class="inline-link" type="button">العودة لتسجيل الدخول</button></p>
                 <p class="form-error" id="activation-error" role="alert"></p>

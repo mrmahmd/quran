@@ -39,17 +39,18 @@ Deno.serve(async (request) => {
   const username = typeof body.username === 'string' ? body.username.trim().toLowerCase() : ''
   const code = typeof body.code === 'string' ? body.code.trim().toUpperCase() : ''
   const password = typeof body.password === 'string' ? body.password : ''
-  if (!/^quran\d{2}$/.test(username) || !/^[A-F0-9]{32}$/.test(code) || password.length < 12 || password.length > 128) {
-    return response(400, 'تحقق من اسم المستخدم ورمز التفعيل وكلمة المرور (12 حرفًا على الأقل)')
+  if (!/^quran\d{2}$/.test(username) || !/^\d{6}$/.test(code) || password.length < 6 || password.length > 128) {
+    return response(400, 'تحقق من اسم المستخدم ورمز التفعيل وكلمة المرور (٦ أحرف على الأقل)')
   }
 
-  const { data: account, error: lookupError } = await admin
-    .from('teacher_accounts')
-    .select('username, full_name, activation_hash, auth_user_id, active')
-    .eq('username', username)
-    .maybeSingle()
+  const codeHash = await sha256(code)
+  const { data: checks, error: lookupError } = await admin.rpc('verify_teacher_activation', {
+    p_username: username,
+    p_code_hash: codeHash,
+  })
   if (lookupError) return response(503, 'تعذر التفعيل الآن، حاول لاحقًا')
-  if (!account || !account.active || account.auth_user_id || account.activation_hash !== await sha256(code)) {
+  const check = checks?.[0]
+  if (!check || check.result !== 'ok') {
     return response(403, 'بيانات التفعيل غير صحيحة أو سبق استخدام الرمز')
   }
 
@@ -57,7 +58,7 @@ Deno.serve(async (request) => {
     email: `${username}@quran-school.invalid`,
     password,
     email_confirm: true,
-    user_metadata: { full_name: account.full_name },
+    user_metadata: { full_name: check.account_name },
     app_metadata: { role: 'teacher' },
   })
   if (createError || !created.user) return response(503, 'تعذر إنشاء الحساب الآن، راجع الإدارة')
@@ -66,7 +67,7 @@ Deno.serve(async (request) => {
     .from('teacher_accounts')
     .update({ auth_user_id: created.user.id, activated_at: new Date().toISOString() })
     .eq('username', username)
-    .eq('activation_hash', await sha256(code))
+    .eq('activation_hash', codeHash)
     .is('auth_user_id', null)
     .select('username')
     .maybeSingle()
