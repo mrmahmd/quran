@@ -74,3 +74,7 @@
 .roster-row > span { flex:1; }
 .roster-row small { display:block; color:#718098; margin-top:4px; }
 @media (max-width:600px) { .roster-row { flex-wrap:wrap; } .roster-row > span { flex-basis:100%; } }
+
+.student-picker { display:flex; flex-direction:column; gap:10px; color:#18396b; font-size:.8rem; flex:1; max-width:540px; }
+.student-picker select { width:100%; padding:15px; border:1px solid #cfddee; border-radius:13px; background:white; color:#18396b; font:inherit; }
+.single-student { max-width:800px; margin-inline:auto; }
