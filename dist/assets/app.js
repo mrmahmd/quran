@@ -35,13 +35,11 @@ async function showAccount(user) {
     .eq('auth_user_id', user.id)
     .maybeSingle();
   if (adminAccount?.active) {
-    document.querySelector('#account-name').textContent = `إدارة المدرسة القرآنية: ${adminAccount.email}`;
-    document.querySelector('#account-class').textContent = 'الصلاحية: مدير عام للمنصة';
-    showForm('account');
+    await openDashboard({ role: 'admin', email: adminAccount.email });
     return;
   }
   const { data, error } = await client.from('teacher_accounts')
-    .select('full_name, class_name, active')
+    .select('username, full_name, class_name, active')
     .eq('auth_user_id', user.id)
     .maybeSingle();
   if (error || !data || !data.active) {
@@ -50,9 +48,28 @@ async function showAccount(user) {
     showMessage(document.querySelector('#login-error'), 'الحساب غير مرتبط بمعلم نشط. تواصل مع الإدارة.');
     return;
   }
-  document.querySelector('#account-name').textContent = `المعلم: ${data.full_name}`;
-  document.querySelector('#account-class').textContent = `الفصل: ${data.class_name}`;
-  showForm('account');
+  await openDashboard({ ...data, role: 'teacher' });
+}
+
+async function openDashboard(account) {
+  const [{ mountDashboard }, { createDashboardRepository }] = await Promise.all([
+    import('./dashboard.mjs?v=weekly1'), import('./dashboard-repository.mjs?v=weekly1'),
+  ]);
+  const previousRoot = document.querySelector('#dashboard-root');
+  const root = previousRoot.cloneNode(false);
+  previousRoot.replaceWith(root);
+  document.querySelector('.page-shell').hidden = true;
+  root.hidden = false;
+  await mountDashboard(root, {
+    account, repository: createDashboardRepository(client),
+    onLogout: async () => {
+      const { error } = await client.auth.signOut();
+      if (error) throw error;
+      root.hidden = true; root.replaceChildren();
+      document.querySelector('.page-shell').hidden = false;
+      showForm('login');
+    },
+  });
 }
 
 document.querySelector('.show-password').addEventListener('click', (event) => {

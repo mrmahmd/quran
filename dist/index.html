@@ -10,6 +10,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Alexandria:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="assets/styles.css" />
+    <link rel="stylesheet" href="assets/dashboard.css?v=weekly1" />
   </head>
   <body>
     <div class="page-shell">
@@ -37,8 +38,8 @@
             <div class="eyebrow"><span></span> بيئة تربوية لمتابعة كتاب الله</div>
             <h1 id="hero-title">معًا نرعى رحلة<br /><em>الحفظ والإتقان</em></h1>
             <p>
-              منصة موحّدة تساعد معلمي القرآن على تسجيل الحفظ والمراجعة،
-              ومتابعة تقدّم كل طالب بصورة واضحة ومنتظمة.
+              منصة موحّدة تساعد معلمي القرآن على تقييم تقدّم الطلاب أسبوعيًا،
+              واختيار فارس الأسبوع والتكريم الفصلي بصورة واضحة ومنتظمة.
             </p>
 
             <div class="hero-actions">
@@ -50,8 +51,8 @@
             </div>
 
             <div class="trust-row" aria-label="مميزات المنصة">
-              <div><span class="check">✓</span><span>متابعة يومية سهلة</span></div>
-              <div><span class="check">✓</span><span>تقارير شهرية دقيقة</span></div>
+              <div><span class="check">✓</span><span>تقييم أسبوعي سهل</span></div>
+              <div><span class="check">✓</span><span>تحفيز وتكريم مستمر</span></div>
               <div><span class="check">✓</span><span>بيانات محفوظة وآمنة</span></div>
             </div>
           </div>
@@ -114,7 +115,7 @@
                 <h3>تم تسجيل الدخول</h3>
                 <p id="account-name"></p>
                 <p id="account-class"></p>
-                <p>لوحة المتابعة وتسجيل الطلاب ستكون الخطوة التالية.</p>
+                <p>لوحة التقييم الأسبوعي والتكريم جاهزة بعد تسجيل الدخول.</p>
                 <button id="logout-button" class="inline-link" type="button">تسجيل الخروج</button>
               </section>
             </section>
@@ -124,15 +125,15 @@
         <section class="feature-strip" id="about" aria-label="خدمات المنصة">
           <article>
             <span class="feature-icon blue"><svg viewBox="0 0 24 24"><path d="M4 5h16v14H4V5Zm4-2v4m8-4v4M7 11h10m-8 3h2m2 0h2" /></svg></span>
-            <div><strong>تسجيل الحصص</strong><p>حفظ ومراجعة وحضور في خطوات سريعة</p></div>
+            <div><strong>التقييم الأسبوعي</strong><p>نقاط الحفظ والمراجعة والتحسن والالتزام</p></div>
           </article>
           <article>
             <span class="feature-icon cyan"><svg viewBox="0 0 24 24"><path d="M5 20V10m7 10V4m7 16v-7M3 20h18" /></svg></span>
-            <div><strong>متابعة التقدّم</strong><p>سجل واضح ومتدرّج لكل طالب</p></div>
+            <div><strong>فارس الأسبوع</strong><p>احتفاء بالاجتهاد والتحسن والإتقان</p></div>
           </article>
           <article>
             <span class="feature-icon purple"><svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6V3Zm8 0v5h5M9 13h6m-6 4h6" /></svg></span>
-            <div><strong>التقييم الشهري</strong><p>ملخص شامل يصل إلى إدارة المدرسة</p></div>
+            <div><strong>التكريم الفصلي</strong><p>نقاط تراكمية واختيارات تصل إلى الإدارة</p></div>
           </article>
         </section>
       </main>
@@ -146,6 +147,7 @@
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.1/dist/umd/supabase.min.js"></script>
     <script src="assets/supabase-config.js"></script>
-    <script src="assets/app.js?v=2468b37"></script>
+    <div id="dashboard-root" hidden></div>
+    <script src="assets/app.js?v=weekly1"></script>
   </body>
 </html>
