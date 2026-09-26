@@ -39,7 +39,7 @@ async function showAccount(user) {
     return;
   }
   const { data, error } = await client.from('teacher_accounts')
-    .select('username, full_name, class_name, active')
+    .select('username, full_name, class_name, ring_name, active')
     .eq('auth_user_id', user.id)
     .maybeSingle();
   if (error || !data || !data.active) {
@@ -48,12 +48,14 @@ async function showAccount(user) {
     showMessage(document.querySelector('#login-error'), 'الحساب غير مرتبط بمعلم نشط. تواصل مع الإدارة.');
     return;
   }
-  await openDashboard({ ...data, role: 'teacher' });
+  const { data: managesRosters, error: managerError } = await client.rpc('is_roster_manager');
+  if (managerError) throw managerError;
+  await openDashboard({ ...data, role: 'teacher', roster_manager: managesRosters === true });
 }
 
 async function openDashboard(account) {
   const [{ mountDashboard }, { createDashboardRepository }] = await Promise.all([
-    import('./dashboard.mjs?v=weekly1'), import('./dashboard-repository.mjs?v=weekly1'),
+    import('./dashboard.mjs?v=rosters2'), import('./dashboard-repository.mjs?v=rosters2'),
   ]);
   const previousRoot = document.querySelector('#dashboard-root');
   const root = previousRoot.cloneNode(false);

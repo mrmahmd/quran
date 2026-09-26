@@ -30,6 +30,8 @@ export function termWeeks(term) {
 export function rankWeekly(rows) {
   return rows.filter(row => scoreTotal(row) !== null).slice().sort((a, b) => scoreTotal(b) - scoreTotal(a) || b.improvement - a.improvement || a.full_name.localeCompare(b.full_name, 'ar'));
 }
+export function weekNumber(term, index) { return (Number.isInteger(term?.first_week_number) ? term.first_week_number : 1) + index; }
+export function weekEnd(day) { const end = new Date(`${day}T00:00:00Z`); end.setUTCDate(end.getUTCDate() + 4); return end.toISOString().slice(0,10); }
 export function semesterSummary(students, reviews, evaluations) {
   const approved = new Set(reviews.filter(row => row.status === 'submitted').map(row => row.id));
   return students.map(student => {

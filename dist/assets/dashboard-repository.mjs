@@ -14,7 +14,7 @@ async function allRows(build) {
 export function createDashboardRepository(client) {
   return {
     terms: () => result(client.from('school_terms').select('*').order('starts_on', { ascending: false })),
-    teachers: () => result(client.from('teacher_accounts').select('username, full_name, class_name, active').eq('active', true).order('username')),
+    teachers: () => result(client.from('teacher_accounts').select('username, full_name, class_name, ring_name, active').eq('active', true).order('username')),
     async context(teacher, term) {
       const [students, reviews, honors] = await Promise.all([
         allRows(() => client.from('students').select('*').eq('teacher_username', teacher).order('full_name').order('id')),
@@ -36,6 +36,7 @@ export function createDashboardRepository(client) {
     knight: args => result(client.rpc('choose_weekly_knight', args)),
     honors: args => result(client.rpc('save_semester_honors', args)),
     reopen: args => result(client.rpc('reopen_weekly_evaluation', args)),
+    manageStudent: args => result(client.rpc('manage_student', args)),
     addTerm: term => result(client.from('school_terms').insert(term).select().single()),
     addStudents: students => result(client.from('students').insert(students).select('id')),
   };

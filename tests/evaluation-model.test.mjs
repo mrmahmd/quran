@@ -1,7 +1,18 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { emptyScores, scoreTotal, validateScores, termWeeks, rankWeekly, semesterSummary } from '../dist/assets/evaluation-model.mjs';
+import { emptyScores, scoreTotal, validateScores, termWeeks, rankWeekly, semesterSummary, weekNumber, weekEnd } from '../dist/assets/evaluation-model.mjs';
 const full = id => ({ ...emptyScores(id), memorization: 4, revision: 2, improvement: 2, commitment: 2, bonus_memorization: 1, bonus_revision: 1 });
+test('requested schedule covers twelve Sunday-to-Thursday weeks numbered 5 through 16', () => {
+  const term={starts_on:'2026-09-27',ends_on:'2026-12-17',first_week_number:5};
+  const weeks=termWeeks(term);
+  assert.equal(weeks.length,12);
+  assert.equal(weekNumber(term,0),5);
+  assert.equal(weekNumber(term,11),16);
+  assert.equal(weeks[0],'2026-09-27');
+  assert.equal(weeks.at(-1),'2026-12-13');
+  assert.equal(weekEnd(weeks.at(-1)),'2026-12-17');
+  assert.equal(weekNumber({},0),1);
+});
 test('weekly score distinguishes missing scores from a real zero and caps at 12', () => {
   assert.equal(scoreTotal(emptyScores('a')), null);
   assert.equal(scoreTotal(full('a')), 12);
