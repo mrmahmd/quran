@@ -1,4 +1,5 @@
-import { SCORE_FIELDS, emptyScores, scoreTotal, validateScores, termWeeks, rankWeekly, semesterSummary, weekNumber, weekEnd } from './evaluation-model.mjs?v=rosters2';
+import { emptyMonthly, monthlyProblem, termMonths } from './monthly-model.mjs?v=reports1';
+import { SCORE_FIELDS, emptyScores, scoreTotal, validateScores, termWeeks, semesterSummary, weekNumber, weekEnd } from './evaluation-model.mjs?v=rosters2';
 
 const esc = value => String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]);
 const dateLabel = date => new Intl.DateTimeFormat('ar-EG', { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(new Date(`${date}T00:00:00Z`));
@@ -14,7 +15,7 @@ function errorText(error) {
 export async function mountDashboard(root, { repository: repo, account, onLogout, preview = false }) {
   let terms = [], teachers = [], termId = '', teacherId = account.username || '', week = '', view = account.role === 'admin' ? 'reports' : 'evaluation';
   let context = { students: [], reviews: [], evaluations: [], honors: [] }, overview = null;
-  let scores = new Map(), dirty = false, honorDirty = false, knightDirty = false, busy = false, generation = 0, selectedStudent = '', chosenKnight = '', selectedHonors = new Set();
+  let scores = new Map(), dirty = false, honorDirty = false, knightDirty = false, busy = false, generation = 0, monthlyDirty = false, month = '', monthlyData = { report: null, entries: [] }, monthlyRows = new Map(), champions = [], chosenKnight = '', selectedHonors = new Set();
   let messageTimer, editingStudent = '';
   const admin = account.role === 'admin';
   const manager = admin || account.roster_manager;
@@ -23,15 +24,15 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
   const review = () => context.reviews.find(row => row.week_start === week);
   const readonly = () => !selectedTerm()?.active || review()?.status === 'submitted';
   const weekStudents = () => context.students.filter(student => (review()?.status !== 'submitted' && student.active) || context.evaluations.some(row => row.review_id === review()?.id && row.student_id === student.id));
-  const completeCount = () => context.evaluations.filter(row => row.review_id === review()?.id && scores.has(row.student_id) && validateScores(row, true)).length;
+  const completeCount = () => [...scores.values()].filter(row => validateScores(row, true)).length;
 
   root.innerHTML = `<div class="dashboard-shell">
     <header class="dashboard-topbar"><a class="brand" href="#"><img src="assets/alandalus-logo.png" alt="شعار مدارس الأندلس الأهلية"><span class="brand-copy"><strong>المدرسة القرآنية</strong><small>المسار المصري - فرع الحمدانية</small></span></a><div class="dashboard-user"><span>${esc(account.role === 'admin' ? 'حساب الإدارة' : account.full_name)}</span><button class="light-button" id="dashboard-logout">تسجيل الخروج</button></div></header>
     ${preview ? '<div class="preview-banner">معاينة تصميم محلية - جميع الأسماء والدرجات هنا تجريبية</div>' : ''}
     <main class="dashboard-main"><section class="welcome-banner"><div><p class="eyebrow">${admin ? 'إشراف واضح.. ودعم لكل حلقة' : 'خطوة صغيرة.. وأثر كبير'}</p><h1>${admin ? 'لوحة إدارة المدرسة القرآنية' : `أهلًا بك، ${esc(account.full_name)}`}</h1><p>${admin ? 'تابع التقييمات المعتمدة وفرسان الأسبوع والتكريم الفصلي.' : `حلقة ${esc(account.ring_name || "")} <bdi dir="ltr">${esc(account.class_name)}</bdi> · قيّم اجتهاد كل طالب وتقدمه مقارنة بنفسه.`}</p></div><div class="welcome-symbol" aria-hidden="true">✦</div></section>
     <section class="dashboard-toolbar" aria-label="الفصل الدراسي والأسبوع"><label>الفصل الدراسي<select id="term-select"></select></label>${manager ? '<label>الحلقة<select id="teacher-select"></select></label>' : '<div class="class-tag">حلقتي <strong>'+esc(account.class_name)+'</strong></div>'}<label>الأسبوع<select id="week-select"></select></label><button class="light-button" id="refresh-dashboard">تحديث البيانات</button></section>
-    <nav class="dashboard-actions" aria-label="أقسام لوحة التحكم"><button class="action-card blue-card" data-view="evaluation"><span class="action-symbol">✓</span><span><strong>التقييم الأسبوعي</strong><small>نقاط واضحة من ١٢</small></span><span class="action-arrow">←</span></button><button class="action-card gold-card" data-view="knight"><span class="action-symbol">★</span><span><strong>فارس الأسبوع</strong><small>احتفِ بالاجتهاد والتحسن</small></span><span class="action-arrow">←</span></button><button class="action-card purple-card" data-view="honors"><span class="action-symbol">✦</span><span><strong>التكريم الفصلي</strong><small>ثمرة رحلة الفصل الدراسي</small></span><span class="action-arrow">←</span></button></nav>
-    ${manager ? `<div class="admin-tabs">${admin ? '<button class="light-button" data-view="reports">تقارير جميع الحلقات</button>' : '<span>مشرف الطلاب · تقييمات الحلقات الأخرى تخص معلميها</span>'}<button class="light-button" data-view="setup">إدارة قوائم الطلاب</button></div>` : ''}
+    <nav class="dashboard-actions" aria-label="أقسام لوحة التحكم"><button class="action-card blue-card" data-view="evaluation"><span class="action-symbol">✓</span><span><strong>التقييم الأسبوعي</strong><small>نقاط واضحة من ١٢</small></span><span class="action-arrow">←</span></button><button class="action-card gold-card" data-view="knight"><span class="action-symbol">★</span><span><strong>فارس الأسبوع</strong><small>احتفِ بالاجتهاد والتحسن</small></span><span class="action-arrow">←</span></button><button class="action-card purple-card" data-view="honors"><span class="action-symbol">✦</span><span><strong>التكريم الفصلي</strong><small>ثمرة رحلة الفصل الدراسي</small></span><span class="action-arrow">←</span></button><button class="action-card teal-card" data-view="monthly"><span class="action-symbol">▤</span><span><strong>التقرير الشهري</strong><small>مقدار الحفظ والمراجعة</small></span><span class="action-arrow">←</span></button></nav>
+    ${manager ? `<div class="admin-tabs">${admin ? '<button class="light-button" data-view="reports">تقارير جميع الحلقات</button>' : '<span>مشرف الطلاب · تقييمات الحلقات الأخرى تخص معلميها</span>'}<button class="gold-button" data-view="champions">★ فرسان الأسبوع</button><button class="light-button" data-view="setup">إدارة قوائم الطلاب</button></div>` : ''}
     <div id="dashboard-message" class="dashboard-message" role="status" hidden></div><section id="dashboard-content" aria-live="polite"></section>
     </main><footer class="dashboard-footer">مدارس الأندلس الأهلية · نحتفي بالتقدم والتحسن والإتقان</footer>
     <dialog id="dashboard-confirm" class="confirm-dialog"><h2></h2><p></p><div><button class="light-button" data-answer="cancel">العودة</button><button class="solid-button" data-answer="confirm">تأكيد</button></div></dialog></div>`;
@@ -56,7 +57,7 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
       dialog.addEventListener('click', click); dialog.addEventListener('cancel', cancel); dialog.showModal();
     });
   }
-  async function mayLeave() { return (!dirty && !honorDirty && !knightDirty) || await confirm('تغييرات لم تُحفظ', 'هل تريد الانتقال وترك التغييرات غير المحفوظة؟'); }
+  async function mayLeave() { return (!dirty && !honorDirty && !knightDirty && !monthlyDirty) || await confirm('تغييرات لم تُحفظ', 'هل تريد الانتقال وترك التغييرات غير المحفوظة؟'); }
   function updateSelectors() {
     termSelect.innerHTML = terms.length ? terms.map(term => `<option value="${esc(term.id)}">${esc(term.name)}${term.active ? '' : ' (مؤرشف)'}</option>`).join('') : '<option value="">لم تُحدد الفصول الدراسية بعد</option>';
     termSelect.value = termId;
@@ -80,16 +81,22 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
     try {
       const data = teacherId ? await repo.context(teacherId, termId) : { students: [], reviews: [], evaluations: [], honors: [] };
       const report = admin && termId ? await repo.overview(termId) : null;
+      const months = termMonths(selectedTerm());
+      if (!months.includes(month)) month = months.find(value => value.slice(0, 7) === today().slice(0, 7)) || months[0] || '';
+      const monthly = teacherId && termId && month ? await repo.monthly(teacherId, termId, month) : { report: null, entries: [] };
+      const gallery = manager && termId ? await repo.champions(termId, week) : [];
       if (ticket !== generation) return;
-      context = data; overview = report; loadScores(); render();
+      context = data; overview = report; monthlyData = monthly; champions = gallery; loadScores(); loadMonthlyRows(); render();
     } catch (error) { if (ticket !== generation) return; content.innerHTML = '<div class="empty-state"><h2>تعذر تحميل البيانات</h2><p>اضغط تحديث البيانات للمحاولة مرة أخرى.</p></div>'; notify(errorText(error), true); }
   }
   function empty(title, text, symbol = '✦') { return `<div class="empty-state"><span class="empty-symbol">${symbol}</span><h2>${esc(title)}</h2><p>${esc(text)}</p></div>`; }
   function render() {
-    if (!admin && account.roster_manager && teacherId !== account.username) view = 'setup';
+    if (!admin && account.roster_manager && teacherId !== account.username && !['champions','setup'].includes(view)) view = 'setup';
     root.querySelectorAll('[data-view]').forEach(button => { button.classList.toggle('selected', button.dataset.view === view); button.setAttribute('aria-current', button.dataset.view === view ? 'page' : 'false'); });
     if (view === 'setup') { renderSetup(); return; }
     if (!termId) { content.innerHTML = empty('جاهزون لبدء الرحلة', 'ستظهر التقييمات بعد إضافة تواريخ الفصل الدراسي وقوائم الطلاب التي سترسلها الإدارة.'); return; }
+    if (view === 'champions') { renderChampions(); return; }
+    if (view === 'monthly') { renderMonthly(); return; }
     if (view === 'reports') { renderReports(); return; }
     if (!context.students.length) { content.innerHTML = empty('قائمة طلاب الحلقة قيد التجهيز', 'ستظهر أسماء طلاب هذه الحلقة فور إضافتها، لتقييمهم واختيار فارس الأسبوع والمكرَّمين.'); return; }
     if (view === 'evaluation') renderEvaluation();
@@ -102,28 +109,48 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
   }
   function renderEvaluation() {
     const students = weekStudents();
-    if (!students.some(student => student.id === selectedStudent)) selectedStudent = students.find(student => !validateScores(scores.get(student.id), true))?.id || students[0]?.id || '';
-    content.innerHTML = `<div class="section-heading"><div><p class="section-kicker">التقييم الأسبوعي</p><h2>نقاط تصنع أثرًا</h2><p>قيّم التحسن مقارنة بمستوى الطالب نفسه. نقطة التميز تُمنح لتجاوز المطلوب مع الإتقان.</p></div><span class="status-pill ${review()?.status === 'submitted' ? 'approved' : ''}">${review()?.status === 'submitted' ? '✓ أسبوع معتمد' : 'مسودة الأسبوع'}</span></div>
-    <div class="evaluation-tools"><div id="rating-progress" class="progress-copy"></div><label class="student-picker">اختر الطالب<select id="student-select">${students.map(student => `<option value="${esc(student.id)}">${esc(student.full_name)} · ${validateScores(scores.get(student.id), true) ? '✓ تم التقييم' : 'بانتظار التقييم'}</option>`).join('')}</select></label></div>
-    <div class="single-student" id="students-grid">${students.filter(student => student.id === selectedStudent).map(scoreCard).join('')}</div>
-    <div class="save-bar"><span id="save-state">${readonly() ? 'النقاط محفوظة؛ يمكنك اختيار فارس الأسبوع.' : 'اختر الطالب، أدخل نقاطه ثم احفظها قبل الانتقال.'}</span><div>${readonly() ? '<button class="solid-button" data-view="knight">اختيار فارس الأسبوع ←</button>' + (admin && review()?.status === 'submitted' ? '<button class="light-button" id="reopen-week">إعادة فتح التقييم</button>' : '') : '<button class="light-button" id="save-student">حفظ نقاط الطالب</button><button class="solid-button" id="submit-week" ' + (week > today() ? 'disabled title="يمكن الاعتماد بعد بداية الأسبوع"' : '') + '>اعتماد نقاط الأسبوع</button>'}</div></div>`;
-    root.querySelector('#student-select').value = selectedStudent;
+    content.innerHTML = `<div class="section-heading"><div><p class="section-kicker">التقييم الأسبوعي</p><h2>طلاب الحلقة.. في شاشة واحدة</h2><p>ضع النقاط لجميع الطلاب ثم احفظ التقييم مرة واحدة. الصفر تقييم صحيح، والدرجة الفارغة لم تُسجّل بعد.</p></div><span class="status-pill ${review()?.status === 'submitted' ? 'approved' : ''}">${review()?.status === 'submitted' ? '✓ أسبوع معتمد' : 'بانتظار التقييم'}</span></div>
+    <div class="evaluation-tools"><div id="rating-progress" class="progress-copy"></div><span class="help-pill">✓ الحفظ ٤ · المراجعة ٢ · التحسن ٢ · الالتزام ٢ · التميز ٢</span></div>
+    <div class="students-grid" id="students-grid">${students.map(scoreCard).join('')}</div>
+    <div class="save-bar"><span id="save-state"></span><div>${readonly() ? '<button class="gold-button" data-view="knight">اختيار فارس الأسبوع ★</button>' + (admin && review()?.status === 'submitted' ? '<button class="light-button" id="reopen-week">إعادة فتح التقييم</button>' : '') : '<button class="solid-button" id="submit-week" ' + (week > today() || !students.length ? 'disabled title="الحفظ متاح بعد بداية الأسبوع"' : '') + '>✓ حفظ تقييم جميع الطلاب</button>'}</div></div>`;
     updateProgress();
   }
   function updateProgress() {
     const count = completeCount(), all = scores.size;
     const element = root.querySelector('#rating-progress');
-    if (element) element.innerHTML = `<strong>${count} <small>من ${all} طالبًا</small></strong><span>تم حفظ تقييمهم</span><div class="progress-track"><i style="width:${all ? count / all * 100 : 0}%"></i></div>`;
+    if (element) element.innerHTML = `<strong>${count} <small>من ${all} طالبًا</small></strong><span>اكتمل تقييمهم</span><div class="progress-track"><i style="width:${all ? count / all * 100 : 0}%"></i></div>`;
     const status = root.querySelector('#save-state');
-    if (status && !readonly()) status.textContent = dirty ? 'تغييرات جديدة لم تُحفظ بعد' : 'اختر الطالب، أدخل نقاطه ثم احفظها قبل الانتقال.';
+    if (status) status.textContent = readonly() ? 'تم حفظ واعتماد تقييم الحلقة.' : dirty ? 'تغييرات لم تُحفظ؛ احفظ تقييم الحلقة بعد اكتمال جميع الطلاب.' : 'زر واحد لحفظ واعتماد نقاط جميع الطلاب.';
   }
   function renderKnight() {
     const current = review();
     if (current?.status !== 'submitted') { content.innerHTML = empty('اعتمد نقاط الأسبوع أولًا', 'بعد اكتمال تقييم الطلاب واعتماد النقاط، ستظهر بطاقاتهم هنا لاختيار فارس الأسبوع.', '★') + '<button class="solid-button centered-button" data-view="evaluation">الذهاب إلى التقييم الأسبوعي</button>'; return; }
-    const ranked = rankWeekly(context.evaluations.filter(row => row.review_id === current.id).map(row => ({ ...row, full_name: context.students.find(student => student.id === row.student_id)?.full_name || 'طالب' })));
-    content.innerHTML = `<div class="section-heading"><div><p class="section-kicker gold-text">فارس الأسبوع</p><h2>نحتفي بالاجتهاد والتحسن</h2><p>الترتيب بالنقاط ثم التحسن. عند التعادل راعِ الإتقان ثم التميز في الحفظ والمراجعة.</p></div><span class="status-pill gold-status">${current.knight_student_id ? '★ تم اختيار الفارس' : 'بانتظار اختيارك'}</span></div>
-    <div class="knight-grid">${ranked.map((row, i) => `<button class="knight-card ${chosenKnight === row.student_id ? 'chosen' : ''}" data-knight="${esc(row.student_id)}" aria-pressed="${chosenKnight === row.student_id}" ${!selectedTerm()?.active ? 'disabled' : ''}><span class="candidate-rank">${i + 1}</span><span class="knight-star">★</span><h3>${esc(row.full_name)}</h3><strong>${scoreTotal(row)} <small>/ ١٢ نقطة</small></strong><div class="candidate-detail"><span>التحسن <b>${row.improvement}/٢</b></span><span>التميز <b>${row.bonus_memorization + row.bonus_revision}/٢</b></span></div><span class="choice-label">${chosenKnight === row.student_id ? '✓ اختيارك لفارس الأسبوع' : 'اختيار هذا الطالب'}</span></button>`).join('')}</div>
-    <div class="note-panel"><label for="knight-note">سبب الاختيار أو ملاحظة عند التعادل <small>(اختياري)</small></label><textarea id="knight-note" maxlength="500" placeholder="مثال: تحسن واضح في إتقان التسميع">${esc(current.knight_note)}</textarea></div><div class="save-bar"><span>يحتفظ الطالب بميداليته تقديرًا لإنجازه.</span><button class="gold-button" id="save-knight" ${!chosenKnight || !selectedTerm()?.active ? 'disabled' : ''}>حفظ فارس الأسبوع ★</button></div>`;
+    const ranked = context.students.filter(student => context.evaluations.some(row => row.review_id === current.id && row.student_id === student.id)).map(student => ({...context.evaluations.find(row => row.review_id === current.id && row.student_id === student.id), full_name: student.full_name}));
+    content.innerHTML = `<div class="section-heading"><div><p class="section-kicker gold-text">فارس الأسبوع</p><h2>نحتفي بالاجتهاد والتحسن</h2><p>اختر فارس الأسبوع بنفسك من طلاب الحلقة. لا يوجد اختيار تلقائي أو ترتيب بالنقاط.</p></div><span class="status-pill gold-status">${current.knight_student_id ? '★ تم اختيار الفارس' : 'بانتظار اختيارك'}</span></div>
+    <div class="knight-grid">${ranked.map((row, i) => `<button class="knight-card ${chosenKnight === row.student_id ? 'chosen' : ''}" data-knight="${esc(row.student_id)}" aria-pressed="${chosenKnight === row.student_id}" ${!selectedTerm()?.active ? 'disabled' : ''}><span class="knight-star">★</span><h3>${esc(row.full_name)}</h3><strong>${scoreTotal(row)} <small>/ ١٢ نقطة</small></strong><div class="candidate-detail"><span>التحسن <b>${row.improvement}/٢</b></span><span>التميز <b>${row.bonus_memorization + row.bonus_revision}/٢</b></span></div><span class="choice-label">${chosenKnight === row.student_id ? '✓ اختيارك لفارس الأسبوع' : 'اختيار هذا الطالب'}</span></button>`).join('')}</div>
+    <div class="note-panel"><label for="knight-note">سبب اختيار فارس الأسبوع <small>(اختياري)</small></label><textarea id="knight-note" maxlength="500" placeholder="مثال: تحسن واضح في إتقان التسميع">${esc(current.knight_note)}</textarea></div><div class="save-bar"><span>يحتفظ الطالب بميداليته تقديرًا لإنجازه.</span><button class="gold-button" id="save-knight" ${!chosenKnight || !selectedTerm()?.active ? 'disabled' : ''}>حفظ فارس الأسبوع ★</button></div>`;
+  }
+  const monthlyStudents = () => context.students.filter(student => student.active || monthlyData.entries.some(row => row.student_id === student.id));
+  const monthlyReadonly = () => admin || !selectedTerm()?.active || teacherId !== account.username;
+  function loadMonthlyRows() {
+    monthlyRows = new Map(monthlyStudents().map(student => [student.id, structuredClone(monthlyData.entries.find(row => row.student_id === student.id) || emptyMonthly(student.id))]));
+    monthlyDirty = false;
+  }
+  const monthLabel = date => new Intl.DateTimeFormat('ar-EG', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(date + 'T00:00:00Z'));
+  function monthlySection(student, kind, label) {
+    const row = monthlyRows.get(student.id)[kind], disabled = monthlyReadonly() ? 'disabled' : '';
+    return `<section class="monthly-section ${kind}"><h4>مقدار ${label}</h4><label class="none-choice"><input type="checkbox" data-monthly-none="${kind}" ${row.none ? 'checked' : ''} ${disabled}>لا يوجد ${label} خلال الشهر</label>${row.none ? '<p class="zero-report">لا يوجد مقدار مسجّل لهذا الشهر.</p>' : `<label class="monthly-amount">اكتب مقدار ${label} خلال الشهر<textarea data-monthly-kind="${kind}" maxlength="1000" rows="3" placeholder="مثال: من سورة البقرة آية ١ إلى سورة آل عمران آية ٢٠" ${disabled}>${esc(row.text)}</textarea></label>`}</section>`;
+  }
+  function renderMonthly() {
+    content.innerHTML = `<div class="section-heading"><div><p class="section-kicker teal-text">التقرير الشهري</p><h2>رحلة الحفظ والمراجعة</h2><p>اكتب مقدار الحفظ والمراجعة لكل طالب خلال الشهر بكلماتك، أو اختر «لا يوجد».</p></div><span class="status-pill teal-status">${monthlyData.report ? '✓ تقرير محفوظ' : 'تقرير جديد'}</span></div><div class="monthly-toolbar"><label>الشهر<select id="month-select">${termMonths(selectedTerm()).map(value => `<option value="${value}" ${month === value ? 'selected' : ''}>${monthLabel(value)}</option>`).join('')}</select></label><button class="light-button" id="print-monthly">▤ طباعة التقرير</button><span>${esc(teacher().full_name)} · ${esc(teacher().ring_name || teacher().class_name)}</span></div><div class="print-heading"><h2>التقرير الشهري — ${monthLabel(month)}</h2><p>${esc(teacher().full_name)} · ${esc(teacher().ring_name || teacher().class_name)}</p></div>${monthlyReadonly() ? monthlyData.report ? monthlyTable() : empty('لم يُرسل تقرير هذا الشهر بعد', 'سيظهر تقرير الحلقة هنا بعد حفظه بواسطة المعلم.') : `<div class="monthly-grid">${monthlyStudents().map(student => `<article class="monthly-card" data-monthly-student="${student.id}"><header><span class="student-avatar">${esc(student.full_name.slice(0, 1))}</span><h3>${esc(student.full_name)}</h3>${student.active ? '' : '<small>مؤرشف · تقرير محفوظ</small>'}</header>${monthlySection(student, 'memorization', 'حفظ')}${monthlySection(student, 'revision', 'مراجعة')}<label class="monthly-note">ملاحظة اختيارية<textarea data-monthly-note maxlength="500" rows="2" ${monthlyReadonly() ? 'disabled' : ''}>${esc(monthlyRows.get(student.id).note)}</textarea></label></article>`).join('') || empty('لا توجد أسماء في الحلقة', 'أضف الطلاب قبل إعداد التقرير الشهري.')}</div><div class="print-only">${monthlyTable()}</div>`}<div class="save-bar"><span id="monthly-save-state">${monthlyDirty ? 'تغييرات لم تُحفظ بعد' : 'حفظ واحد لجميع طلاب الحلقة'}</span>${!monthlyReadonly() ? `<button class="teal-button" id="save-monthly" ${!monthlyRows.size || month > today() ? 'disabled' : ''}>✓ حفظ التقرير الشهري لجميع الطلاب</button>` : '<span>عرض تقرير الحلقة المحفوظ</span>'}</div>`;
+  }
+  function monthlyTable() {
+    const amount = value => value.none ? 'لا يوجد' : esc(value.text || 'لم يُسجّل');
+    return `<div class="monthly-table-wrap"><table class="monthly-report-table"><thead><tr><th>م</th><th>اسم الطالب</th><th>مقدار الحفظ</th><th>مقدار المراجعة</th><th>ملاحظة</th></tr></thead><tbody>${monthlyStudents().map((student,index) => {const row=monthlyRows.get(student.id); return `<tr><td>${index+1}</td><th scope="row">${esc(student.full_name)}</th><td>${amount(row.memorization)}</td><td>${amount(row.revision)}</td><td>${esc(row.note || '—')}</td></tr>`;}).join('')}</tbody></table></div>`;
+  }
+  function renderChampions() {
+    const selected = champions.filter(row => row.student_name);
+    content.innerHTML = `<div class="section-heading"><div><p class="section-kicker gold-text">فرسان الأسبوع</p><h2>نجوم حلقاتنا.. مجتمعون</h2><p>اختيارات المعلمين اليدوية للأسبوع المحدد أعلى الصفحة.</p></div><span class="status-pill gold-status">★ ${selected.length} / ${champions.length} حلقة اختارت فارسًا</span></div><div class="champions-grid">${champions.map(row => `<article class="champion-card ${row.student_name ? '' : 'pending-champion'}"><span class="champion-symbol">${row.student_name ? '★' : '☆'}</span><span class="report-class">${esc(row.ring_name || row.class_name)}</span><h3>${esc(row.student_name || 'بانتظار اختيار الفارس')}</h3><p>${esc(row.teacher_name)}</p><small>${dateLabel(week)} – ${dateLabel(weekEnd(week))}</small>${row.note ? `<blockquote>${esc(row.note)}</blockquote>` : ''}<span class="status-pill gold-status">${row.student_name ? 'اختيار المعلم' : 'لم يُختر بعد'}</span></article>`).join('') || empty('لا توجد حلقات', 'تظهر الحلقات النشطة هنا.', '★')}</div>`;
   }
   function renderHonors() {
     const summary = semesterSummary(context.students, context.reviews, context.evaluations).filter(student => student.weeks > 0);
@@ -150,6 +177,21 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
     finally { busy = false; root.classList.remove('is-busy'); root.removeAttribute('aria-busy'); }
   }
   root.addEventListener('click', async event => {
+    if (event.target.closest('#print-monthly')) {
+      const printable = root.querySelector('.print-only');
+      if (printable) printable.innerHTML = monthlyTable();
+      window.print(); return;
+    }
+    if (event.target.closest('#save-monthly') && !busy && !monthlyReadonly()) {
+      const missing = monthlyStudents().filter(student => monthlyProblem(monthlyRows.get(student.id)));
+      root.querySelectorAll('.needs-attention').forEach(card => card.classList.remove('needs-attention'));
+      if (missing.length) {
+        missing.forEach(student => root.querySelector(`[data-monthly-student="${student.id}"]`).classList.add('needs-attention'));
+        root.querySelector(`[data-monthly-student="${missing[0].id}"] textarea`)?.focus();
+        notify('التقرير غير مكتمل: ' + missing.map(student => `${student.full_name} (${monthlyProblem(monthlyRows.get(student.id))})`).join('؛ '), true); return;
+      }
+      await action(async () => { await repo.saveMonthly({p_teacher:teacherId,p_term:termId,p_month:month,p_rows:[...monthlyRows.values()],p_version:monthlyData.report?.version || 0}); monthlyDirty=false; await loadContext(); }, 'تم حفظ التقرير الشهري لجميع الطلاب وإظهاره للإدارة.'); return;
+    }
     const edit = event.target.closest('[data-edit-student]');
     if (edit && manager && !busy) { editingStudent=edit.dataset.editStudent; renderSetup(); root.querySelector('#student-edit-form input').focus(); return; }
     const archive = event.target.closest('[data-archive-student]');
@@ -160,6 +202,7 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
     }
     const nav = event.target.closest('[data-view]');
     if (nav && !busy) {
+      if (view === 'monthly' && monthlyDirty) { if (!await mayLeave()) return; loadMonthlyRows(); }
       if (view === 'evaluation' && dirty) { if (!await mayLeave()) return; loadScores(); }
       if ((view === 'honors' && honorDirty) || (view === 'knight' && knightDirty)) {
         if (!await mayLeave()) return;
@@ -172,6 +215,7 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
     if (chip && !readonly() && !busy) {
       const card = chip.closest('[data-student]'), row = scores.get(card.dataset.student);
       row[chip.dataset.score] = Number(chip.dataset.point); dirty = true;
+      if (validateScores(row, true)) card.classList.remove('needs-attention');
       chip.parentElement.querySelectorAll('button').forEach(button => button.setAttribute('aria-pressed', button === chip ? 'true' : 'false'));
       const total = scoreTotal(row); card.querySelector('.total-badge').innerHTML = `${total === null ? '—' : total}<small>/ ١٢</small>`; updateProgress(); return;
     }
@@ -180,13 +224,18 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
     const report = event.target.closest('[data-teacher-report]');
     if (report && !busy) { if (!await mayLeave()) return; teacherId = report.dataset.teacherReport; view = 'evaluation'; updateSelectors(); await loadContext(); return; }
     const id = event.target.closest('button')?.id;
-    if (id === 'save-student' || id === 'submit-week') {
-      const submit = id === 'submit-week', rows = [...scores.values()];
-      if (submit && dirty) { notify('احفظ نقاط الطالب المختار أولًا، ثم اعتمد الأسبوع.', true); return; }
-      if (!submit && !validateScores(scores.get(selectedStudent), true)) { notify('أكمل النقاط الأساسية للطالب المختار، ويمكن اختيار صفر.', true); return; }
-      if (!rows.length || !rows.every(row => validateScores(row, submit))) { notify('أكمل النقاط الأساسية لجميع الطلاب قبل اعتماد الأسبوع.', true); return; }
-      if (submit && !await confirm('اعتماد نقاط الأسبوع', 'ستُحفظ النقاط وتصل إلى الإدارة، ثم يمكنك اختيار فارس الأسبوع. تعديلها بعد الاعتماد يحتاج إعادة فتحها بواسطة الإدارة.')) return;
-      await action(async () => { await repo.saveWeek({ p_teacher: teacherId, p_term: termId, p_week: week, p_rows: rows, p_submit: submit, p_version: review()?.version || 0 }); dirty = false; await loadContext(); }, submit ? 'تم اعتماد نقاط الأسبوع. يمكنك الآن اختيار فارس الأسبوع.' : 'تم حفظ نقاط الطالب. يمكنك اختيار الطالب التالي.');
+    if (id === 'submit-week') {
+      const rows = [...scores.values()], missing = weekStudents().filter(student => !validateScores(scores.get(student.id), true));
+      root.querySelectorAll('.needs-attention').forEach(card => card.classList.remove('needs-attention'));
+      if (!rows.length) { notify('لا يوجد طلاب لتقييمهم.', true); return; }
+      if (missing.length) {
+        const details = missing.map(student => `${student.full_name} (${SCORE_FIELDS.filter(field => scores.get(student.id)[field.key] === null).map(field => field.label).join('، ')})`);
+        missing.forEach(student => root.querySelector(`[data-student="${student.id}"]`)?.classList.add('needs-attention'));
+        root.querySelector(`[data-student="${missing[0].id}"] button`)?.focus();
+        notify('لم يكتمل التقييم: ' + details.join('؛ '), true); return;
+      }
+      if (!await confirm('حفظ تقييم الحلقة', 'سيُحفظ تقييم جميع الطلاب ويُعتمد الأسبوع، ثم يمكنك اختيار فارسه يدويًا. التعديل بعد الحفظ يحتاج إعادة فتح الأسبوع بواسطة الإدارة.')) return;
+      await action(async () => { await repo.saveWeek({ p_teacher: teacherId, p_term: termId, p_week: week, p_rows: rows, p_submit: true, p_version: review()?.version || 0 }); dirty = false; await loadContext(); }, 'تم حفظ تقييم جميع الطلاب. اختر فارس الأسبوع يدويًا.');
     }
     if (id === 'save-knight') await action(async () => { await repo.knight({ p_review: review().id, p_student: chosenKnight, p_note: root.querySelector('#knight-note').value.trim(), p_version: review().version }); await loadContext(); }, 'تم حفظ فارس الأسبوع وإظهاره للإدارة.');
     if (id === 'save-honors') await action(async () => { await repo.honors({ p_teacher: teacherId, p_term: termId, p_students: [...selectedHonors], p_note: root.querySelector('#honor-note').value.trim() }); honorDirty = false; await loadContext(); }, 'تم حفظ قائمة التكريم الفصلي.');
@@ -204,11 +253,15 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
   });
   root.addEventListener('change', async event => {
     if (busy) return;
-    if (event.target.id === 'student-select') {
+    if (event.target.id === 'month-select') {
       const next = event.target.value;
-      if (dirty && !await mayLeave()) { event.target.value = selectedStudent; return; }
-      if (dirty) loadScores();
-      selectedStudent = next; renderEvaluation(); return;
+      if (!await mayLeave()) { event.target.value = month; return; }
+      month = next; await loadContext(); return;
+    }
+    if (event.target.dataset.monthlyNone && !monthlyReadonly()) {
+      const row = monthlyRows.get(event.target.closest('[data-monthly-student]').dataset.monthlyStudent), kind = event.target.dataset.monthlyNone;
+      row[kind] = {none:event.target.checked,text:''};
+      monthlyDirty=true; renderMonthly(); return;
     }
     const bonus = event.target.dataset.bonus;
     if (bonus && !readonly()) { const card = event.target.closest('[data-student]'), row = scores.get(card.dataset.student); row[bonus] = event.target.checked ? 1 : 0; dirty = true; const total = scoreTotal(row); card.querySelector('.total-badge').innerHTML = `${total === null ? '—' : total}<small>/ ١٢</small>`; updateProgress(); }
@@ -222,6 +275,13 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
     }
   });
   root.addEventListener('input', event => {
+    const card = event.target.closest('[data-monthly-student]');
+    if (card && !monthlyReadonly() && !busy) {
+      const row = monthlyRows.get(card.dataset.monthlyStudent);
+      if (event.target.hasAttribute('data-monthly-note')) row.note = event.target.value;
+      if (event.target.dataset.monthlyKind) row[event.target.dataset.monthlyKind].text = event.target.value;
+      monthlyDirty=true; root.querySelector('#monthly-save-state').textContent='تغييرات لم تُحفظ بعد';
+    }
     if (event.target.id === 'honor-note') honorDirty = true;
     if (event.target.id === 'knight-note') knightDirty = true;
   });
@@ -251,7 +311,7 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
       await action(async () => { await repo.addStudents(rows); await loadContext(); }, 'تم حفظ الطلاب وربطهم بالمعلم.');
     }
   });
-  function beforeUnload(event) { if (dirty || honorDirty || knightDirty) { event.preventDefault(); event.returnValue = ''; } }
+  function beforeUnload(event) { if (dirty || honorDirty || knightDirty || monthlyDirty) { event.preventDefault(); event.returnValue = ''; } }
   window.addEventListener('beforeunload', beforeUnload);
   try {
     [terms, teachers] = await Promise.all([repo.terms(), manager ? repo.teachers() : Promise.resolve([account])]);

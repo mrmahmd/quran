@@ -33,6 +33,14 @@ export function createDashboardRepository(client) {
       return { students, reviews, honors };
     },
     saveWeek: args => result(client.rpc('save_weekly_evaluation', args)),
+    async monthly(teacher, term, month) {
+      const reports = await result(client.from('monthly_reports').select('*').eq('teacher_username', teacher).eq('term_id', term).eq('month_start', month));
+      const report = reports[0] || null;
+      const entries = report ? await allRows(() => client.from('monthly_entries').select('*').eq('report_id', report.id).order('student_id')) : [];
+      return { report, entries };
+    },
+    saveMonthly: args => result(client.rpc('save_monthly_report', args)),
+    champions: (term, week) => result(client.rpc('weekly_champions', {p_term:term,p_week:week})),
     knight: args => result(client.rpc('choose_weekly_knight', args)),
     honors: args => result(client.rpc('save_semester_honors', args)),
     reopen: args => result(client.rpc('reopen_weekly_evaluation', args)),
