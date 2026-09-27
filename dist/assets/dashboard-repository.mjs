@@ -41,7 +41,7 @@ export function createDashboardRepository(client) {
     },
     saveMonthly: args => result(client.rpc('save_monthly_report', args)),
     champions: (term, week) => result(client.rpc('weekly_champions', {p_term:term,p_week:week})),
-    knight: args => result(client.rpc('choose_weekly_knight', args)),
+    knight: args => result(client.rpc('select_manual_weekly_knight', args)),
     honors: args => result(client.rpc('save_semester_honors', args)),
     reopen: args => result(client.rpc('reopen_weekly_evaluation', args)),
     manageStudent: args => result(client.rpc('manage_student', args)),
