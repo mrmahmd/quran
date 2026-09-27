@@ -30,7 +30,8 @@ export function createDashboardRepository(client) {
         result(client.from('weekly_reviews').select('*').eq('term_id', term).order('week_start')),
         allRows(() => client.from('semester_honors').select('*').eq('term_id', term).order('teacher_username').order('student_id')),
       ]);
-      return { students, reviews, honors };
+      const evaluations = reviews.length ? await allRows(() => client.from('weekly_evaluations').select('*').in('review_id', reviews.map(row=>row.id)).order('review_id').order('student_id')) : [];
+      return { students, reviews, honors, evaluations };
     },
     saveWeek: args => result(client.rpc('save_weekly_evaluation', args)),
     async monthly(teacher, term, month) {
