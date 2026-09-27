@@ -1,5 +1,6 @@
+import { restoreAccount } from './session-restore.mjs?v=session3';
 const config = window.QURAN_PLATFORM_CONFIG;
-const client = window.supabase.createClient(config.supabaseUrl, config.supabasePublishableKey);
+const client = window.supabase.createClient(config.supabaseUrl, config.supabasePublishableKey, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } });
 const loginForm = document.querySelector('#login-form');
 const activationForm = document.querySelector('#activation-form');
 const accountPanel = document.querySelector('#account-panel');
@@ -30,10 +31,11 @@ function showForm(form) {
 }
 
 async function showAccount(user) {
-  const { data: adminAccount } = await client.from('admin_accounts')
+  const { data: adminAccount, error: adminError } = await client.from('admin_accounts')
     .select('email, active')
     .eq('auth_user_id', user.id)
     .maybeSingle();
+  if (adminError) throw adminError;
   if (adminAccount?.active) {
     await openDashboard({ role: 'admin', email: adminAccount.email });
     return;
@@ -42,8 +44,9 @@ async function showAccount(user) {
     .select('username, full_name, class_name, ring_name, active')
     .eq('auth_user_id', user.id)
     .maybeSingle();
-  if (error || !data || !data.active) {
-    await client.auth.signOut();
+  if (error) throw error;
+  if (!data || !data.active) {
+    // An account lookup must never destroy a persisted session.
     showForm('login');
     showMessage(document.querySelector('#login-error'), 'الحساب غير مرتبط بمعلم نشط. تواصل مع الإدارة.');
     return;
@@ -149,8 +152,9 @@ activationForm.addEventListener('submit', async (event) => {
   }
 });
 
-client.auth.getUser().then(({ data }) => {
-  if (data.user) showAccount(data.user);
+restoreAccount(client, showAccount).catch(() => {
+  showForm('login');
+  showMessage(document.querySelector('#login-error'), 'تعذر استعادة لوحة التحكم الآن. جلستك محفوظة؛ أعد تحديث الصفحة أو حاول عند عودة الاتصال.');
 });
 
 document.querySelector('#year').textContent = new Date().getFullYear();
