@@ -41,6 +41,13 @@ export function createDashboardRepository(client) {
       return { report, entries };
     },
     saveMonthly: args => result(client.rpc('save_monthly_report', args)),
+    async khairkom(term) {
+      const sets = await allRows(() => client.from('khairkom_nomination_sets').select('*').eq('term_id', term).order('teacher_username'));
+      const rows = sets.length ? await allRows(() => client.from('khairkom_nominations').select('*').in('set_id', sets.map(row => row.id)).eq('nominated', true).order('teacher_username').order('student_id')) : [];
+      const students = rows.length ? await allRows(() => client.from('students').select('id,full_name,teacher_username').in('id', rows.map(row => row.student_id)).order('full_name')) : [];
+      return { sets, rows, students };
+    },
+    saveKhairkom: args => result(client.rpc('save_khairkom_nominations', args)),
     champions: (term, week) => result(client.rpc('weekly_champions', {p_term:term,p_week:week})),
     knight: args => result(client.rpc('select_manual_weekly_knight', args)),
     honors: args => result(client.rpc('save_semester_honors', args)),
