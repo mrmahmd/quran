@@ -15,6 +15,8 @@ export function createDashboardRepository(client) {
   return {
     terms: () => result(client.from('school_terms').select('*').order('starts_on', { ascending: false })),
     teachers: () => result(client.from('teacher_accounts').select('username, full_name, class_name, ring_name, active').eq('active', true).order('username')),
+    weekStates: term => result(client.from('weekly_workflow_access').select('week_start,is_open,updated_at').eq('term_id', term).order('week_start')),
+    setWeekOpen: (term, week, open) => result(client.rpc('set_week_workflow_open', {p_term:term,p_week:week,p_open:open})),
     async context(teacher, term) {
       const [students, reviews, honors] = await Promise.all([
         allRows(() => client.from('students').select('*').eq('teacher_username', teacher).order('full_name').order('id')),

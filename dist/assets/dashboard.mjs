@@ -2,6 +2,7 @@ import { emptyMonthly, monthlyProblem, termMonths } from './monthly-model.mjs?v=
 import { SCORE_FIELDS, emptyScores, scoreTotal, validateScores, termWeeks, semesterSummary, weekNumber, weekEnd } from './evaluation-model.mjs?v=rosters2';
 import { formatTestParts, normalizeIdentityNumber, validIdentityNumber, validTestParts } from './khairkom-model.mjs?v=identity1';
 import { buildWeeklyReport, buildKhairkomReport, buildChampionsReport } from './report-layout.mjs?v=reports1';
+import { summarizeTeacherProgress } from './admin-progress-model.mjs?v=progress1';
 
 const esc = value => String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]);
 const dateLabel = date => new Intl.DateTimeFormat('ar-EG', { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(new Date(`${date}T00:00:00Z`));
@@ -16,17 +17,22 @@ function errorText(error) {
 
 export async function mountDashboard(root, { repository: repo, account, onLogout, preview = false }) {
   let terms = [], teachers = [], termId = '', teacherId = account.username || '', week = '', view = account.role === 'admin' ? 'reports' : 'evaluation';
-  let context = { students: [], reviews: [], evaluations: [], honors: [] }, overview = null;
+  let context = { students: [], reviews: [], evaluations: [], honors: [] }, overview = null, weekStates = [];
   let scores = new Map(), dirty = false, honorDirty = false, knightDirty = false, busy = false, generation = 0, monthlyDirty = false, month = '', monthlyData = { report: null, entries: [] }, monthlyRows = new Map(), champions = [], chosenKnight = '', selectedHonors = new Set(), khairkomData = { sets: [], rows: [], students: [] }, nominatedStudents = new Map(), identityNumbers = new Map(), nominationDirty = false;
   let messageTimer, editingStudent = '';
+  let progressFocus = 'weekly';
   const admin = account.role === 'admin';
   const manager = admin || account.roster_manager;
   const selectedTerm = () => terms.find(term => term.id === termId);
   const teacher = () => teachers.find(row => row.username === teacherId) || account;
   const review = () => context.reviews.find(row => row.week_start === week);
-  const readonly = () => admin || !selectedTerm()?.active || review()?.status === 'submitted';
+  const weekOpen = value => weekStates.find(row => row.week_start === value)?.is_open !== false;
+  const currentWeek = () => { const date = new Date(`${today()}T00:00:00Z`); date.setUTCDate(date.getUTCDate() - date.getUTCDay()); return date.toISOString().slice(0,10); };
+  const khairkomOpen = () => weekOpen(currentWeek());
+  const readonly = () => admin || !selectedTerm()?.active || !weekOpen(week) || review()?.status === 'submitted';
   const weekStudents = () => context.students.filter(student => (review()?.status !== 'submitted' && student.active) || context.evaluations.some(row => row.review_id === review()?.id && row.student_id === student.id));
   const completeCount = () => [...scores.values()].filter(row => validateScores(row, true)).length;
+  const adminProgress = () => summarizeTeacherProgress(teachers, overview?.reviews || [], champions, khairkomData.sets, week);
 
   root.innerHTML = `<div class="dashboard-shell">
     <header class="dashboard-topbar"><a class="brand" href="#"><img src="assets/alandalus-logo.png" alt="شعار مدارس الأندلس الأهلية"><span class="brand-copy"><strong>المدرسة القرآنية</strong><small>المسار المصري - فرع الحمدانية</small></span></a><div class="dashboard-user"><span>${esc(account.role === 'admin' ? 'حساب الإدارة' : account.full_name)}</span><button class="light-button" id="dashboard-logout">تسجيل الخروج</button></div></header>
@@ -34,7 +40,7 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
     <main class="dashboard-main"><section class="welcome-banner"><div><p class="eyebrow">${admin ? 'إشراف واضح.. ودعم لكل حلقة' : 'خطوة صغيرة.. وأثر كبير'}</p><h1>${admin ? 'لوحة إدارة المدرسة القرآنية' : `أهلًا بك، ${esc(account.full_name)}`}</h1><p>${admin ? 'تابع التقييمات المعتمدة وفرسان الأسبوع والتكريم الفصلي.' : `حلقة ${esc(account.ring_name || "")} <bdi dir="ltr">${esc(account.class_name)}</bdi> · قيّم اجتهاد كل طالب وتقدمه مقارنة بنفسه.`}</p></div><div class="welcome-symbol" aria-hidden="true">✦</div></section>
     <section class="dashboard-toolbar" aria-label="الفصل الدراسي والأسبوع"><label>الفصل الدراسي<select id="term-select"></select></label>${manager ? '<label>الحلقة<select id="teacher-select"></select></label>' : '<div class="class-tag">حلقتي <strong>'+esc(account.class_name)+'</strong></div>'}<label>الأسبوع<select id="week-select"></select></label><button class="light-button" id="refresh-dashboard">تحديث البيانات</button></section>
     ${admin ? `<div class="admin-workspace"><aside class="admin-sidebar"><div class="admin-sidebar-title"><span>✦</span><div><strong>مركز الإدارة</strong><small>متابعة الحلقات والتقارير</small></div></div><nav aria-label="أقسام الإدارة"><button data-view="reports"><span>▦</span> نظرة عامة</button><button data-view="evaluation"><span>✓</span> تقييم الحلقة</button><button data-view="champions"><span>★</span> فرسان الأسبوع</button><button data-view="khairkom"><span>◆</span> ترشيحات خيركم</button><button data-view="monthly"><span>▤</span> التقارير الشهرية</button><button data-view="honors"><span>✦</span> التكريم الفصلي</button><button data-view="setup"><span>♧</span> قوائم الطلاب</button></nav><div class="admin-sidebar-note">اختر الحلقة والأسبوع من المرشحات أعلى اللوحة، ثم افتح التقرير المطلوب.</div></aside><div class="admin-workspace-content">` : `<nav class="dashboard-actions" aria-label="أقسام لوحة التحكم"><button class="action-card blue-card" data-view="evaluation"><span class="action-symbol">✓</span><span><strong>التقييم الأسبوعي</strong><small>نقاط واضحة من ١٢</small></span><span class="action-arrow">←</span></button><button class="action-card gold-card" data-view="knight"><span class="action-symbol">★</span><span><strong>فارس الأسبوع</strong><small>احتفِ بالاجتهاد والتحسن</small></span><span class="action-arrow">←</span></button><button class="action-card purple-card" data-view="honors"><span class="action-symbol">✦</span><span><strong>التكريم الفصلي</strong><small>ثمرة رحلة الفصل الدراسي</small></span><span class="action-arrow">←</span></button><button class="action-card teal-card" data-view="monthly"><span class="action-symbol">▤</span><span><strong>التقرير الشهري</strong><small>مقدار الحفظ والمراجعة</small></span><span class="action-arrow">←</span></button><button class="action-card khairkom-card" data-view="khairkom"><span class="action-symbol">◆</span><span><strong>ترشيحات جمعية خيركم</strong><small>رشّح طلاب حلقتك</small></span><span class="action-arrow">←</span></button></nav>${manager ? '<div class="admin-tabs"><span>مشرف الطلاب · تقييمات الحلقات الأخرى تخص معلميها</span><button class="gold-button" data-view="champions">★ فرسان الأسبوع</button><button class="light-button" data-view="setup">إدارة قوائم الطلاب</button></div>' : ''}`}
-    <div id="dashboard-message" class="dashboard-message" role="status" hidden></div><section id="dashboard-content" aria-live="polite"></section>
+    <div id="week-workflow" class="week-workflow" aria-live="polite"></div><div id="dashboard-message" class="dashboard-message" role="status" hidden></div><section id="dashboard-content" aria-live="polite"></section>
     ${admin ? '</div></div>' : ''}</main><footer class="dashboard-footer">مدارس الأندلس الأهلية · نحتفي بالتقدم والتحسن والإتقان</footer>
     <dialog id="dashboard-confirm" class="confirm-dialog"><h2></h2><p></p><div><button class="light-button" data-answer="cancel">العودة</button><button class="solid-button" data-answer="confirm">تأكيد</button></div></dialog></div><section id="report-preview" class="report-preview" hidden aria-label="معاينة التقرير"><div class="report-preview-toolbar"><strong>معاينة التقرير</strong><span>اختر «حفظ PDF» من نافذة الطباعة للحصول على الملف.</span><div><button type="button" id="report-print">حفظ PDF / طباعة</button><button type="button" id="report-close">إغلاق المعاينة</button></div></div><div id="report-preview-body"></div></section>`;
 
@@ -44,6 +50,17 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
   const teacherSelect = root.querySelector('#teacher-select');
   const dialog = root.querySelector('#dashboard-confirm');
   const reportPreview = root.querySelector('#report-preview');
+  function renderWeekWorkflow() {
+    const panel = root.querySelector('#week-workflow');
+    if (!termId || !week) { panel.hidden = true; return; }
+    const selectedOpen = weekOpen(week), relevantOpen = view === 'khairkom' ? khairkomOpen() : selectedOpen;
+    panel.hidden = !admin && (relevantOpen || !['evaluation','knight','khairkom'].includes(view));
+    if (admin) {
+      panel.innerHTML = `<div><span class="week-workflow-icon">${selectedOpen?'◉':'⊘'}</span><div><strong>عمل المعلمين · الأسبوع ${weekNumber(selectedTerm(), termWeeks(selectedTerm()).indexOf(week))}</strong><small>${selectedOpen?'مفتوح لجميع المعلمين: التقييم وفارس الأسبوع، وترشيحات خيركم خلال هذا الأسبوع.':'مغلق لجميع المعلمين: لا يمكن حفظ تقييمات أو فارس الأسبوع. وتُغلق ترشيحات خيركم إذا كان هذا هو الأسبوع الجاري.'}</small></div></div><button class="week-toggle ${selectedOpen?'':'closed'}" type="button" id="toggle-week-workflow" role="switch" aria-checked="${selectedOpen}" aria-label="${selectedOpen?'إغلاق':'فتح'} عمل جميع المعلمين في هذا الأسبوع"><span class="week-toggle-track"><i></i></span><b>${selectedOpen?'مفتوح':'مغلق'}</b></button>`;
+    } else if (!relevantOpen) {
+      panel.innerHTML = `<div><span class="week-workflow-icon">⊘</span><div><strong>${view==='khairkom'?'ترشيحات خيركم متوقفة هذا الأسبوع':'هذا الأسبوع مغلق من الإدارة'}</strong><small>يمكنك قراءة البيانات المحفوظة، لكن الحفظ متوقف حتى تعيد الإدارة فتح الأسبوع.</small></div></div>`;
+    }
+  }
   function openReport(kind, oneTeacher = false) {
     if (kind === 'champions' && !manager || kind !== 'champions' && !admin) return;
     const common = { term: selectedTerm(), week, weekNumber: weekNumber(selectedTerm(), termWeeks(selectedTerm()).indexOf(week)), weekEnd: weekEnd(week) };
@@ -100,6 +117,7 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
     const ticket = ++generation;
     content.innerHTML = '<div class="empty-state"><span class="loading-ring"></span><h2>جارٍ تحميل بيانات الحلقة</h2></div>';
     try {
+      const access = termId ? await repo.weekStates(termId) : [];
       const data = teacherId ? await repo.context(teacherId, termId) : { students: [], reviews: [], evaluations: [], honors: [] };
       const report = admin && termId ? await repo.overview(termId) : null;
       const months = termMonths(selectedTerm());
@@ -108,12 +126,13 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
       const gallery = manager && termId ? await repo.champions(termId, week) : [];
       const nominations = termId ? await repo.khairkom(termId) : { sets: [], rows: [], students: [] };
       if (ticket !== generation) return;
-      context = data; overview = report; monthlyData = monthly; champions = gallery; khairkomData = nominations; nominatedStudents = new Map(nominations.rows.filter(row => row.teacher_username === teacherId).map(row => [row.student_id, [...(row.test_parts || [])]])); identityNumbers = new Map(nominations.rows.filter(row => row.teacher_username === teacherId).map(row => [row.student_id, row.identity_number || ''])); nominationDirty = false; loadScores(); loadMonthlyRows(); render();
+      context = data; overview = report; weekStates = access; monthlyData = monthly; champions = gallery; khairkomData = nominations; nominatedStudents = new Map(nominations.rows.filter(row => row.teacher_username === teacherId).map(row => [row.student_id, [...(row.test_parts || [])]])); identityNumbers = new Map(nominations.rows.filter(row => row.teacher_username === teacherId).map(row => [row.student_id, row.identity_number || ''])); nominationDirty = false; loadScores(); loadMonthlyRows(); render();
     } catch (error) { if (ticket !== generation) return; content.innerHTML = '<div class="empty-state"><h2>تعذر تحميل البيانات</h2><p>اضغط تحديث البيانات للمحاولة مرة أخرى.</p></div>'; notify(errorText(error), true); }
   }
   function empty(title, text, symbol = '✦') { return `<div class="empty-state"><span class="empty-symbol">${symbol}</span><h2>${esc(title)}</h2><p>${esc(text)}</p></div>`; }
   function render() {
     if (!admin && account.roster_manager && teacherId !== account.username && !['champions','setup'].includes(view)) view = 'setup';
+    renderWeekWorkflow();
     root.querySelectorAll('[data-view]').forEach(button => { button.classList.toggle('selected', button.dataset.view === view); button.setAttribute('aria-current', button.dataset.view === view ? 'page' : 'false'); });
     if (view === 'setup') { renderSetup(); return; }
     if (!termId) { content.innerHTML = empty('جاهزون لبدء الرحلة', 'ستظهر التقييمات بعد إضافة تواريخ الفصل الدراسي وقوائم الطلاب التي سترسلها الإدارة.'); return; }
@@ -137,7 +156,7 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
     content.innerHTML = `<div class="section-heading"><div><p class="section-kicker">التقييم الأسبوعي</p><h2>طلاب الحلقة.. في شاشة واحدة</h2><p>ضع النقاط لجميع الطلاب ثم احفظ التقييم مرة واحدة. الصفر تقييم صحيح، والدرجة الفارغة لم تُسجّل بعد.</p></div><span class="status-pill ${review()?.status === 'submitted' ? 'approved' : ''}">${review()?.status === 'submitted' ? '✓ أسبوع معتمد' : 'بانتظار التقييم'}</span></div>
     <div class="evaluation-tools"><div id="rating-progress" class="progress-copy"></div><span class="help-pill">✓ الحفظ ٤ · المراجعة ٢ · التحسن ٢ · الالتزام ٢ · التميز ٢</span></div>
     <div class="students-grid" id="students-grid">${students.map(scoreCard).join('')}</div>
-    <div class="save-bar"><span id="save-state"></span><div>${readonly() ? '<button class="gold-button" data-view="knight">اختيار فارس الأسبوع ★</button>' + (admin && review()?.status === 'submitted' ? '<button class="light-button" id="reopen-week">إعادة فتح التقييم</button>' : '') : '<button class="solid-button" id="submit-week" ' + (week > today() || !students.length ? 'disabled title="الحفظ متاح بعد بداية الأسبوع"' : '') + '>✓ حفظ تقييم جميع الطلاب</button>'}</div></div>`;
+    <div class="save-bar"><span id="save-state"></span><div>${readonly() ? (weekOpen(week) ? '<button class="gold-button" data-view="knight">اختيار فارس الأسبوع ★</button>' : '') + (admin && review()?.status === 'submitted' ? '<button class="light-button" id="reopen-week">إعادة فتح التقييم</button>' : '') : '<button class="solid-button" id="submit-week" ' + (week > today() || !students.length ? 'disabled title="الحفظ متاح بعد بداية الأسبوع"' : '') + '>✓ حفظ تقييم جميع الطلاب</button>'}</div></div>`;
     updateProgress();
   }
   function updateProgress() {
@@ -145,14 +164,14 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
     const element = root.querySelector('#rating-progress');
     if (element) element.innerHTML = `<strong>${count} <small>من ${all} طالبًا</small></strong><span>اكتمل تقييمهم</span><div class="progress-track"><i style="width:${all ? count / all * 100 : 0}%"></i></div>`;
     const status = root.querySelector('#save-state');
-    if (status) status.textContent = readonly() ? 'تم حفظ واعتماد تقييم الحلقة.' : dirty ? 'تغييرات لم تُحفظ؛ احفظ تقييم الحلقة بعد اكتمال جميع الطلاب.' : 'زر واحد لحفظ واعتماد نقاط جميع الطلاب.';
+    if (status) status.textContent = !weekOpen(week) ? 'أغلقت الإدارة هذا الأسبوع؛ الحفظ متوقف.' : readonly() ? 'تم حفظ واعتماد تقييم الحلقة.' : dirty ? 'تغييرات لم تُحفظ؛ احفظ تقييم الحلقة بعد اكتمال جميع الطلاب.' : 'زر واحد لحفظ واعتماد نقاط جميع الطلاب.';
   }
   function renderKnight() {
     const current = review();
     const ranked = context.students.filter(student => student.active || student.id === current?.knight_student_id).map(student => ({student_id: student.id, full_name: student.full_name}));
     content.innerHTML = `<div class="section-heading"><div><p class="section-kicker gold-text">فارس الأسبوع</p><h2>نحتفي بالاجتهاد والتحسن</h2><p>اختر فارس الأسبوع بنفسك من طلاب الحلقة. لا يوجد اختيار تلقائي أو ترتيب بالنقاط.</p></div><span class="status-pill gold-status">${current?.knight_student_id ? '★ تم اختيار الفارس' : 'بانتظار اختيارك'}</span></div>
-    <div class="knight-grid">${ranked.map((row, i) => `<button class="knight-card ${chosenKnight === row.student_id ? 'chosen' : ''}" data-knight="${esc(row.student_id)}" aria-pressed="${chosenKnight === row.student_id}" ${!selectedTerm()?.active ? 'disabled' : ''}><span class="knight-star">★</span><h3>${esc(row.full_name)}</h3><span class="choice-label">${chosenKnight === row.student_id ? '✓ اختيارك لفارس الأسبوع' : 'اختيار هذا الطالب'}</span></button>`).join('')}</div>
-    <div class="note-panel"><label for="knight-note">سبب اختيار فارس الأسبوع <small>(اختياري)</small></label><textarea id="knight-note" maxlength="500" placeholder="مثال: تحسن واضح في إتقان التسميع">${esc(current?.knight_note || '')}</textarea></div><div class="save-bar"><span>يحتفظ الطالب بميداليته تقديرًا لإنجازه.</span><button class="gold-button" id="save-knight" ${!chosenKnight || !selectedTerm()?.active || week > today() ? 'disabled' : ''}>حفظ فارس الأسبوع ★</button></div>`;
+    <div class="knight-grid">${ranked.map((row, i) => `<button class="knight-card ${chosenKnight === row.student_id ? 'chosen' : ''}" data-knight="${esc(row.student_id)}" aria-pressed="${chosenKnight === row.student_id}" ${!selectedTerm()?.active || !weekOpen(week) ? 'disabled' : ''}><span class="knight-star">★</span><h3>${esc(row.full_name)}</h3><span class="choice-label">${chosenKnight === row.student_id ? '✓ اختيارك لفارس الأسبوع' : 'اختيار هذا الطالب'}</span></button>`).join('')}</div>
+    <div class="note-panel"><label for="knight-note">سبب اختيار فارس الأسبوع <small>(اختياري)</small></label><textarea id="knight-note" maxlength="500" placeholder="مثال: تحسن واضح في إتقان التسميع" ${!weekOpen(week)?'disabled':''}>${esc(current?.knight_note || '')}</textarea></div><div class="save-bar"><span>يحتفظ الطالب بميداليته تقديرًا لإنجازه.</span><button class="gold-button" id="save-knight" ${!chosenKnight || !selectedTerm()?.active || !weekOpen(week) || week > today() ? 'disabled' : ''}>حفظ فارس الأسبوع ★</button></div>`;
   }
   const monthlyStudents = () => context.students.filter(student => student.active || monthlyData.entries.some(row => row.student_id === student.id));
   const monthlyReadonly = () => admin || !selectedTerm()?.active || teacherId !== account.username;
@@ -178,8 +197,17 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
       const studentNames = new Map(khairkomData.students.map(student => [student.id, student]));
       const teacherNames = new Map(teachers.map(row => [row.username, row]));
       const nominatedTeachers = new Set(rows.map(row => row.teacher_username));
+      const reviewedTeachers = new Set(khairkomData.sets.map(row => row.teacher_username));
+      const reviewedCount = teachers.filter(row => reviewedTeachers.has(row.username)).length;
+      const reviewedPercent = teachers.length ? Math.round(reviewedCount * 100 / teachers.length) : 0;
+      const progressMarkup = '<section class="khairkom-progress"><div><span>إنجاز ترشيحات خيركم · مرة واحدة للفصل الدراسي</span><strong>' + reviewedPercent + '%</strong><p>' + reviewedCount + ' من ' + teachers.length + ' معلمًا راجعوا الترشيحات، بمن فيهم من أكد عدم وجود مرشحين.</p></div><span class="progress-track"><i style="width:' + reviewedPercent + '%"></i></span></section>' +
+        '<div class="khairkom-teacher-list">' + teachers.map(row => {
+          const done = reviewedTeachers.has(row.username), count = rows.filter(item => item.teacher_username === row.username).length;
+          return '<article class="khairkom-teacher ' + (done ? 'done' : '') + '"><span>' + (done ? '✓' : '○') + '</span><strong>' + esc(row.full_name) + '</strong><small>' + esc(row.ring_name || row.class_name) + '</small><b>' + (done ? (count ? count + ' مرشح' : 'تمت المراجعة بلا ترشيحات') : 'لم يُنجز بعد') + '</b></article>';
+        }).join('') + '</div>';
       content.innerHTML = `<div class="section-heading"><div><p class="section-kicker khairkom-text">جمعية خيركم</p><h2>تقرير المرشحين واختباراتهم</h2><p>ترشيحات جميع المعلمين للفصل الدراسي المحدد، مع رقم هوية الطالب والأجزاء التي سيُختبر فيها.</p></div><span class="status-pill khairkom-status">${rows.length} طالبًا · ${nominatedTeachers.size} معلمًا</span></div>
-      <div class="admin-summary"><div><strong>${rows.length}</strong><span>طلاب مرشحون</span></div><div><strong>${nominatedTeachers.size}</strong><span>معلمون رشحوا طلابًا</span></div><div><strong>${teachers.filter(row => !nominatedTeachers.has(row.username)).length}</strong><span>لم يرشحوا بعد</span></div></div>
+      ${progressMarkup}
+      <div class="admin-summary"><div><strong>${rows.length}</strong><span>طلاب مرشحون</span></div><div><strong>${nominatedTeachers.size}</strong><span>معلمون رشحوا طلابًا</span></div><div><strong>${teachers.length-reviewedCount}</strong><span>لم يراجعوا الترشيحات بعد</span></div></div>
       ${rows.length ? `<div class="monthly-table-wrap"><table class="monthly-report-table khairkom-table"><thead><tr><th>م</th><th>الطالب المرشح</th><th>الفصل</th><th>رقم الهوية</th><th>المعلم</th><th>أجزاء الاختبار</th></tr></thead><tbody>${rows.map((row,index)=>{const owner=teacherNames.get(row.teacher_username), student=studentNames.get(row.student_id);return `<tr><td>${index+1}</td><th scope="row">${esc(student?.full_name || 'طالب مؤرشف')}</th><td><bdi dir="ltr">${esc(student?.source_class || owner?.class_name || '—')}</bdi></td><td><bdi dir="ltr" class="khairkom-report-identity">${esc(row.identity_number || 'لم يُسجّل')}</bdi></td><td>${esc(owner?.full_name || row.teacher_username)}</td><td><span class="khairkom-report-parts">${esc(formatTestParts(row.test_parts))}</span></td></tr>`;}).join('')}</tbody></table></div>` : empty('لا توجد ترشيحات بعد', 'ستظهر ترشيحات المعلمين هنا فور حفظها.', '◆')}
       <div class="save-bar khairkom-report-bar"><span>التقرير مجمّع تلقائيًا من لوحات المعلمين.</span><button class="solid-button" id="print-khairkom">معاينة وحفظ PDF</button></div>`;
       return;
@@ -187,8 +215,8 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
     const ownSet = khairkomData.sets.find(row => row.teacher_username === teacherId);
     const students = context.students.filter(student => student.active || nominatedStudents.has(student.id));
     content.innerHTML = `<div class="section-heading"><div><p class="section-kicker khairkom-text">جمعية خيركم</p><h2>اختر المرشح وأجزاء اختباره</h2><p>رشّح الطالب، واكتب رقم هويته، ثم أضف الأجزاء التي سيُختبر فيها من الجزء ١ إلى ٣٠. يمكن تعديل البيانات قبل الحفظ.</p></div><span class="status-pill khairkom-status">${nominatedStudents.size} مرشح</span></div>
-    ${students.length ? `<div class="khairkom-list">${students.map(student=>{const chosen=nominatedStudents.has(student.id), parts=nominatedStudents.get(student.id) || [];return `<article class="khairkom-student ${chosen?'chosen':''}" data-khairkom-student="${esc(student.id)}"><label class="khairkom-choice"><input type="checkbox" data-khairkom-choice ${chosen?'checked':''} ${!selectedTerm()?.active?'disabled':''}><span><strong>${esc(student.full_name)}</strong><small>${esc(student.source_class || teacher().class_name)} · ${chosen?'✓ مرشح لجمعية خيركم':'اختر للترشيح'}</small></span></label><div class="khairkom-part-panel"><label class="khairkom-identity-label">رقم هوية الطالب<input type="text" data-khairkom-identity inputmode="numeric" dir="ltr" autocomplete="off" maxlength="25" placeholder="اكتب رقم الهوية" aria-label="رقم هوية الطالب ${esc(student.full_name)}" value="${esc(identityNumbers.get(student.id) || '')}" ${chosen&&selectedTerm()?.active?'':'disabled'}><small>٦ إلى ٢٠ رقمًا · يمكن الكتابة بالأرقام العربية أو الإنجليزية</small></label><label>أجزاء الاختبار<div class="khairkom-part-picker"><select data-khairkom-part-select aria-label="اختر جزءًا للطالب ${esc(student.full_name)}" ${chosen&&selectedTerm()?.active?'':'disabled'}><option value="">اختر الجزء</option>${Array.from({length:30},(_,i)=>`<option value="${i+1}">الجزء ${new Intl.NumberFormat('ar-EG').format(i+1)}</option>`).join('')}</select><button type="button" class="khairkom-add-part" data-khairkom-add-part ${chosen&&selectedTerm()?.active?'':'disabled'}>+ إضافة الجزء</button></div></label><div class="khairkom-parts" aria-label="الأجزاء المختارة">${parts.map(part=>`<span class="khairkom-part-chip">الجزء ${new Intl.NumberFormat('ar-EG').format(part)}<button type="button" data-khairkom-remove-part="${part}" aria-label="حذف الجزء ${part}" ${!selectedTerm()?.active?'disabled':''}>×</button></span>`).join('') || '<span class="khairkom-part-empty">لم تختر أجزاء بعد</span>'}</div></div></article>`;}).join('')}</div>` : empty('لا توجد أسماء طلاب في حلقتك', 'ستظهر أسماء الطلاب هنا بعد إضافة قائمة الحلقة.', '◆')}
-    <div class="save-bar"><span id="khairkom-save-state">${ownSet?'يمكنك تعديل الترشيحات المحفوظة':'لم تُحفظ ترشيحات بعد'}</span><button class="solid-button" id="save-khairkom" ${!students.length||!selectedTerm()?.active?'disabled':''}>✓ حفظ ترشيحات جمعية خيركم</button></div>`;
+    ${students.length ? `<div class="khairkom-list">${students.map(student=>{const chosen=nominatedStudents.has(student.id), parts=nominatedStudents.get(student.id) || [];return `<article class="khairkom-student ${chosen?'chosen':''}" data-khairkom-student="${esc(student.id)}"><label class="khairkom-choice"><input type="checkbox" data-khairkom-choice ${chosen?'checked':''} ${!selectedTerm()?.active||!khairkomOpen()?'disabled':''}><span><strong>${esc(student.full_name)}</strong><small>${esc(student.source_class || teacher().class_name)} · ${chosen?'✓ مرشح لجمعية خيركم':'اختر للترشيح'}</small></span></label><div class="khairkom-part-panel"><label class="khairkom-identity-label">رقم هوية الطالب<input type="text" data-khairkom-identity inputmode="numeric" dir="ltr" autocomplete="off" maxlength="25" placeholder="اكتب رقم الهوية" aria-label="رقم هوية الطالب ${esc(student.full_name)}" value="${esc(identityNumbers.get(student.id) || '')}" ${chosen&&selectedTerm()?.active&&khairkomOpen()?'':'disabled'}><small>٦ إلى ٢٠ رقمًا · يمكن الكتابة بالأرقام العربية أو الإنجليزية</small></label><label>أجزاء الاختبار<div class="khairkom-part-picker"><select data-khairkom-part-select aria-label="اختر جزءًا للطالب ${esc(student.full_name)}" ${chosen&&selectedTerm()?.active&&khairkomOpen()?'':'disabled'}><option value="">اختر الجزء</option>${Array.from({length:30},(_,i)=>`<option value="${i+1}">الجزء ${new Intl.NumberFormat('ar-EG').format(i+1)}</option>`).join('')}</select><button type="button" class="khairkom-add-part" data-khairkom-add-part ${chosen&&selectedTerm()?.active&&khairkomOpen()?'':'disabled'}>+ إضافة الجزء</button></div></label><div class="khairkom-parts" aria-label="الأجزاء المختارة">${parts.map(part=>`<span class="khairkom-part-chip">الجزء ${new Intl.NumberFormat('ar-EG').format(part)}<button type="button" data-khairkom-remove-part="${part}" aria-label="حذف الجزء ${part}" ${!selectedTerm()?.active||!khairkomOpen()?'disabled':''}>×</button></span>`).join('') || '<span class="khairkom-part-empty">لم تختر أجزاء بعد</span>'}</div></div></article>`;}).join('')}</div>` : empty('لا توجد أسماء طلاب في حلقتك', 'ستظهر أسماء الطلاب هنا بعد إضافة قائمة الحلقة.', '◆')}
+    <div class="save-bar"><span id="khairkom-save-state">${ownSet?(nominatedStudents.size?'يمكنك تعديل الترشيحات المحفوظة':'✓ تمت مراجعة الترشيحات بلا مرشحين'):'لم تُراجع الترشيحات بعد'}</span><button class="solid-button" id="save-khairkom" ${!students.length||!selectedTerm()?.active||!khairkomOpen()?'disabled':''}>${nominatedStudents.size?'✓ حفظ ترشيحات جمعية خيركم':'✓ تمت المراجعة بلا ترشيحات'}</button></div>`;
   }
   function updateKhairkomParts(card) {
     const parts = [...(nominatedStudents.get(card.dataset.khairkomStudent) || [])].sort((a,b)=>a-b);
@@ -225,9 +253,33 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
     <div class="save-bar"><span>${review()?.status==='submitted'?'✓ التقييم معتمد':'التقييم لم يُعتمد بعد'} · عرض للمتابعة فقط</span><div><button class="solid-button" id="print-admin-report">تقرير هذه الحلقة PDF</button>${review()?.status==='submitted'?'<button class="light-button" id="reopen-week">إعادة فتح التقييم</button>':''}<button class="teal-button" data-view="monthly">التقرير الشهري</button><button class="light-button" data-view="setup">إدارة الطلاب</button></div></div>`;
   }
   function renderReports() {
-    const approved = overview.reviews.filter(row => row.week_start === week && row.status === 'submitted');
-    const evaluated = overview.evaluations || [];
-    content.innerHTML = `<div class="section-heading"><div><p class="section-kicker">متابعة الإدارة</p><h2>المعلمون وحلقاتهم</h2><p>اضغط بطاقة المعلم لعرض أسماء طلابه وتقييم كل طالب للأسبوع المحدد.</p></div><span class="status-pill">${approved.length} / ${teachers.length} حلقة اعتمدت الأسبوع</span></div><div class="report-intro"><div><strong>التقرير الأسبوعي المجمّع</strong><span>ملف متعدد الصفحات، قسم مستقل لكل معلم، ورأس الجدول يتكرر في كل صفحة.</span></div><button class="solid-button" id="preview-weekly-all">معاينة وحفظ PDF</button></div><div class="report-grid">${teachers.map(row=>{const current=overview.reviews.find(r=>r.teacher_username===row.username&&r.week_start===week);const students=overview.students.filter(student=>student.teacher_username===row.username&&(student.active||evaluated.some(e=>e.review_id===current?.id&&e.student_id===student.id)));const rated=evaluated.filter(e=>e.review_id===current?.id&&e.total!==null&&students.some(student=>student.id===e.student_id)).length;const champion=champions.find(c=>c.teacher_username===row.username);return `<button class="report-card" data-teacher-report="${esc(row.username)}"><span class="report-class">${esc(row.ring_name || row.class_name)}</span><h3>${esc(row.full_name)}</h3><p>${students.length} طالبًا · ${rated} تم تقييمهم · ${Math.max(0,students.length-rated)} بانتظار التقييم</p><span class="status-pill ${current?.status==='submitted'?'approved':''}">${!students.length?'قائمة الطلاب غير مضافة':current?.status==='submitted'?'✓ مكتمل ومعتمد':rated?'جارٍ التقييم':'لم يبدأ التقييم'}</span><div><span>★ ${esc(champion?.student_name || 'لم يُختر الفارس')}</span><span>عرض تقرير الطلاب ←</span></div></button>`;}).join('')}</div>`;
+    const progress = adminProgress(), focus = progressFocus;
+    const labels = { weekly: 'إنجاز الأسبوع كاملًا', evaluation: 'التقييم الأسبوعي', champion: 'فارس الأسبوع', khairkom: 'ترشيحات خيركم' };
+    const descriptions = { weekly: 'اعتماد التقييم واختيار الفارس معًا', evaluation: 'اعتماد نقاط جميع طلاب الحلقة', champion: 'اختيار يدوي محفوظ من المعلم', khairkom: 'مراجعة الترشيحات مرة واحدة للفصل الدراسي' };
+    const cards = [['weekly','✦'],['evaluation','✓'],['champion','★'],['khairkom','◆']].map(([key,icon]) => {
+      const done = progress.completed[key], percent = progress.percent[key];
+      return '<button type="button" class="progress-summary-card progress-' + key + (focus === key ? ' selected' : '') + '" data-progress-focus="' + key + '" aria-pressed="' + (focus === key) + '">' +
+        '<span class="progress-summary-icon">' + icon + '</span><span class="progress-summary-title">' + labels[key] + '</span><strong>' + percent + '%</strong>' +
+        '<small>' + done + ' من ' + progress.total + ' معلمًا · ' + descriptions[key] + '</small>' +
+        '<span class="progress-track"><i style="width:' + percent + '%"></i></span><span class="progress-summary-link">عرض حالة المعلمين ←</span></button>';
+    }).join('');
+    const rows = progress.rows.map(row => {
+      const done = focus === 'weekly' ? row.weeklyDone === 2 : row[focus];
+      const nominations = khairkomData.rows.filter(item => item.teacher_username === row.username).length;
+      return '<article class="progress-teacher-row ' + (done ? 'complete' : 'pending') + '">' +
+        '<span class="progress-teacher-avatar">' + esc(row.full_name.slice(0, 1)) + '</span>' +
+        '<div class="progress-teacher-name"><strong>' + esc(row.full_name) + '</strong><small>' + esc(row.ring_name || row.class_name) + '</small></div>' +
+        '<div class="progress-teacher-checks"><span class="' + (row.evaluation ? 'done' : '') + '">✓ التقييم: ' + (row.evaluation ? 'معتمد' : 'لم يُعتمد') + '</span>' +
+        '<span class="' + (row.champion ? 'done' : '') + '">★ الفارس: ' + (row.champion ? 'اختير' : 'لم يُختر') + '</span>' +
+        '<span class="' + (row.khairkom ? 'done' : '') + '">◆ خيركم: ' + (row.khairkom ? (nominations ? nominations + ' مرشح' : 'تمت المراجعة بلا ترشيحات') : 'لم تُراجع') + '</span></div>' +
+        '<span class="progress-teacher-state ' + (done ? 'done' : '') + '">' + (done ? '✓ أنجز المطلوب' : 'بانتظار الإنجاز') + '</span>' +
+        '<button type="button" class="progress-teacher-link" data-teacher-report="' + esc(row.username) + '">تقييم الطلاب ←</button></article>';
+    }).join('');
+    content.innerHTML = '<section class="progress-hero"><div><span>متابعة مباشرة · الأسبوع ' + weekNumber(selectedTerm(), termWeeks(selectedTerm()).indexOf(week)) + '</span><h2>كل ما تحتاج متابعته، في مكان واحد</h2><p>اختر بطاقة لمعرفة من أنجز المطلوب ومن لا يزال ينتظره. تُحدّث الأرقام من الحفظ الفعلي في لوحات المعلمين.</p></div><span class="progress-hero-week">' + dateLabel(week) + ' – ' + dateLabel(weekEnd(week)) + '</span></section>' +
+      '<div class="progress-summary-grid">' + cards + '</div>' +
+      '<section class="progress-details"><div class="progress-details-heading"><div><span>تقرير إنجاز المعلمين</span><h3>' + labels[focus] + '</h3><p>' + descriptions[focus] + ' · أنجز ' + progress.completed[focus] + ' من أصل ' + progress.total + ' معلمًا.</p></div><span class="progress-details-percent">' + progress.percent[focus] + '%</span></div>' +
+      '<div class="progress-teacher-list">' + (rows || '<p class="progress-empty">لا توجد حسابات معلمين نشطة.</p>') + '</div></section>' +
+      '<div class="report-intro"><div><strong>التقرير الأسبوعي المجمّع</strong><span>جميع المعلمين في ملف واحد، مع قسم لكل حلقة وتفاصيل تقييم طلابها.</span></div><button class="solid-button" id="preview-weekly-all">معاينة وحفظ PDF</button></div>';
   }
   function renderSetup() {
     content.innerHTML = `<div class="section-heading"><div><p class="section-kicker">تجهيز البيانات</p><h2>الطلاب والفصول الدراسية</h2><p>يمكن إدخال القوائم التي ترسلها المدرسة هنا، ثم تظهر تلقائيًا للمعلم المسؤول.</p></div></div><div class="setup-grid">${admin ? `<form id="term-form" class="setup-card"><h3>إضافة فصل دراسي</h3><label>اسم الفصل الدراسي<input name="name" maxlength="100" required placeholder="مثال: الفصل الدراسي الأول"></label><div class="date-fields"><label>تاريخ البداية<input name="starts_on" type="date" required></label><label>تاريخ النهاية<input name="ends_on" type="date" required></label></div><button class="solid-button" type="submit">حفظ الفصل الدراسي</button></form>` : ''}<form id="students-form" class="setup-card"><h3>إضافة طلاب الحلقة ${esc(teacher().class_name || '')}</h3><p>أدخل اسمًا واحدًا في كل سطر. يمكن إضافة رقم الطالب بعد علامة |. راجع الأسماء قبل الحفظ.</p><label>أسماء الطلاب<textarea name="names" required rows="7" placeholder="اسم الطالب الأول&#10;اسم الطالب الثاني"></textarea></label><button class="solid-button" type="submit" ${!teacherId ? 'disabled' : ''}>حفظ الطلاب لهذه الحلقة</button></form></div><div class="roster-summary"><h3>طلاب الحلقة الحاليون (${context.students.length})</h3><div>${context.students.map(student => `<div class="roster-row"><span>${esc(student.full_name)}${student.active ? '' : ' (مؤرشف)'}<small>${esc(student.source_class || '')}</small></span><button class="light-button" data-edit-student="${esc(student.id)}">تعديل / نقل</button><button class="light-button" data-archive-student="${esc(student.id)}">${student.active ? 'حذف من القائمة' : 'استعادة'}</button></div>`).join('') || '<p>لم تُضف أسماء الطلاب بعد.</p>'}</div></div>${studentEditor()}`;
@@ -244,13 +296,20 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
     finally { busy = false; root.classList.remove('is-busy'); root.removeAttribute('aria-busy'); }
   }
   root.addEventListener('click', async event => {
+    const progressCard = event.target.closest('[data-progress-focus]');
+    if (progressCard && admin && !busy) { progressFocus = progressCard.dataset.progressFocus; renderReports(); return; }
+    if (event.target.closest('#toggle-week-workflow') && admin && !busy && termId && week) {
+      const nextOpen = !weekOpen(week);
+      await action(async () => { await repo.setWeekOpen(termId, week, nextOpen); await loadContext(); }, nextOpen ? 'تم فتح الأسبوع لجميع المعلمين.' : 'تم إغلاق الأسبوع أمام جميع المعلمين.');
+      return;
+    }
     if (event.target.closest('#report-close')) { closeReport(); return; }
     if (event.target.closest('#report-print') && !reportPreview.hidden) { await document.fonts.ready; window.print(); return; }
     if (event.target.closest('#preview-weekly-all') && admin) { openReport('weekly'); return; }
     if (event.target.closest('#print-khairkom') && admin) { openReport('khairkom'); return; }
     if (event.target.closest('#preview-champions') && manager) { openReport('champions'); return; }
     const addPart = event.target.closest('[data-khairkom-add-part]');
-    if (addPart && !admin && !busy && selectedTerm()?.active) {
+    if (addPart && !admin && !busy && selectedTerm()?.active && khairkomOpen()) {
       const card = addPart.closest('[data-khairkom-student]'), id = card.dataset.khairkomStudent;
       const selected = Number(card.querySelector('[data-khairkom-part-select]').value);
       if (!selected) { notify('اختر رقم الجزء أولًا.', true); return; }
@@ -262,12 +321,12 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
       return;
     }
     const removePart = event.target.closest('[data-khairkom-remove-part]');
-    if (removePart && !admin && !busy && selectedTerm()?.active) {
+    if (removePart && !admin && !busy && selectedTerm()?.active && khairkomOpen()) {
       const card = removePart.closest('[data-khairkom-student]'), id = card.dataset.khairkomStudent;
       nominatedStudents.set(id, (nominatedStudents.get(id) || []).filter(part => part !== Number(removePart.dataset.khairkomRemovePart)));
       updateKhairkomParts(card); return;
     }
-    if (event.target.closest('#save-khairkom') && !admin && !busy) {
+    if (event.target.closest('#save-khairkom') && !admin && !busy && khairkomOpen()) {
       const chosen = [...nominatedStudents].map(([student_id, test_parts]) => ({ student_id, test_parts: [...test_parts].sort((a,b)=>a-b), identity_number: normalizeIdentityNumber(identityNumbers.get(student_id)) }));
       const missing = chosen.filter(row => !validTestParts(row.test_parts));
       const invalidIds = chosen.filter(row => !validIdentityNumber(row.identity_number));
@@ -328,12 +387,12 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
       const total = scoreTotal(row); card.querySelector('.total-badge').innerHTML = `${total === null ? '—' : total}<small>/ ١٢</small>`; updateProgress(); return;
     }
     const candidate = event.target.closest('[data-knight]');
-    if (candidate && !busy) { chosenKnight = candidate.dataset.knight; knightDirty = true; root.querySelectorAll('[data-knight]').forEach(button => { const selected = button.dataset.knight === chosenKnight; button.classList.toggle('chosen', selected); button.setAttribute('aria-pressed', String(selected)); button.querySelector('.choice-label').textContent = selected ? '✓ اختيارك لفارس الأسبوع' : 'اختيار هذا الطالب'; }); root.querySelector('#save-knight').disabled = week > today() || !selectedTerm()?.active; return; }
+    if (candidate && !busy && weekOpen(week)) { chosenKnight = candidate.dataset.knight; knightDirty = true; root.querySelectorAll('[data-knight]').forEach(button => { const selected = button.dataset.knight === chosenKnight; button.classList.toggle('chosen', selected); button.setAttribute('aria-pressed', String(selected)); button.querySelector('.choice-label').textContent = selected ? '✓ اختيارك لفارس الأسبوع' : 'اختيار هذا الطالب'; }); root.querySelector('#save-knight').disabled = week > today() || !selectedTerm()?.active || !weekOpen(week); return; }
     const report = event.target.closest('[data-teacher-report]');
     if (report && !busy) { if (!await mayLeave()) return; teacherId = report.dataset.teacherReport; view = 'evaluation'; updateSelectors(); await loadContext(); return; }
     const id = event.target.closest('button')?.id;
     if (admin && ['submit-week','save-knight','save-honors'].includes(id)) return;
-    if (id === 'submit-week') {
+    if (id === 'submit-week' && weekOpen(week)) {
       const rows = [...scores.values()], missing = weekStudents().filter(student => !validateScores(scores.get(student.id), true));
       root.querySelectorAll('.needs-attention').forEach(card => card.classList.remove('needs-attention'));
       if (!rows.length) { notify('لا يوجد طلاب لتقييمهم.', true); return; }
@@ -347,7 +406,7 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
       await action(async () => { await repo.saveWeek({ p_teacher: teacherId, p_term: termId, p_week: week, p_rows: rows, p_submit: true, p_version: review()?.version || 0 }); dirty = false; await loadContext(); }, 'تم حفظ تقييم جميع الطلاب. اختر فارس الأسبوع يدويًا.');
     }
     if (id === 'print-admin-report' && admin) { openReport('weekly', true); return; }
-    if (id === 'save-knight') await action(async () => { await repo.knight({ p_teacher: teacherId, p_term: termId, p_week: week, p_student: chosenKnight, p_note: root.querySelector('#knight-note').value.trim(), p_version: review()?.version || 0 }); await loadContext(); }, 'تم حفظ فارس الأسبوع وإظهاره للإدارة.');
+    if (id === 'save-knight' && weekOpen(week)) await action(async () => { await repo.knight({ p_teacher: teacherId, p_term: termId, p_week: week, p_student: chosenKnight, p_note: root.querySelector('#knight-note').value.trim(), p_version: review()?.version || 0 }); await loadContext(); }, 'تم حفظ فارس الأسبوع وإظهاره للإدارة.');
     if (id === 'save-honors') await action(async () => { await repo.honors({ p_teacher: teacherId, p_term: termId, p_students: [...selectedHonors], p_note: root.querySelector('#honor-note').value.trim() }); honorDirty = false; await loadContext(); }, 'تم حفظ قائمة التكريم الفصلي.');
     if (id === 'reopen-week' && await confirm('إعادة فتح التقييم', 'سيصبح الأسبوع مسودة لتعديل النقاط، مع الاحتفاظ باختيار فارس الأسبوع.')) await action(async () => { await repo.reopen({ p_review: review().id, p_version: review().version }); await loadContext(); }, 'تمت إعادة فتح التقييم للتعديل.');
     if (id === 'refresh-dashboard' && !busy && await mayLeave()) await action(async () => {
@@ -363,7 +422,7 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
   });
   root.addEventListener('change', async event => {
     if (busy) return;
-    if (event.target.hasAttribute('data-khairkom-choice') && !admin) {
+    if (event.target.hasAttribute('data-khairkom-choice') && !admin && khairkomOpen()) {
       const card=event.target.closest('[data-khairkom-student]'), studentId=card.dataset.khairkomStudent;
       if (event.target.checked) { nominatedStudents.set(studentId,[]); identityNumbers.set(studentId,''); }
       else { nominatedStudents.delete(studentId); identityNumbers.delete(studentId); }
@@ -374,6 +433,7 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
       card.querySelector('[data-khairkom-identity]').value='';
       card.querySelector('small').textContent=`${context.students.find(student=>student.id===studentId)?.source_class || teacher().class_name} · ${event.target.checked?'✓ مرشح لجمعية خيركم':'اختر للترشيح'}`;
       updateKhairkomParts(card);
+      root.querySelector('#save-khairkom').textContent = nominatedStudents.size ? '✓ حفظ ترشيحات جمعية خيركم' : '✓ تمت المراجعة بلا ترشيحات';
       nominationDirty=true;root.querySelector('.khairkom-status').textContent=`${nominatedStudents.size} مرشح`;root.querySelector('#khairkom-save-state').textContent='تغييرات لم تُحفظ';return;
     }
     if (event.target.id === 'month-select') {
