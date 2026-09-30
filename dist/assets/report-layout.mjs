@@ -1,0 +1,47 @@
+import { formatTestParts } from './khairkom-model.mjs?v=identity1';
+
+const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, character => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' })[character]);
+const dateText = value => value ? new Intl.DateTimeFormat('ar-EG', {day:'numeric', month:'long', year:'numeric', timeZone:'UTC'}).format(new Date(`${value}T00:00:00Z`)) : '—';
+const printedAt = () => new Intl.DateTimeFormat('ar-EG', {dateStyle:'medium', timeStyle:'short', timeZone:'Asia/Riyadh'}).format(new Date());
+const cell = (value, className = '') => `<td${className ? ` class="${className}"` : ''}>${escapeHtml(value ?? '—')}</td>`;
+const empty = message => `<div class="report-empty">${escapeHtml(message)}</div>`;
+function shell({kind, title, subtitle, term, period, stats, body, note}) {
+  return `<article class="report-document report-${kind}" dir="rtl"><header class="report-hero"><div class="report-identity"><img src="assets/alandalus-logo.png" alt="شعار مدارس الأندلس الأهلية"><span><strong>مدارس الأندلس الأهلية</strong><small>المدرسة القرآنية · المسار المصري - فرع الحمدانية</small></span></div><div class="report-label">${escapeHtml(kind === 'weekly' ? 'المتابعة الأسبوعية' : kind === 'champions' ? 'فرسان الأسبوع' : 'جمعية خيركم')}</div><h1>${escapeHtml(title)}</h1><p>${escapeHtml(subtitle)}</p><div class="report-meta"><span>${escapeHtml(term || 'الفصل الدراسي')}</span><span>${escapeHtml(period || 'جميع الفترات')}</span></div></header><div class="report-body"><section class="report-stats">${stats.map(([number,label,tone])=>`<div class="report-stat ${tone || ''}"><strong>${escapeHtml(number)}</strong><span>${escapeHtml(label)}</span></div>`).join('')}</section>${body}${note ? `<aside class="report-note">${escapeHtml(note)}</aside>` : ''}</div><footer class="report-footer"><span>مدارس الأندلس الأهلية · المدرسة القرآنية</span><span>أُعدّ في ${escapeHtml(printedAt())}</span></footer></article>`;
+}
+function table(headers, rows) {
+  return `<div class="report-table-wrap"><table class="report-table"><thead><tr>${headers.map(header=>`<th scope="col">${escapeHtml(header)}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table></div>`;
+}
+export function buildWeeklyReport({term, week, weekNumber, weekEnd, teachers, overview, teacherUsername}) {
+  const included = teacherUsername ? teachers.filter(t=>t.username===teacherUsername) : teachers;
+  const studentRows = overview?.students || [], reviews = overview?.reviews || [], evaluations = overview?.evaluations || [];
+  let totalStudents = 0, totalRated = 0, approved = 0;
+  const sections = included.map(teacher => {
+    const review = reviews.find(r=>r.teacher_username===teacher.username && r.week_start===week);
+    const relevant = evaluations.filter(e=>e.review_id===review?.id);
+    const byStudent = new Map(relevant.map(e=>[e.student_id,e]));
+    const students = studentRows.filter(s=>s.teacher_username===teacher.username && (s.active || byStudent.has(s.id)));
+    const rated = students.filter(s=>byStudent.get(s.id)?.total != null).length;
+    totalStudents += students.length; totalRated += rated; if (review?.status === 'submitted') approved++;
+    const rows = students.map((student,index)=>{
+      const score=byStudent.get(student.id), done=score?.total != null;
+      return `<tr><td class="report-index">${index+1}</td><th scope="row">${escapeHtml(student.full_name)}</th>${cell(student.source_class || teacher.class_name)}${['memorization','revision','improvement','commitment'].map(field=>cell(done ? score[field] : '—')).join('')}${cell(done ? (score.bonus_memorization || 0)+(score.bonus_revision || 0) : '—')}<td class="${done?'report-total':''}"><bdi dir="ltr">${done?`${escapeHtml(score.total)} / 12`:'—'}</bdi></td>${cell(done ? 'تم التقييم' : 'بانتظار التقييم',done?'report-done':'report-wait')}</tr>`;
+    });
+    return `<section class="report-section"><div class="report-section-head"><div><span class="report-class">${escapeHtml(teacher.ring_name || teacher.class_name)}</span><h2>${escapeHtml(teacher.full_name)}</h2></div><div class="report-section-status">${review?.status==='submitted'?'✓ تقييم معتمد':'◷ بانتظار الاعتماد'}<small>${rated} من ${students.length} طلاب</small></div></div>${students.length ? table(['م','اسم الطالب','الفصل','الحفظ','المراجعة','التحسن','الالتزام','التميز','المجموع','الحالة'], rows) : empty('لم تُضف أسماء طلاب لهذه الحلقة بعد.')}</section>`;
+  }).join('');
+  return shell({kind:'weekly',title:teacherUsername?'تقرير تقييم الحلقة':'تقرير التقييم الأسبوعي المجمّع',subtitle:'تقييمات الطلاب كما سجّلها المعلمون؛ الشرطة تعني عدم وجود تقييم محفوظ.',term:term?.name,period:`الأسبوع ${weekNumber} · ${dateText(week)} إلى ${dateText(weekEnd)}`,stats:[[included.length,'الحلقات المشمولة','blue'],[totalStudents,'إجمالي الطلاب','cyan'],[totalRated,'طلاب تم تقييمهم','green'],[approved,'حلقات اعتمدت التقييم','gold']],body:sections || empty('لا توجد حلقات في هذه الفترة.'),note:'هذا التقرير للمتابعة الإدارية. فارس الأسبوع اختيار يدوي مستقل عن مجموع النقاط.'});
+}
+export function buildKhairkomReport({term, teachers, data}) {
+  const names = new Map((data?.students || []).map(s=>[s.id,s]));
+  const owners = new Map(teachers.map(t=>[t.username,t]));
+  const rows = data?.rows || [];
+  const nominated = new Set(rows.map(r=>r.teacher_username));
+  const body = rows.length ? `<section class="report-section"><div class="report-section-head"><div><span class="report-class">قائمة المرشحين</span><h2>الأسماء وأجزاء الاختبار</h2></div></div>${table(['م','الطالب المرشح','الفصل','رقم الهوية','المعلم','أجزاء الاختبار'], rows.map((row,index)=>{const student=names.get(row.student_id), teacher=owners.get(row.teacher_username);return `<tr><td class="report-index">${index+1}</td><th scope="row">${escapeHtml(student?.full_name || 'طالب مؤرشف')}</th>${cell(student?.source_class || teacher?.class_name)}<td dir="ltr" class="report-id">${escapeHtml(row.identity_number || 'لم يُسجّل')}</td>${cell(teacher?.full_name || row.teacher_username)}<td class="report-parts">${escapeHtml(formatTestParts(row.test_parts))}</td></tr>`;}))}</section>` : empty('لا توجد ترشيحات محفوظة للفصل الدراسي المحدد.');
+  return shell({kind:'khairkom',title:'المرشحون لاختبارات جمعية خيركم',subtitle:'تقرير موحّد يضم ترشيحات المعلمين والهوية والأجزاء المختارة لكل طالب.',term:term?.name,stats:[[rows.length,'طلاب مرشحون','green'],[nominated.size,'معلمون رشحوا','blue'],[Math.max(0,teachers.length-nominated.size),'حلقات دون ترشيح','gold']],body,note:'أرقام الهوية مخصصة للتقرير الإداري؛ يُرجى التعامل مع النسخة المحفوظة وفق سياسة المدرسة.'});
+}
+export function buildChampionsReport({term, week, weekNumber, weekEnd, champions}) {
+  const rows = champions || [], chosen = rows.filter(row=>row.student_name);
+  const cards = chosen.length ? `<section class="report-champion-grid">${chosen.map((row,index)=>`<article class="report-champion"><span class="report-champion-star">★</span><span class="report-champion-count">${index+1}</span><small>${escapeHtml(row.ring_name || row.class_name)}</small><h2>${escapeHtml(row.student_name)}</h2><p>المعلم: ${escapeHtml(row.teacher_name)}</p>${row.note ? `<blockquote>${escapeHtml(row.note)}</blockquote>` : ''}</article>`).join('')}</section>` : empty('لم يختر المعلمون فرسان هذا الأسبوع بعد.');
+  const pending=rows.filter(row=>!row.student_name);
+  const pendingList=pending.length ? `<section class="report-pending"><h2>حلقات بانتظار اختيار الفارس</h2><p>${pending.map(row=>escapeHtml(row.ring_name || row.class_name)).join(' · ')}</p></section>` : '';
+  return shell({kind:'champions',title:'فرسان الأسبوع في حلقاتنا',subtitle:'اختيارات المعلمين اليدوية للاجتهاد والتحسن، مجمّعة في تقرير واحد.',term:term?.name,period:`الأسبوع ${weekNumber} · ${dateText(week)} إلى ${dateText(weekEnd)}`,stats:[[chosen.length,'فارس اختاره معلمه','gold'],[rows.length,'حلقة في الأسبوع','blue'],[pending.length,'حلقة بانتظار الاختيار','purple']],body:cards+pendingList,note:'يُختار فارس الأسبوع يدويًا من المعلم، ولا يُحدَّد تلقائيًا بحسب النقاط.'});
+}

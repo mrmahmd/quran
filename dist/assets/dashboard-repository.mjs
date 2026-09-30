@@ -26,7 +26,7 @@ export function createDashboardRepository(client) {
     },
     async overview(term) {
       const [students, reviews, honors] = await Promise.all([
-        allRows(() => client.from('students').select('id,teacher_username,active').eq('active', true).order('id')),
+        allRows(() => client.from('students').select('id,full_name,source_class,teacher_username,active').order('id')),
         result(client.from('weekly_reviews').select('*').eq('term_id', term).order('week_start')),
         allRows(() => client.from('semester_honors').select('*').eq('term_id', term).order('teacher_username').order('student_id')),
       ]);
