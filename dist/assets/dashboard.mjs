@@ -1,8 +1,8 @@
 import { emptyMonthly, monthlyProblem, termMonths } from './monthly-model.mjs?v=knight2';
 import { SCORE_FIELDS, emptyScores, scoreTotal, validateScores, termWeeks, semesterSummary, weekNumber, weekEnd } from './evaluation-model.mjs?v=rosters2';
 import { formatTestParts, normalizeIdentityNumber, validIdentityNumber, validTestParts } from './khairkom-model.mjs?v=identity1';
-import { buildWeeklyReport, buildKhairkomReport, buildChampionsReport } from './report-layout.mjs?v=reports1';
-import { summarizeTeacherProgress } from './admin-progress-model.mjs?v=progress1';
+import { buildWeeklyReport, buildKhairkomReport, buildChampionsReport, buildTeacherProgressReport } from './report-layout.mjs?v=teacher-progress1';
+import { summarizeTeacherProgress } from './admin-progress-model.mjs?v=teacher-progress1';
 
 const esc = value => String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]);
 const dateLabel = date => new Intl.DateTimeFormat('ar-EG', { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(new Date(`${date}T00:00:00Z`));
@@ -32,7 +32,7 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
   const readonly = () => admin || !selectedTerm()?.active || !weekOpen(week) || review()?.status === 'submitted';
   const weekStudents = () => context.students.filter(student => (review()?.status !== 'submitted' && student.active) || context.evaluations.some(row => row.review_id === review()?.id && row.student_id === student.id));
   const completeCount = () => [...scores.values()].filter(row => validateScores(row, true)).length;
-  const adminProgress = () => summarizeTeacherProgress(teachers, overview?.reviews || [], champions, khairkomData.sets, week);
+  const adminProgress = () => summarizeTeacherProgress(teachers, overview?.reviews || [], champions, khairkomData.rows, week, weekNumber(selectedTerm(), termWeeks(selectedTerm()).indexOf(week)));
   const toolbar = '<section class="dashboard-toolbar" aria-label="مرشحات لوحة التحكم">' +
     '<label data-filter="term">الفصل الدراسي<select id="term-select"></select></label>' +
     (manager ? '<label data-filter="teacher">الحلقة<select id="teacher-select"></select></label>' : '<div class="class-tag">حلقتي <strong>' + esc(account.class_name) + '</strong></div>') +
@@ -71,18 +71,19 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
     const selectedOpen = weekOpen(week), relevantOpen = view === 'khairkom' ? khairkomOpen() : selectedOpen;
     panel.hidden = admin ? !['reports','evaluation','champions'].includes(view) : (relevantOpen || !['evaluation','knight','khairkom'].includes(view));
     if (admin) {
-      panel.innerHTML = `<div><span class="week-workflow-icon">${selectedOpen?'◉':'⊘'}</span><div><strong>عمل المعلمين · الأسبوع ${weekNumber(selectedTerm(), termWeeks(selectedTerm()).indexOf(week))}</strong><small>${selectedOpen?'مفتوح لجميع المعلمين: التقييم وفارس الأسبوع، وترشيحات خيركم خلال هذا الأسبوع.':'مغلق لجميع المعلمين: لا يمكن حفظ تقييمات أو فارس الأسبوع. وتُغلق ترشيحات خيركم إذا كان هذا هو الأسبوع الجاري.'}</small></div></div><button class="week-toggle ${selectedOpen?'':'closed'}" type="button" id="toggle-week-workflow" role="switch" aria-checked="${selectedOpen}" aria-label="${selectedOpen?'إغلاق':'فتح'} عمل جميع المعلمين في هذا الأسبوع"><span class="week-toggle-track"><i></i></span><b>${selectedOpen?'مفتوح':'مغلق'}</b></button>`;
+      panel.innerHTML = `<div><span class="week-workflow-icon">${selectedOpen?'◉':'⊘'}</span><div><strong>عمل المعلمين · الأسبوع ${weekNumber(selectedTerm(), termWeeks(selectedTerm()).indexOf(week))}</strong><small>${selectedOpen?'مفتوح لجميع المعلمين: التقييم وفارس الأسبوع. ترشيحات خيركم تكليف الأسبوع الخامس فقط.':'مغلق لجميع المعلمين: لا يمكن حفظ تقييمات أو فارس الأسبوع. وتُغلق ترشيحات خيركم إذا كان هذا هو الأسبوع الجاري.'}</small></div></div><button class="week-toggle ${selectedOpen?'':'closed'}" type="button" id="toggle-week-workflow" role="switch" aria-checked="${selectedOpen}" aria-label="${selectedOpen?'إغلاق':'فتح'} عمل جميع المعلمين في هذا الأسبوع"><span class="week-toggle-track"><i></i></span><b>${selectedOpen?'مفتوح':'مغلق'}</b></button>`;
     } else if (!relevantOpen) {
       panel.innerHTML = `<div><span class="week-workflow-icon">⊘</span><div><strong>${view==='khairkom'?'ترشيحات خيركم متوقفة هذا الأسبوع':'هذا الأسبوع مغلق من الإدارة'}</strong><small>يمكنك قراءة البيانات المحفوظة، لكن الحفظ متوقف حتى تعيد الإدارة فتح الأسبوع.</small></div></div>`;
     }
   }
-  function openReport(kind, oneTeacher = false) {
+  function openReport(kind, oneTeacher = false, freshProgress = null) {
     if (kind === 'champions' && !manager || kind !== 'champions' && !admin) return;
     const common = { term: selectedTerm(), week, weekNumber: weekNumber(selectedTerm(), termWeeks(selectedTerm()).indexOf(week)), weekEnd: weekEnd(week) };
     let markup;
     if (kind === 'weekly') markup = buildWeeklyReport({ ...common, teachers, overview, teacherUsername: oneTeacher ? teacherId : undefined });
     if (kind === 'khairkom') markup = buildKhairkomReport({ term: selectedTerm(), teachers, data: khairkomData });
     if (kind === 'champions') markup = buildChampionsReport({ ...common, champions });
+    if (kind === 'progress') markup = buildTeacherProgressReport({ ...common, progress: freshProgress || adminProgress() });
     if (!markup) return;
     root.querySelector('#report-preview-body').innerHTML = markup;
     reportPreview.hidden = false;
@@ -269,10 +270,13 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
     <div class="save-bar"><span>${review()?.status==='submitted'?'✓ التقييم معتمد':'التقييم لم يُعتمد بعد'} · عرض للمتابعة فقط</span><div><button class="solid-button" id="print-admin-report">تقرير هذه الحلقة PDF</button>${review()?.status==='submitted'?'<button class="light-button" id="reopen-week">إعادة فتح التقييم</button>':''}<button class="teal-button" data-view="monthly">التقرير الشهري</button><button class="light-button" data-view="setup">إدارة الطلاب</button></div></div>`;
   }
   function renderReports() {
-    const progress = adminProgress(), focus = progressFocus;
+    const progress = adminProgress();
+    if (!progress.khairkomRequired && progressFocus === 'khairkom') progressFocus = 'weekly';
+    const focus = progressFocus;
     const labels = { weekly: 'إنجاز الأسبوع كاملًا', evaluation: 'التقييم الأسبوعي', champion: 'فارس الأسبوع', khairkom: 'ترشيحات خيركم' };
-    const descriptions = { weekly: 'اعتماد التقييم واختيار الفارس معًا', evaluation: 'اعتماد نقاط جميع طلاب الحلقة', champion: 'اختيار يدوي محفوظ من المعلم', khairkom: 'مراجعة الترشيحات مرة واحدة للفصل الدراسي' };
-    const cards = [['weekly','✦'],['evaluation','✓'],['champion','★'],['khairkom','◆']].map(([key,icon]) => {
+    const descriptions = { weekly: progress.khairkomRequired ? 'التقييم والفارس وترشيح طالب للجمعية' : 'اعتماد التقييم واختيار الفارس معًا', evaluation: 'اعتماد نقاط جميع طلاب الحلقة', champion: 'اختيار يدوي محفوظ من المعلم', khairkom: 'ترشيح طالب واحد على الأقل في الأسبوع الخامس' };
+    const cardTypes = [['weekly','✦'],['evaluation','✓'],['champion','★'],...(progress.khairkomRequired ? [['khairkom','◆']] : [])];
+    const cards = cardTypes.map(([key,icon]) => {
       const done = progress.completed[key], percent = progress.percent[key];
       return '<button type="button" class="progress-summary-card progress-' + key + (focus === key ? ' selected' : '') + '" data-progress-focus="' + key + '" aria-pressed="' + (focus === key) + '">' +
         '<span class="progress-summary-icon">' + icon + '</span><span class="progress-summary-title">' + labels[key] + '</span><strong>' + percent + '%</strong>' +
@@ -280,19 +284,19 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
         '<span class="progress-track"><i style="width:' + percent + '%"></i></span><span class="progress-summary-link">عرض حالة المعلمين ←</span></button>';
     }).join('');
     const rows = progress.rows.map(row => {
-      const done = focus === 'weekly' ? row.weeklyDone === 2 : row[focus];
-      const nominations = khairkomData.rows.filter(item => item.teacher_username === row.username).length;
+      const done = focus === 'weekly' ? row.weeklyComplete : row[focus];
       return '<article class="progress-teacher-row ' + (done ? 'complete' : 'pending') + '">' +
         '<span class="progress-teacher-avatar">' + esc(row.full_name.slice(0, 1)) + '</span>' +
         '<div class="progress-teacher-name"><strong>' + esc(row.full_name) + '</strong><small>' + esc(row.ring_name || row.class_name) + '</small></div>' +
         '<div class="progress-teacher-checks"><span class="' + (row.evaluation ? 'done' : '') + '">✓ التقييم: ' + (row.evaluation ? 'معتمد' : 'لم يُعتمد') + '</span>' +
         '<span class="' + (row.champion ? 'done' : '') + '">★ الفارس: ' + (row.champion ? 'اختير' : 'لم يُختر') + '</span>' +
-        '<span class="' + (row.khairkom ? 'done' : '') + '">◆ خيركم: ' + (row.khairkom ? (nominations ? nominations + ' مرشح' : 'تمت المراجعة بلا ترشيحات') : 'لم تُراجع') + '</span></div>' +
+        '<span class="' + (row.khairkom && progress.khairkomRequired ? 'done' : '') + '">◆ خيركم: ' + (progress.khairkomRequired ? (row.khairkom ? row.nominations + ' مرشح' : 'لم يُرشَّح') : 'غير مطلوب') + '</span></div>' +
         '<span class="progress-teacher-state ' + (done ? 'done' : '') + '">' + (done ? '✓ أنجز المطلوب' : 'بانتظار الإنجاز') + '</span>' +
         '<button type="button" class="progress-teacher-link" data-teacher-report="' + esc(row.username) + '">تقييم الطلاب ←</button></article>';
     }).join('');
     content.innerHTML = '<section class="progress-hero"><div><span>متابعة مباشرة · الأسبوع ' + weekNumber(selectedTerm(), termWeeks(selectedTerm()).indexOf(week)) + '</span><h2>كل ما تحتاج متابعته، في مكان واحد</h2><p>اختر بطاقة لمعرفة من أنجز المطلوب ومن لا يزال ينتظره. تُحدّث الأرقام من الحفظ الفعلي في لوحات المعلمين.</p></div><span class="progress-hero-week">' + dateLabel(week) + ' – ' + dateLabel(weekEnd(week)) + '</span></section>' +
-      '<div class="progress-summary-grid">' + cards + '</div>' +
+      '<div class="progress-report-action"><button type="button" id="preview-teacher-progress"><span aria-hidden="true">▤</span> تحميل تقرير إنجاز المعلمين PDF</button></div>' +
+      '<div class="progress-summary-grid' + (progress.khairkomRequired ? '' : ' three-cards') + '">' + cards + '</div>' +
       '<section class="progress-details"><div class="progress-details-heading"><div><span>تقرير إنجاز المعلمين</span><h3>' + labels[focus] + '</h3><p>' + descriptions[focus] + ' · أنجز ' + progress.completed[focus] + ' من أصل ' + progress.total + ' معلمًا.</p></div><span class="progress-details-percent">' + progress.percent[focus] + '%</span></div>' +
       '<div class="progress-teacher-list">' + (rows || '<p class="progress-empty">لا توجد حسابات معلمين نشطة.</p>') + '</div></section>' +
       '<div class="report-intro"><div><strong>التقرير الأسبوعي المجمّع</strong><span>جميع المعلمين في ملف واحد، مع قسم لكل حلقة وتفاصيل تقييم طلابها.</span></div><button class="solid-button" id="preview-weekly-all">معاينة وحفظ PDF</button></div>';
@@ -321,6 +325,24 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
     }
     if (event.target.closest('#report-close')) { closeReport(); return; }
     if (event.target.closest('#report-print') && !reportPreview.hidden) { await document.fonts.ready; window.print(); return; }
+    if (event.target.closest('#preview-teacher-progress') && admin && !busy && termId && week) {
+      const reportTerm = selectedTerm(), reportWeek = week;
+      const button = event.target.closest('#preview-teacher-progress');
+      busy = true; button.disabled = true; button.textContent = 'جارٍ جلب أحدث حالة للمعلمين…';
+      try {
+        const snapshot = await repo.teacherProgress(reportTerm.id, reportWeek);
+        if (termId !== reportTerm.id || week !== reportWeek) return;
+        const progress = summarizeTeacherProgress(snapshot.teachers, snapshot.reviews, snapshot.champions, snapshot.nominations.rows, reportWeek, weekNumber(reportTerm, termWeeks(reportTerm).indexOf(reportWeek)));
+        teachers = snapshot.teachers;
+        overview = { ...overview, reviews: [...(overview?.reviews || []).filter(row => row.week_start !== reportWeek), ...snapshot.reviews] };
+        champions = snapshot.champions;
+        khairkomData = snapshot.nominations;
+        renderReports();
+        openReport('progress', false, progress);
+      } catch (error) { notify(errorText(error), true); }
+      finally { busy = false; button.disabled = false; }
+      return;
+    }
     if (event.target.closest('#preview-weekly-all') && admin) { openReport('weekly'); return; }
     if (event.target.closest('#print-khairkom') && admin) { openReport('khairkom'); return; }
     if (event.target.closest('#preview-champions') && manager) { openReport('champions'); return; }

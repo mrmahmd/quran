@@ -26,3 +26,63 @@
 @media(max-width:1250px){.progress-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.progress-teacher-row{grid-template-columns:42px 1fr auto}.progress-teacher-checks{grid-column:2/4}.progress-teacher-link{grid-column:3}.progress-teacher-state{grid-column:2;grid-row:3;justify-self:start}}
 @media(max-width:700px){.progress-hero{padding:25px 23px;flex-direction:column;align-items:flex-start}.progress-summary-grid,.khairkom-teacher-list{grid-template-columns:1fr}.progress-summary-card{min-height:210px}.progress-details-heading{padding:19px}.progress-teacher-row{grid-template-columns:40px 1fr;gap:9px;padding:15px}.progress-teacher-checks,.progress-teacher-state,.progress-teacher-link{grid-column:2}.progress-teacher-link{grid-row:auto;justify-self:start}.khairkom-progress{align-items:stretch;flex-direction:column}.khairkom-progress .progress-track{width:100%}}
 .admin-workspace-content .dashboard-toolbar{margin:0 0 20px}.admin-workspace-content .dashboard-toolbar[data-overview="true"] [data-filter="week"]{flex:1;max-width:390px}.admin-workspace-content .dashboard-toolbar label{font-size:.86rem}.admin-workspace-content .dashboard-toolbar select{font-size:.93rem;font-weight:700;min-height:47px}
+
+.progress-report-action{display:flex;justify-content:flex-start;margin:-8px 0 24px}.progress-report-action button{display:flex;align-items:center;gap:11px;padding:13px 21px;border:0;border-radius:13px;background:linear-gradient(120deg,#184783,#278cba);color:#fff;font:inherit;font-size:.9rem;font-weight:800;cursor:pointer;box-shadow:0 10px 23px #1b639737}.progress-report-action button:hover{transform:translateY(-2px);box-shadow:0 14px 27px #1b639747}.progress-report-action button:disabled{opacity:.6;cursor:wait}
+.progress-summary-grid.three-cards{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media(max-width:1250px){.progress-summary-grid.three-cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:700px){.progress-summary-grid.three-cards{grid-template-columns:1fr}}
+.report-progress{max-width:1450px;--progress-columns:3}.report-progress.columns-4{--progress-columns:4}.report-progress.columns-5{--progress-columns:5}.progress-report-hero{display:grid;grid-template-columns:1fr 2fr auto;align-items:center;gap:22px;padding:25px 31px;background:linear-gradient(120deg,#173e77,#205f9b 48%,#0b918c 82%,#8d398b);color:#fff}.progress-report-identity{display:flex;align-items:center;gap:12px;min-width:0}.progress-report-identity img{width:65px;height:65px;object-fit:contain;border-radius:13px;background:#fff;padding:4px}.progress-report-identity strong,.progress-report-identity small{display:block}.progress-report-identity strong{font-size:.86rem}.progress-report-identity small{font-size:.6rem;margin-top:5px;line-height:1.5;color:#e0f6ff}.progress-report-title>span{display:inline-block;padding:5px 11px;border-radius:99px;background:#ffffff2e;color:#e7f9ff;font-size:.66rem;font-weight:800}.progress-report-title h1{margin:7px 0 2px;color:#fff;font-size:1.62rem;line-height:1.55}.progress-report-title p{margin:0;color:#e8f5ff;font-size:.72rem}.progress-report-score{display:grid;justify-items:center;padding:11px 17px;border:1px solid #ffffff66;border-radius:18px;background:#ffffff28;white-space:nowrap}.progress-report-score strong{font-size:2rem;line-height:1.2}.progress-report-score span{font-size:.65rem;font-weight:700}.progress-report-body{padding:20px 27px 18px;background:#f7faff}.progress-report-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:14px}.progress-report-summary span{padding:10px 13px;border:1px solid #d9e7f2;border-radius:11px;background:#fff;color:#3e6588;font-size:.69rem;font-weight:700}.progress-report-summary span:nth-child(2){background:#e9f8ef;border-color:#bee9d1}.progress-report-summary span:nth-child(3){background:#fff2ec;border-color:#f3d5bf}.progress-report-summary span:nth-child(4){background:#ebf3ff;border-color:#c9dcf8}.progress-report-summary b{color:#164d83;font-size:1.15rem;margin-left:5px}.progress-report-grid{display:grid;grid-template-columns:repeat(var(--progress-columns),minmax(0,1fr));gap:10px}.progress-report-teacher{overflow:hidden;border:1px solid #d8e6f3;border-radius:13px;background:#fff;box-shadow:0 5px 14px #1743710b;break-inside:avoid}.progress-report-teacher.is-complete{border-color:#b5dfc9}.progress-report-teacher-head{display:flex;align-items:center;gap:9px;padding:10px 12px;background:linear-gradient(110deg,#eaf3ff,#f6f0fb)}.progress-report-teacher.is-complete .progress-report-teacher-head{background:linear-gradient(110deg,#e6f7ed,#edfbf7)}.progress-report-index{display:grid;place-items:center;width:28px;height:28px;flex:none;border-radius:9px;background:#226ca8;color:#fff;font-size:.72rem;font-weight:800}.progress-report-teacher-head>div{flex:1;min-width:0}.progress-report-teacher-head h2{margin:0;color:#163e70;font-size:.78rem;line-height:1.5;overflow-wrap:anywhere}.progress-report-teacher-head small{display:block;color:#6785a0;font-size:.62rem;line-height:1.5}.progress-report-teacher-head>b{flex:none;color:#1d6999;font-size:1.08rem}.progress-report-tasks{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;padding:9px}.progress-report-task{display:grid;align-content:center;gap:5px;min-height:51px;padding:6px 5px;border-radius:9px;text-align:center;background:#fff1e9;color:#91552f}.progress-report-task.is-done{background:#e9f8ef;color:#137257}.progress-report-task.not-required{background:#eef2f6;color:#657b8e}.progress-report-task span{font-size:.61rem;line-height:1.4;font-weight:700}.progress-report-task strong{font-size:.65rem;line-height:1.3;white-space:nowrap}.progress-report-foot{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-top:12px;padding-top:9px;border-top:1px solid #dce6f0;color:#63809b;font-size:.62rem;line-height:1.6}.progress-report-empty{grid-column:1/-1;text-align:center;color:#63809b}
+@media(max-width:1000px){.progress-report-hero{grid-template-columns:1fr auto}.progress-report-title{grid-column:1/-1;grid-row:2}.progress-report-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.progress-report-summary{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:650px){.progress-report-hero{padding:20px;gap:12px}.progress-report-identity img{width:50px;height:50px}.progress-report-score strong{font-size:1.4rem}.progress-report-title h1{font-size:1.2rem}.progress-report-body{padding:14px}.progress-report-grid{grid-template-columns:1fr}.progress-report-summary{gap:6px}.progress-report-summary span{font-size:.6rem;padding:7px}.progress-report-foot{display:block}.progress-report-foot span{display:block;margin-top:5px}}
+@page progress-landscape{size:A3 landscape;margin:8mm}
+@media print{
+  .report-is-open .report-progress{page:progress-landscape;--progress-columns:3;display:flex;flex-direction:column;min-height:280mm}
+  .report-is-open .report-progress.columns-4{--progress-columns:4}
+  .report-is-open .report-progress.columns-5{--progress-columns:5}
+  .report-is-open .progress-report-hero{grid-template-columns:1fr 2fr auto;gap:4mm;padding:4mm 6mm;min-height:34mm}
+  .report-is-open .progress-report-identity img{width:17mm;height:17mm}
+  .report-is-open .progress-report-identity strong{font-size:9pt}
+  .report-is-open .progress-report-identity small{font-size:6.2pt}
+  .report-is-open .progress-report-title>span{font-size:6.5pt;padding:1mm 2mm}
+  .report-is-open .progress-report-title h1{font-size:17pt;margin:1mm 0}
+  .report-is-open .progress-report-title p{font-size:8pt}
+  .report-is-open .progress-report-score{padding:2mm 4mm}
+  .report-is-open .progress-report-score strong{font-size:20pt}
+  .report-is-open .progress-report-score span{font-size:6.5pt}
+  .report-is-open .progress-report-body{display:flex;flex:1;flex-direction:column;padding:3mm 4mm 2mm}
+  .report-is-open .progress-report-summary{gap:2mm;margin-bottom:3mm}
+  .report-is-open .progress-report-summary span{padding:2mm 3mm;font-size:7pt}
+  .report-is-open .progress-report-summary b{font-size:11pt}
+  .report-is-open .progress-report-grid{flex:1;grid-template-columns:repeat(var(--progress-columns),minmax(0,1fr));grid-auto-rows:1fr;gap:2.2mm}
+  .report-is-open .progress-report-teacher{box-shadow:none;border-radius:3mm}
+  .report-is-open .progress-report-teacher-head{gap:2mm;padding:2mm 2.5mm}
+  .report-is-open .progress-report-index{width:7mm;height:7mm;font-size:7pt}
+  .report-is-open .progress-report-teacher-head h2{font-size:8pt;line-height:1.35}
+  .report-is-open .progress-report-teacher-head small{font-size:6pt}
+  .report-is-open .progress-report-teacher-head>b{font-size:10pt}
+  .report-is-open .progress-report-tasks{gap:1mm;padding:1.5mm}
+  .report-is-open .progress-report-task{min-height:13mm;gap:1mm;padding:1mm}
+  .report-is-open .progress-report-task span{font-size:6.2pt}
+  .report-is-open .progress-report-task strong{font-size:6.5pt}
+  .report-is-open .progress-report-foot{margin-top:2mm;padding-top:1mm;font-size:6pt}
+}
+
+/* Large, legible labels in the compact teacher progress cards. */
+.progress-report-teacher-head h2{font-size:1rem}
+.progress-report-teacher-head small{font-size:.75rem}
+.progress-report-teacher-head>b{font-size:1.2rem}
+.progress-report-task{min-height:62px}
+.progress-report-task span{font-size:.78rem}
+.progress-report-task strong{font-size:.82rem}
+.progress-report-summary span{font-size:.8rem}
+.progress-report-foot{font-size:.72rem}
+@media print{
+  .report-is-open .progress-report-teacher-head h2{font-size:11.5pt}
+  .report-is-open .progress-report-teacher-head small{font-size:8pt}
+  .report-is-open .progress-report-teacher-head>b{font-size:12pt}
+  .report-is-open .progress-report-summary span{font-size:9pt}
+  .report-is-open .progress-report-task{min-height:15mm}
+  .report-is-open .progress-report-task span{font-size:9.5pt;line-height:1.35}
+  .report-is-open .progress-report-task strong{font-size:10pt}
+  .report-is-open .progress-report-foot{font-size:8pt}
+}

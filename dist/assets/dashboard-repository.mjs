@@ -11,6 +11,12 @@ async function allRows(build) {
     if (data.length < 500) return rows;
   }
 }
+async function loadKhairkom(client, term) {
+  const sets = await allRows(() => client.from('khairkom_nomination_sets').select('*').eq('term_id', term).order('teacher_username'));
+  const rows = sets.length ? await allRows(() => client.from('khairkom_nominations').select('*').in('set_id', sets.map(row => row.id)).eq('nominated', true).order('teacher_username').order('student_id')) : [];
+  const students = rows.length ? await allRows(() => client.from('students').select('id,full_name,teacher_username,source_class').in('id', rows.map(row => row.student_id)).order('full_name')) : [];
+  return { sets, rows, students };
+}
 export function createDashboardRepository(client) {
   return {
     terms: () => result(client.from('school_terms').select('*').order('starts_on', { ascending: false })),
@@ -35,6 +41,15 @@ export function createDashboardRepository(client) {
       const evaluations = reviews.length ? await allRows(() => client.from('weekly_evaluations').select('*').in('review_id', reviews.map(row=>row.id)).order('review_id').order('student_id')) : [];
       return { students, reviews, honors, evaluations };
     },
+    async teacherProgress(term, week) {
+      const [teachers, reviews, champions, nominations] = await Promise.all([
+        result(client.from('teacher_accounts').select('username,full_name,class_name,ring_name,active').eq('active', true).order('username')),
+        allRows(() => client.from('weekly_reviews').select('teacher_username,week_start,status,knight_student_id').eq('term_id', term).eq('week_start', week).order('teacher_username')),
+        result(client.rpc('weekly_champions', {p_term:term,p_week:week})),
+        loadKhairkom(client, term),
+      ]);
+      return { teachers, reviews, champions, nominations };
+    },
     saveWeek: args => result(client.rpc('save_weekly_evaluation', args)),
     async monthly(teacher, term, month) {
       const reports = await result(client.from('monthly_reports').select('*').eq('teacher_username', teacher).eq('term_id', term).eq('month_start', month));
@@ -43,12 +58,7 @@ export function createDashboardRepository(client) {
       return { report, entries };
     },
     saveMonthly: args => result(client.rpc('save_monthly_report', args)),
-    async khairkom(term) {
-      const sets = await allRows(() => client.from('khairkom_nomination_sets').select('*').eq('term_id', term).order('teacher_username'));
-      const rows = sets.length ? await allRows(() => client.from('khairkom_nominations').select('*').in('set_id', sets.map(row => row.id)).eq('nominated', true).order('teacher_username').order('student_id')) : [];
-      const students = rows.length ? await allRows(() => client.from('students').select('id,full_name,teacher_username,source_class').in('id', rows.map(row => row.student_id)).order('full_name')) : [];
-      return { sets, rows, students };
-    },
+    khairkom: term => loadKhairkom(client, term),
     saveKhairkom: args => result(client.rpc('save_khairkom_nominations', args)),
     champions: (term, week) => result(client.rpc('weekly_champions', {p_term:term,p_week:week})),
     knight: args => result(client.rpc('select_manual_weekly_knight', args)),

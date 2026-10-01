@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildWeeklyReport, buildKhairkomReport, buildChampionsReport } from '../dist/assets/report-layout.mjs';
+import { buildWeeklyReport, buildKhairkomReport, buildChampionsReport, buildTeacherProgressReport } from '../dist/assets/report-layout.mjs';
+import { summarizeTeacherProgress } from '../dist/assets/admin-progress-model.mjs';
 
 const term = {name:'الفصل الأول'};
 const teachers = [{username:'a',full_name:'المعلم الأول',class_name:'1/A'}, {username:'b',full_name:'المعلم الثاني',class_name:'2/B'}];
@@ -33,4 +34,22 @@ test('Khairkom report contains identity and selected parts while champions omits
   const champions=buildChampionsReport({...time,champions:[{teacher_name:'المعلم الأول',class_name:'1/A',student_name:'أحمد',note:'اجتهاد'}]});
   assert.match(champions, /أحمد/);
   assert.doesNotMatch(champions, /000123456|رقم الهوية/);
+});
+
+test('landscape teacher report shows every teacher, three task cells, and week-five-only nominations', () => {
+  const rows = [{...teachers[0],full_name:'<أحمد>'}, teachers[1]];
+  const weekFive = summarizeTeacherProgress(rows,
+    [{teacher_username:'a',week_start:time.week,status:'submitted'}],
+    [{teacher_username:'a',student_name:'طالب'}],
+    [{teacher_username:'a',student_id:'s1',nominated:true}], time.week, 5);
+  const html = buildTeacherProgressReport({...time,progress:weekFive});
+  assert.equal((html.match(/class="progress-report-teacher /g) || []).length,2);
+  assert.equal((html.match(/class="progress-report-task /g) || []).length,6);
+  assert.match(html,/&lt;أحمد&gt;/);
+  assert.doesNotMatch(html,/<أحمد>/);
+  assert.match(html,/100%/);
+  assert.match(html,/لم ينجز/);
+  const weekSix = summarizeTeacherProgress(rows,[],[],[],time.week,6);
+  const later = buildTeacherProgressReport({...time,weekNumber:6,progress:weekSix});
+  assert.equal((later.match(/غير مطلوب/g) || []).length,2);
 });
