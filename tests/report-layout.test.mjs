@@ -53,3 +53,13 @@ test('landscape teacher report shows every teacher, three task cells, and week-f
   const later = buildTeacherProgressReport({...time,weekNumber:6,progress:weekSix});
   assert.equal((later.match(/غير مطلوب/g) || []).length,2);
 });
+
+test('champions register pairs each teacher with the manual choice and includes pending teachers', () => {
+  const html = buildChampionsReport({...time,champions:[{teacher_name:'المعلم الأول',class_name:'1/A',student_name:'<أحمد>'},{teacher_name:'المعلم الثاني',class_name:'2/B',student_name:null}]});
+  const rows = html.match(/<tr class="champion-[\s\S]*?<\/tr>/g);
+  assert.equal(rows.length, 2);
+  assert.match(rows[0], /المعلم الأول[\s\S]*&lt;أحمد&gt;[\s\S]*1\/A/);
+  assert.match(rows[1], /المعلم الثاني[\s\S]*لم يُختر بعد[\s\S]*2\/B/);
+  assert.doesNotMatch(html, /<أحمد>/);
+  assert.match(html, /اختيار يدوي/);
+});

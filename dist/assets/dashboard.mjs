@@ -1,8 +1,8 @@
 import { emptyMonthly, monthlyProblem, termMonths } from './monthly-model.mjs?v=knight2';
 import { SCORE_FIELDS, emptyScores, scoreTotal, validateScores, termWeeks, semesterSummary, weekNumber, weekEnd } from './evaluation-model.mjs?v=rosters2';
 import { formatTestParts, normalizeIdentityNumber, validIdentityNumber, validTestParts } from './khairkom-model.mjs?v=identity1';
-import { buildWeeklyReport, buildKhairkomReport, buildChampionsReport, buildTeacherProgressReport } from './report-layout.mjs?v=teacher-progress1';
-import { summarizeTeacherProgress } from './admin-progress-model.mjs?v=teacher-progress1';
+import { buildWeeklyReport, buildKhairkomReport, buildChampionsReport, buildTeacherProgressReport } from './report-layout.mjs?v=champions-report1';
+import { summarizeTeacherProgress } from './admin-progress-model.mjs?v=champions-report1';
 
 const esc = value => String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]);
 const dateLabel = date => new Intl.DateTimeFormat('ar-EG', { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(new Date(`${date}T00:00:00Z`));
@@ -295,7 +295,7 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
         '<button type="button" class="progress-teacher-link" data-teacher-report="' + esc(row.username) + '">تقييم الطلاب ←</button></article>';
     }).join('');
     content.innerHTML = '<section class="progress-hero"><div><span>متابعة مباشرة · الأسبوع ' + weekNumber(selectedTerm(), termWeeks(selectedTerm()).indexOf(week)) + '</span><h2>كل ما تحتاج متابعته، في مكان واحد</h2><p>اختر بطاقة لمعرفة من أنجز المطلوب ومن لا يزال ينتظره. تُحدّث الأرقام من الحفظ الفعلي في لوحات المعلمين.</p></div><span class="progress-hero-week">' + dateLabel(week) + ' – ' + dateLabel(weekEnd(week)) + '</span></section>' +
-      '<div class="progress-report-action"><button type="button" id="preview-teacher-progress"><span aria-hidden="true">▤</span> تحميل تقرير إنجاز المعلمين PDF</button></div>' +
+      '<div class="progress-report-action"><button type="button" id="preview-teacher-progress"><span aria-hidden="true">▤</span> تحميل تقرير إنجاز المعلمين PDF</button><button type="button" class="champions-download" id="download-champions"><span aria-hidden="true">★</span> تحميل فرسان الأسبوع PDF</button></div>' +
       '<div class="progress-summary-grid' + (progress.khairkomRequired ? '' : ' three-cards') + '">' + cards + '</div>' +
       '<section class="progress-details"><div class="progress-details-heading"><div><span>تقرير إنجاز المعلمين</span><h3>' + labels[focus] + '</h3><p>' + descriptions[focus] + ' · أنجز ' + progress.completed[focus] + ' من أصل ' + progress.total + ' معلمًا.</p></div><span class="progress-details-percent">' + progress.percent[focus] + '%</span></div>' +
       '<div class="progress-teacher-list">' + (rows || '<p class="progress-empty">لا توجد حسابات معلمين نشطة.</p>') + '</div></section>' +
@@ -345,7 +345,21 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
     }
     if (event.target.closest('#preview-weekly-all') && admin) { openReport('weekly'); return; }
     if (event.target.closest('#print-khairkom') && admin) { openReport('khairkom'); return; }
-    if (event.target.closest('#preview-champions') && manager) { openReport('champions'); return; }
+    if (event.target.closest('#preview-champions, #download-champions') && manager && !busy && termId && week) {
+      const reportTerm = termId, reportWeek = week;
+      const button = event.target.closest('#preview-champions, #download-champions'), label = button.innerHTML;
+      busy = true; button.disabled = true; button.textContent = 'جارٍ جلب أحدث فرسان الأسبوع…';
+      try {
+        const latest = await repo.champions(reportTerm, reportWeek);
+        if (termId !== reportTerm || week !== reportWeek) return;
+        champions = latest;
+        if (view === 'reports') renderReports();
+        if (view === 'champions') renderChampions();
+        openReport('champions');
+      } catch (error) { notify(errorText(error), true); }
+      finally { busy = false; button.disabled = false; button.innerHTML = label; }
+      return;
+    }
     const addPart = event.target.closest('[data-khairkom-add-part]');
     if (addPart && !admin && !busy && selectedTerm()?.active && khairkomOpen()) {
       const card = addPart.closest('[data-khairkom-student]'), id = card.dataset.khairkomStudent;
