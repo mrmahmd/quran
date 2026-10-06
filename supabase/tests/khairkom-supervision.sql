@@ -13,18 +13,18 @@ do $$declare f record; snapshot jsonb; target jsonb; v integer;begin
  select * into f from khairkom_test_fixture;
  if f.editor_id is null or f.viewer_id is null or f.teacher_id is null or f.admin_id is null or f.term_id is null then raise exception 'Missing test accounts';end if;
  perform set_config('request.jwt.claim.sub',f.viewer_id::text,true);
- if public.khairkom_permissions()<>jsonb_build_object('view',true,'edit_identity',false) then raise exception 'Viewer permissions wrong';end if;
+ if public.khairkom_permissions()<>jsonb_build_object('view',true,'edit_identity',false,'add_nomination',false) then raise exception 'Viewer permissions wrong';end if;
  snapshot:=public.khairkom_report_snapshot(f.term_id);
  if jsonb_array_length(snapshot->'teachers')<2 then raise exception 'Viewer cannot read report';end if;
  begin perform public.update_khairkom_identity(f.set_id,gen_random_uuid(),'000000',1);raise exception 'Viewer edit incorrectly allowed';exception when insufficient_privilege then null;end;
  perform set_config('request.jwt.claim.sub',f.teacher_id::text,true);
- if public.khairkom_permissions()<>jsonb_build_object('view',false,'edit_identity',false) then raise exception 'Teacher gained access';end if;
+ if public.khairkom_permissions()<>jsonb_build_object('view',false,'edit_identity',false,'add_nomination',false) then raise exception 'Teacher gained access';end if;
  begin perform public.khairkom_report_snapshot(f.term_id);raise exception 'Teacher report incorrectly allowed';exception when insufficient_privilege then null;end;
  perform set_config('request.jwt.claim.sub','',true);
  if (public.khairkom_permissions()->>'view')::boolean then raise exception 'Signed-out access allowed';end if;
  begin perform public.khairkom_report_snapshot(f.term_id);raise exception 'Signed-out report allowed';exception when insufficient_privilege then null;end;
  perform set_config('request.jwt.claim.sub',f.editor_id::text,true);
- if public.khairkom_permissions()<>jsonb_build_object('view',true,'edit_identity',true) then raise exception 'Editor permissions wrong';end if;
+ if public.khairkom_permissions()<>jsonb_build_object('view',true,'edit_identity',true,'add_nomination',true) then raise exception 'Editor permissions wrong';end if;
  snapshot:=public.khairkom_report_snapshot(f.term_id);
  select value into target from jsonb_array_elements(snapshot->'rows') where value->>'identity_number' ~ '^[0-9]{6,20}$' limit 1;
  if target is null then raise exception 'No nominated student for write test';end if;
@@ -32,7 +32,7 @@ do $$declare f record; snapshot jsonb; target jsonb; v integer;begin
  perform public.update_khairkom_identity((target->>'set_id')::uuid,(target->>'student_id')::uuid,target->>'identity_number',v);
  begin perform public.update_khairkom_identity((target->>'set_id')::uuid,(target->>'student_id')::uuid,target->>'identity_number',v);raise exception 'Stale version accepted';exception when raise_exception then if sqlerrm not like 'تغيّرت الترشيحات%' then raise;end if;end;
  perform set_config('request.jwt.claim.sub',f.admin_id::text,true);
- if public.khairkom_permissions()<>jsonb_build_object('view',true,'edit_identity',true) then raise exception 'Admin permissions wrong';end if;
+ if public.khairkom_permissions()<>jsonb_build_object('view',true,'edit_identity',true,'add_nomination',true) then raise exception 'Admin permissions wrong';end if;
 end;$$;
 reset role;
 do $$begin

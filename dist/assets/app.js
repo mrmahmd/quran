@@ -55,12 +55,12 @@ async function showAccount(user) {
   if (managerError) throw managerError;
   const { data: nominationAccess, error: nominationError } = await client.rpc('khairkom_permissions');
   if (nominationError && nominationError.code !== 'PGRST202') throw nominationError;
-  await openDashboard({ ...data, role: 'teacher', roster_manager: managesRosters === true, khairkom_viewer: nominationAccess?.view === true, khairkom_identity_editor: nominationAccess?.edit_identity === true });
+  await openDashboard({ ...data, role: 'teacher', roster_manager: managesRosters === true, khairkom_viewer: nominationAccess?.view === true, khairkom_identity_editor: nominationAccess?.edit_identity === true, khairkom_nomination_adder: nominationAccess?.add_nomination === true });
 }
 
 async function openDashboard(account) {
   const [{ mountDashboard }, { createDashboardRepository }] = await Promise.all([
-    import('./dashboard.mjs?v=khairkom-supervision1'), import('./dashboard-repository.mjs?v=khairkom-supervision1'),
+    import('./dashboard.mjs?v=khairkom-add1'), import('./dashboard-repository.mjs?v=khairkom-add1'),
   ]);
   const previousRoot = document.querySelector('#dashboard-root');
   const root = previousRoot.cloneNode(false);

@@ -8,6 +8,14 @@ const teachers = [{username:'a',full_name:'المعلم الأول',class_name:'
 const overview = {students:[{id:'s1',teacher_username:'a',full_name:'أحمد',source_class:'1/A',active:true},{id:'s2',teacher_username:'a',full_name:'علي',active:true},{id:'s3',teacher_username:'b',full_name:'يوسف',active:true}],reviews:[{id:'r1',teacher_username:'a',week_start:'2026-09-27',status:'submitted'},{id:'r2',teacher_username:'b',week_start:'2026-09-27',status:'draft'}],evaluations:[{review_id:'r1',student_id:'s1',total:0,memorization:0,revision:0,improvement:0,commitment:0},{review_id:'r1',student_id:'s2',total:9,memorization:3,revision:2,improvement:2,commitment:2}]};
 const time = {term,week:'2026-09-27',weekEnd:'2026-10-01',weekNumber:5};
 
+test('manually added nominee is displayed normally without an external-student label',()=>{
+  const html=buildKhairkomReport({term,teachers,data:{students:[{id:'manual',full_name:'اسم جديد <مراجعة>',teacher_username:'a',source_class:'—',external:true}],rows:[{student_id:'manual',teacher_username:'a',identity_number:'000123456',test_parts:[5,6],external:true}]}});
+  assert.match(html,/اسم جديد &lt;مراجعة&gt;/);
+  assert.match(html,/000123456/);
+  assert.match(html,/من الجزء ٥ إلى ٦/);
+  assert.doesNotMatch(html,/من خارج الحلقات/);
+});
+
 test('combined weekly report groups teachers and keeps zero distinct from missing score', () => {
   const html = buildWeeklyReport({...time,teachers,overview});
   assert.match(html, /المعلم الأول/);
