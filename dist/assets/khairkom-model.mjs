@@ -1,5 +1,18 @@
 const arabicNumber = value => new Intl.NumberFormat('ar-EG').format(value);
 
+// The RPC commits the entire batch in one transaction and returns its saved set.
+// Keep the acknowledged rows visible without reloading unrelated dashboard data.
+export function applySavedNominations(data, saved, teacher, term, rows) {
+  if (!saved?.id || saved.teacher_username !== teacher || saved.term_id !== term || !Number.isInteger(saved.version) || saved.version < 1) {
+    throw new Error('لم يصل تأكيد واضح للحفظ. اضغط تحديث البيانات للتحقق قبل إعادة المحاولة.');
+  }
+  return {
+    ...data,
+    sets: [...data.sets.filter(s=>s.teacher_username!==teacher || data.rows.some(r=>r.external && r.set_id===s.id)), {...saved}],
+    rows: [...data.rows.filter(r=>r.teacher_username!==teacher || r.external), ...rows.map(r=>({...r,test_parts:[...r.test_parts],set_id:saved.id,teacher_username:teacher,nominated:true}))],
+  };
+}
+
 export function normalizeIdentityNumber(value) {
   return String(value ?? '')
     .replace(/[٠-٩]/g, digit => String(digit.charCodeAt(0) - 0x0660))

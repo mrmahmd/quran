@@ -1,6 +1,25 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { validTestParts, formatTestParts, normalizeIdentityNumber, validIdentityNumber } from '../dist/assets/khairkom-model.mjs';
+import { applySavedNominations, validTestParts, formatTestParts, normalizeIdentityNumber, validIdentityNumber } from '../dist/assets/khairkom-model.mjs';
+
+test('acknowledged save replaces only the teacher batch, preserves external nominees, and advances version',()=>{
+  const data={sets:[{id:'old',teacher_username:'a',version:1},{id:'external',teacher_username:'a',version:1},{id:'other',teacher_username:'b',version:1}],rows:[{set_id:'old',student_id:'old',teacher_username:'a'},{set_id:'external',student_id:'manual',teacher_username:'a',external:true},{set_id:'other',student_id:'other',teacher_username:'b'}],students:[]};
+  const chosen=[{student_id:'new',test_parts:[1,3],identity_number:'0000123456'}];
+  const saved={id:'old',teacher_username:'a',term_id:'term',version:2};
+  const next=applySavedNominations(data,saved,'a','term',chosen);
+  assert.deepEqual(next.rows.map(r=>r.student_id),['manual','other','new']);
+  assert.equal(next.sets.find(s=>s.id==='old').version,2);
+  assert.equal(next.sets.find(s=>s.id==='external').version,1);
+  assert.equal(next.rows.at(-1).identity_number,'0000123456');
+  next.rows.at(-1).test_parts.push(4);assert.deepEqual(chosen[0].test_parts,[1,3]);
+  assert.equal(data.sets[0].version,1);
+});
+
+test('missing or mismatched save acknowledgment cannot produce a success state',()=>{
+  const data={sets:[],rows:[],students:[]};
+  for(const saved of [null,{id:'s',teacher_username:'other',term_id:'term',version:1},{id:'s',teacher_username:'a',term_id:'wrong',version:1}])assert.throws(()=>applySavedNominations(data,saved,'a','term',[]),/تأكيد/);
+  assert.deepEqual(data,{sets:[],rows:[],students:[]});
+});
 
 test('identity number keeps leading zeroes and accepts Arabic digits with varying lengths', () => {
   assert.equal(normalizeIdentityNumber('٠١٢٣٤٥٦٧٨٩'), '0123456789');
