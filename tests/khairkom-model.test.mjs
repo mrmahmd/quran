@@ -24,3 +24,15 @@ test('report compresses only consecutive parts and preserves gaps', () => {
   assert.equal(formatTestParts([30]), 'الجزء ٣٠');
   assert.equal(formatTestParts([]), 'لم تُحدَّد أجزاء الاختبار بعد');
 });
+
+import { filterNominations, nominationFilterLabel } from '../dist/assets/khairkom-model.mjs';
+test('nomination filters intersect teacher and class and match all or any selected parts',()=>{
+ const data={students:[{id:'a',full_name:'أ',source_class:'1/A'},{id:'b',full_name:'ب',source_class:'2/A'}],rows:[{student_id:'a',teacher_username:'t1',test_parts:[1,2,3]},{student_id:'b',teacher_username:'t2',test_parts:[2,5]}]};
+ const owners=[{username:'t1',full_name:'معلم أول'},{username:'t2',full_name:'معلم ثان'}];
+ assert.equal(filterNominations(data,owners,{parts:[1,2],mode:'all'}).length,1);
+ assert.equal(filterNominations(data,owners,{parts:[1,5],mode:'any'}).length,2);
+ assert.equal(filterNominations(data,owners,{parts:[1,5],mode:'all'}).length,0);
+ assert.equal(filterNominations(data,owners,{teacher:'t1',className:'2/A'}).length,0);
+ assert.equal(filterNominations(data,owners,{}).length,2);
+ assert.match(nominationFilterLabel({teacher:'t1',parts:[1,2],mode:'all'},owners),/معلم أول.*جميع الأجزاء معًا/);
+});

@@ -30,13 +30,13 @@ export function buildWeeklyReport({term, week, weekNumber, weekEnd, teachers, ov
   }).join('');
   return shell({kind:'weekly',title:teacherUsername?'تقرير تقييم الحلقة':'تقرير التقييم الأسبوعي المجمّع',subtitle:'تقييمات الطلاب كما سجّلها المعلمون؛ الشرطة تعني عدم وجود تقييم محفوظ.',term:term?.name,period:`الأسبوع ${weekNumber} · ${dateText(week)} إلى ${dateText(weekEnd)}`,stats:[[included.length,'الحلقات المشمولة','blue'],[totalStudents,'إجمالي الطلاب','cyan'],[totalRated,'طلاب تم تقييمهم','green'],[approved,'حلقات اعتمدت التقييم','gold']],body:sections || empty('لا توجد حلقات في هذه الفترة.'),note:'هذا التقرير للمتابعة الإدارية. فارس الأسبوع اختيار يدوي مستقل عن مجموع النقاط.'});
 }
-export function buildKhairkomReport({term, teachers, data}) {
+export function buildKhairkomReport({term, teachers, data, filterLabel}) {
   const names = new Map((data?.students || []).map(s=>[s.id,s]));
   const owners = new Map(teachers.map(t=>[t.username,t]));
   const rows = data?.rows || [];
   const nominated = new Set(rows.map(r=>r.teacher_username));
   const body = rows.length ? `<section class="report-section"><div class="report-section-head"><div><span class="report-class">قائمة المرشحين</span><h2>الأسماء وأجزاء الاختبار</h2></div></div>${table(['م','الطالب المرشح','الفصل','رقم الهوية','المعلم','أجزاء الاختبار'], rows.map((row,index)=>{const student=names.get(row.student_id), teacher=owners.get(row.teacher_username);return `<tr><td class="report-index">${index+1}</td><th scope="row">${escapeHtml(student?.full_name || 'طالب مؤرشف')}</th>${cell(student?.source_class || teacher?.class_name)}<td dir="ltr" class="report-id">${escapeHtml(row.identity_number || 'لم يُسجّل')}</td>${cell(teacher?.full_name || row.teacher_username)}<td class="report-parts">${escapeHtml(formatTestParts(row.test_parts))}</td></tr>`;}))}</section>` : empty('لا توجد ترشيحات محفوظة للفصل الدراسي المحدد.');
-  return shell({kind:'khairkom',title:'المرشحون لاختبارات جمعية خيركم',subtitle:'تقرير موحّد يضم ترشيحات المعلمين والهوية والأجزاء المختارة لكل طالب.',term:term?.name,stats:[[rows.length,'طلاب مرشحون','green'],[nominated.size,'معلمون رشحوا','blue'],[Math.max(0,teachers.length-nominated.size),'حلقات دون ترشيح','gold']],body,note:'أرقام الهوية مخصصة للتقرير الإداري؛ يُرجى التعامل مع النسخة المحفوظة وفق سياسة المدرسة.'});
+  return shell({kind:'khairkom',title:'المرشحون لاختبارات جمعية خيركم',subtitle:'تقرير موحّد يضم ترشيحات المعلمين والهوية والأجزاء المختارة لكل طالب.',term:term?.name,period:filterLabel,stats:[[rows.length,'طلاب مرشحون','green'],[nominated.size,'معلمون رشحوا','blue'],[new Set(rows.map(r=>names.get(r.student_id)?.source_class || owners.get(r.teacher_username)?.class_name).filter(Boolean)).size,'فصول ضمن النتائج','gold']],body,note:'أرقام الهوية مخصصة للتقرير الإداري؛ يُرجى التعامل مع النسخة المحفوظة وفق سياسة المدرسة.'});
 }
 export function buildChampionsReport({term, week, weekNumber, weekEnd, champions}) {
   const rows = champions || [], chosen = rows.filter(row=>row.student_name);

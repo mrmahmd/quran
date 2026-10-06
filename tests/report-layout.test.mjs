@@ -63,3 +63,8 @@ test('champions register pairs each teacher with the manual choice and includes 
   assert.doesNotMatch(html, /<أحمد>/);
   assert.match(html, /اختيار يدوي/);
 });
+
+test('filtered nomination PDF contains only supplied results and the filter summary',()=>{
+ const html=buildKhairkomReport({term,teachers,filterLabel:'جميع الأجزاء معًا: الجزء ١',data:{students:[{id:'s1',full_name:'الطالب الظاهر'},{id:'s2',full_name:'طالب مستبعد'}],rows:[{teacher_username:'a',student_id:'s1',test_parts:[1],identity_number:'000000'}]}});
+ assert.match(html,/الطالب الظاهر/);assert.doesNotMatch(html,/طالب مستبعد/);assert.match(html,/جميع الأجزاء معًا/);
+});

@@ -30,3 +30,25 @@ export function formatTestParts(parts) {
     ? `الجزء ${arabicNumber(start)}`
     : `من الجزء ${arabicNumber(start)} إلى ${arabicNumber(end)}`).join('، ');
 }
+
+export function filterNominations(data, teachers, filters = {}) {
+  const students = new Map((data.students || []).map(s => [s.id, s]));
+  const owners = new Map(teachers.map(t => [t.username, t]));
+  const parts = [...new Set((filters.parts || []).map(Number))].filter(p => Number.isInteger(p) && p >= 1 && p <= 30);
+  return (data.rows || []).filter(row => {
+    if (filters.teacher && row.teacher_username !== filters.teacher) return false;
+    const className = students.get(row.student_id)?.source_class || owners.get(row.teacher_username)?.class_name || '';
+    if (filters.className && className !== filters.className) return false;
+    if (!parts.length) return true;
+    const selected = row.test_parts || [];
+    return filters.mode === 'any' ? parts.some(p => selected.includes(p)) : parts.every(p => selected.includes(p));
+  }).sort((a,b) => (a.teacher_username || '').localeCompare(b.teacher_username || '') || (students.get(a.student_id)?.full_name || '').localeCompare(students.get(b.student_id)?.full_name || '', 'ar'));
+}
+
+export function nominationFilterLabel(filters, teachers) {
+  const labels = [];
+  if (filters.teacher) labels.push('المعلم: ' + (teachers.find(t=>t.username===filters.teacher)?.full_name || filters.teacher));
+  if (filters.className) labels.push('الفصل: ' + filters.className);
+  if (filters.parts?.length) labels.push((filters.mode === 'any' ? 'أي جزء من: ' : 'جميع الأجزاء معًا: ') + formatTestParts(filters.parts));
+  return labels.length ? labels.join(' · ') : 'جميع المرشحين · دون فلترة';
+}
