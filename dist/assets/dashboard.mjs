@@ -1,8 +1,8 @@
 import { emptyMonthly, monthlyProblem, termMonths } from './monthly-model.mjs?v=knight2';
 import { SCORE_FIELDS, emptyScores, scoreTotal, validateScores, termWeeks, semesterSummary, weekNumber, weekEnd } from './evaluation-model.mjs?v=rosters2';
 import { applySavedNominations, filterNominations, nominationFilterLabel, formatTestParts, normalizeIdentityNumber, validIdentityNumber, validTestParts } from './khairkom-model.mjs?v=mobile-save1';
-import { buildWeeklyReport, buildKhairkomReport, buildChampionsReport, buildTeacherProgressReport } from './report-layout.mjs?v=week5-knight-select1';
-import { summarizeTeacherProgress } from './admin-progress-model.mjs?v=week5-knight-select1';
+import { buildWeeklyReport, buildKhairkomReport, buildChampionsReport, buildTeacherProgressReport } from './report-layout.mjs?v=khairkom-week4-only1';
+import { summarizeTeacherProgress } from './admin-progress-model.mjs?v=khairkom-week4-only1';
 
 const esc = value => String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]);
 const dateLabel = date => new Intl.DateTimeFormat('ar-EG', { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(new Date(`${date}T00:00:00Z`));
@@ -78,7 +78,7 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
     const selectedOpen = weekOpen(week), relevantOpen = view === 'khairkom' ? khairkomOpen() : selectedOpen;
     panel.hidden = admin ? !['reports','evaluation','champions'].includes(view) : (relevantOpen || !['evaluation','knight','khairkom'].includes(view));
     if (admin) {
-      panel.innerHTML = `<div><span class="week-workflow-icon">${selectedOpen?'◉':'⊘'}</span><div><strong>عمل المعلمين · الأسبوع ${weekNumber(selectedTerm(), termWeeks(selectedTerm()).indexOf(week))}</strong><small>${selectedOpen?'مفتوح لجميع المعلمين: التقييم وفارس الأسبوع. ترشيحات خيركم تكليف الأسبوع الخامس فقط.':'مغلق لجميع المعلمين: لا يمكن حفظ تقييمات أو فارس الأسبوع. وتُغلق ترشيحات خيركم إذا كان هذا هو الأسبوع الجاري.'}</small></div></div><button class="week-toggle ${selectedOpen?'':'closed'}" type="button" id="toggle-week-workflow" role="switch" aria-checked="${selectedOpen}" aria-label="${selectedOpen?'إغلاق':'فتح'} عمل جميع المعلمين في هذا الأسبوع"><span class="week-toggle-track"><i></i></span><b>${selectedOpen?'مفتوح':'مغلق'}</b></button>`;
+      panel.innerHTML = `<div><span class="week-workflow-icon">${selectedOpen?'◉':'⊘'}</span><div><strong>عمل المعلمين · الأسبوع ${weekNumber(selectedTerm(), termWeeks(selectedTerm()).indexOf(week))}</strong><small>${selectedOpen?'مفتوح لجميع المعلمين: التقييم وفارس الأسبوع. ترشيحات خيركم تكليف الأسبوع الرابع فقط.':'مغلق لجميع المعلمين: لا يمكن حفظ تقييمات أو فارس الأسبوع. وتُغلق ترشيحات خيركم إذا كان هذا هو الأسبوع الجاري.'}</small></div></div><button class="week-toggle ${selectedOpen?'':'closed'}" type="button" id="toggle-week-workflow" role="switch" aria-checked="${selectedOpen}" aria-label="${selectedOpen?'إغلاق':'فتح'} عمل جميع المعلمين في هذا الأسبوع"><span class="week-toggle-track"><i></i></span><b>${selectedOpen?'مفتوح':'مغلق'}</b></button>`;
     } else if (!relevantOpen) {
       panel.innerHTML = `<div><span class="week-workflow-icon">⊘</span><div><strong>${view==='khairkom'?'ترشيحات خيركم متوقفة هذا الأسبوع':'هذا الأسبوع مغلق من الإدارة'}</strong><small>يمكنك قراءة البيانات المحفوظة، لكن الحفظ متوقف حتى تعيد الإدارة فتح الأسبوع.</small></div></div>`;
     }
@@ -295,7 +295,7 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
     if (!progress.khairkomRequired && progressFocus === 'khairkom') progressFocus = 'weekly';
     const focus = progressFocus;
     const labels = { weekly: 'إنجاز الأسبوع كاملًا', evaluation: 'التقييم الأسبوعي', champion: 'فارس الأسبوع', khairkom: 'ترشيحات خيركم' };
-    const descriptions = { weekly: progress.khairkomRequired ? 'التقييم والفارس وترشيح طالب للجمعية' : 'اعتماد التقييم واختيار الفارس معًا', evaluation: 'اعتماد نقاط جميع طلاب الحلقة', champion: 'اختيار يدوي محفوظ من المعلم', khairkom: 'ترشيح طالب واحد على الأقل في الأسبوع الخامس' };
+    const descriptions = { weekly: progress.khairkomRequired ? 'التقييم والفارس وترشيح طالب للجمعية' : 'اعتماد التقييم واختيار الفارس معًا', evaluation: 'اعتماد نقاط جميع طلاب الحلقة', champion: 'اختيار يدوي محفوظ من المعلم', khairkom: 'ترشيح طالب واحد على الأقل في الأسبوع الرابع' };
     const cardTypes = [['weekly','✦'],['evaluation','✓'],['champion','★'],...(progress.khairkomRequired ? [['khairkom','◆']] : [])];
     const cards = cardTypes.map(([key,icon]) => {
       const done = progress.completed[key], percent = progress.percent[key];

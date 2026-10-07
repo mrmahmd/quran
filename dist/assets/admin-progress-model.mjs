@@ -1,5 +1,5 @@
 export function summarizeTeacherProgress(teachers, reviews, champions, nominationRows, week, selectedWeekNumber) {
-  const khairkomRequired = selectedWeekNumber === 5;
+  const khairkomRequired = selectedWeekNumber === 4;
   const requiredTasks = khairkomRequired ? 3 : 2;
   const reviewByTeacher = new Map(reviews.filter(row => row.week_start === week).map(row => [row.teacher_username, row]));
   const championByTeacher = new Map(champions.map(row => [row.teacher_username, row]));

@@ -44,21 +44,21 @@ test('Khairkom report contains identity and selected parts while champions omits
   assert.doesNotMatch(champions, /000123456|رقم الهوية/);
 });
 
-test('landscape teacher report shows every teacher, three task cells, and week-five-only nominations', () => {
+test('landscape teacher report shows every teacher, three task cells, and week-four-only nominations', () => {
   const rows = [{...teachers[0],full_name:'<أحمد>'}, teachers[1]];
-  const weekFive = summarizeTeacherProgress(rows,
+  const weekFour = summarizeTeacherProgress(rows,
     [{teacher_username:'a',week_start:time.week,status:'submitted'}],
     [{teacher_username:'a',student_name:'طالب'}],
-    [{teacher_username:'a',student_id:'s1',nominated:true}], time.week, 5);
-  const html = buildTeacherProgressReport({...time,progress:weekFive});
+    [{teacher_username:'a',student_id:'s1',nominated:true}], time.week, 4);
+  const html = buildTeacherProgressReport({...time,weekNumber:4,progress:weekFour});
   assert.equal((html.match(/class="progress-report-teacher /g) || []).length,2);
   assert.equal((html.match(/class="progress-report-task /g) || []).length,6);
   assert.match(html,/&lt;أحمد&gt;/);
   assert.doesNotMatch(html,/<أحمد>/);
   assert.match(html,/100%/);
   assert.match(html,/لم ينجز/);
-  const weekSix = summarizeTeacherProgress(rows,[],[],[],time.week,6);
-  const later = buildTeacherProgressReport({...time,weekNumber:6,progress:weekSix});
+  const weekFive = summarizeTeacherProgress(rows,[],[],[],time.week,5);
+  const later = buildTeacherProgressReport({...time,weekNumber:5,progress:weekFive});
   assert.equal((later.match(/غير مطلوب/g) || []).length,2);
 });
 
