@@ -1,8 +1,8 @@
 import { emptyMonthly, monthlyProblem, termMonths } from './monthly-model.mjs?v=knight2';
 import { SCORE_FIELDS, emptyScores, scoreTotal, validateScores, termWeeks, semesterSummary, weekNumber, weekEnd } from './evaluation-model.mjs?v=rosters2';
 import { applySavedNominations, filterNominations, nominationFilterLabel, formatTestParts, normalizeIdentityNumber, validIdentityNumber, validTestParts } from './khairkom-model.mjs?v=mobile-save1';
-import { buildWeeklyReport, buildKhairkomReport, buildChampionsReport, buildTeacherProgressReport } from './report-layout.mjs?v=khairkom-mobile-save1';
-import { summarizeTeacherProgress } from './admin-progress-model.mjs?v=khairkom-mobile-save1';
+import { buildWeeklyReport, buildKhairkomReport, buildChampionsReport, buildTeacherProgressReport } from './report-layout.mjs?v=week5-knight-select1';
+import { summarizeTeacherProgress } from './admin-progress-model.mjs?v=week5-knight-select1';
 
 const esc = value => String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]);
 const dateLabel = date => new Intl.DateTimeFormat('ar-EG', { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(new Date(`${date}T00:00:00Z`));
@@ -33,7 +33,7 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
   const selectedTerm = () => terms.find(term => term.id === termId);
   const teacher = () => teachers.find(row => row.username === teacherId) || account;
   const review = () => context.reviews.find(row => row.week_start === week);
-  const weekOpen = value => weekStates.find(row => row.week_start === value)?.is_open !== false;
+  const weekOpen = value => value >= (selectedTerm()?.starts_on || '') && weekStates.find(row => row.week_start === value)?.is_open !== false;
   const currentWeek = () => { const date = new Date(`${today()}T00:00:00Z`); date.setUTCDate(date.getUTCDate() - date.getUTCDay()); return date.toISOString().slice(0,10); };
   const khairkomOpen = () => weekOpen(currentWeek());
   const readonly = () => admin || !selectedTerm()?.active || !weekOpen(week) || review()?.status === 'submitted';
@@ -125,6 +125,8 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
     if (teacherSelect) { teacherSelect.innerHTML = teachers.map(row => `<option value="${esc(row.username)}">${esc(row.ring_name ? row.ring_name + " (" + row.class_name + ")" : row.class_name)} · ${esc(row.full_name)}</option>`).join(''); teacherSelect.value = teacherId; }
     const weeks = selectedTerm() ? termWeeks(selectedTerm()) : [];
     weekSelect.innerHTML = weeks.length ? weeks.map((day, i) => `<option value="${day}">الأسبوع ${weekNumber(selectedTerm(), i)} · ${dateLabel(day)} – ${dateLabel(weekEnd(day))}${day > today() ? ' (قادم)' : ''}</option>`).join('') : '<option value="">بانتظار تواريخ الفصل الدراسي</option>';
+    const archived = [...new Set([...(overview?.reviews || []), ...context.reviews].filter(row=>row.term_id===termId && row.week_start<selectedTerm()?.starts_on).map(row=>row.week_start))].sort();
+    if (archived.length) weekSelect.innerHTML += '<optgroup label="سجلات سابقة محفوظة">' + archived.map(day=>`<option value="${day}">سجل سابق · ${dateLabel(day)} – ${dateLabel(weekEnd(day))}</option>`).join('') + '</optgroup>';
     weekSelect.value = week; weekSelect.disabled = !weeks.length;
   }
   function loadScores() {
@@ -150,7 +152,7 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
       const combined = nominationViewer && termId ? await repo.khairkomReport(termId) : null;
       const nominations = termId ? await repo.khairkom(termId) : { sets: [], rows: [], students: [] };
       if (ticket !== generation) return;
-      nominationReport = combined; context = data; overview = report; weekStates = access; monthlyData = monthly; champions = gallery; khairkomData = nominations; nominatedStudents = new Map(nominations.rows.filter(row => row.teacher_username === teacherId).map(row => [row.student_id, [...(row.test_parts || [])]])); identityNumbers = new Map(nominations.rows.filter(row => row.teacher_username === teacherId).map(row => [row.student_id, row.identity_number || ''])); nominationDirty = false; loadScores(); loadMonthlyRows(); render();
+      nominationReport = combined; context = data; overview = report; weekStates = access; monthlyData = monthly; champions = gallery; khairkomData = nominations; nominatedStudents = new Map(nominations.rows.filter(row => row.teacher_username === teacherId).map(row => [row.student_id, [...(row.test_parts || [])]])); identityNumbers = new Map(nominations.rows.filter(row => row.teacher_username === teacherId).map(row => [row.student_id, row.identity_number || ''])); nominationDirty = false; loadScores(); loadMonthlyRows(); updateSelectors(); render();
     } catch (error) { if (ticket !== generation) return; content.innerHTML = '<div class="empty-state"><h2>تعذر تحميل البيانات</h2><p>اضغط تحديث البيانات للمحاولة مرة أخرى.</p></div>'; notify(errorText(error), true); }
   }
   function empty(title, text, symbol = '✦') { return `<div class="empty-state"><span class="empty-symbol">${symbol}</span><h2>${esc(title)}</h2><p>${esc(text)}</p></div>`; }
@@ -196,7 +198,8 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
     const current = review();
     const ranked = context.students.filter(student => student.active || student.id === current?.knight_student_id).map(student => ({student_id: student.id, full_name: student.full_name}));
     content.innerHTML = `<div class="section-heading"><div><p class="section-kicker gold-text">فارس الأسبوع</p><h2>نحتفي بالاجتهاد والتحسن</h2><p>اختر فارس الأسبوع بنفسك من طلاب الحلقة. لا يوجد اختيار تلقائي أو ترتيب بالنقاط.</p></div><span class="status-pill gold-status">${current?.knight_student_id ? '★ تم اختيار الفارس' : 'بانتظار اختيارك'}</span></div>
-    <div class="knight-grid">${ranked.map((row, i) => `<button class="knight-card ${chosenKnight === row.student_id ? 'chosen' : ''}" data-knight="${esc(row.student_id)}" aria-pressed="${chosenKnight === row.student_id}" ${!selectedTerm()?.active || !weekOpen(week) ? 'disabled' : ''}><span class="knight-star">★</span><h3>${esc(row.full_name)}</h3><span class="choice-label">${chosenKnight === row.student_id ? '✓ اختيارك لفارس الأسبوع' : 'اختيار هذا الطالب'}</span></button>`).join('')}</div>
+    <div class="knight-select-panel"><label for="knight-student">اختر فارس الأسبوع من طلاب حلقتك</label><select id="knight-student" ${!selectedTerm()?.active || !weekOpen(week) || week > today() ? 'disabled' : ''}><option value="">اختر الطالب…</option>${ranked.map(row=>`<option value="${esc(row.student_id)}" ${chosenKnight===row.student_id?'selected':''}>${esc(row.full_name)}</option>`).join('')}</select><p>اختيار يدوي من المعلم، ثم اضغط حفظ لتأكيد الاختيار.</p></div>
+    ${current?.knight_student_id ? `<article class="saved-knight-card"><span class="saved-knight-medal">★</span><div><span>فارس الأسبوع ${weekNumber(selectedTerm(),termWeeks(selectedTerm()).indexOf(week))} · اختيار محفوظ</span><h3>${esc(ranked.find(row=>row.student_id===current.knight_student_id)?.full_name || 'فارس الحلقة')}</h3><p>${esc(teacher().ring_name || teacher().class_name)} · ${dateLabel(week)} – ${dateLabel(weekEnd(week))}</p>${current.knight_note?`<p class="saved-knight-note">${esc(current.knight_note)}</p>`:''}</div></article>` : ''}
     <div class="note-panel"><label for="knight-note">سبب اختيار فارس الأسبوع <small>(اختياري)</small></label><textarea id="knight-note" maxlength="500" placeholder="مثال: تحسن واضح في إتقان التسميع" ${!weekOpen(week)?'disabled':''}>${esc(current?.knight_note || '')}</textarea></div><div class="save-bar"><span>يحتفظ الطالب بميداليته تقديرًا لإنجازه.</span><button class="gold-button" id="save-knight" ${!chosenKnight || !selectedTerm()?.active || !weekOpen(week) || week > today() ? 'disabled' : ''}>حفظ فارس الأسبوع ★</button></div>`;
   }
   const monthlyStudents = () => context.students.filter(student => student.active || monthlyData.entries.some(row => row.student_id === student.id));
@@ -534,8 +537,6 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
       chip.parentElement.querySelectorAll('button').forEach(button => button.setAttribute('aria-pressed', button === chip ? 'true' : 'false'));
       const total = scoreTotal(row); card.querySelector('.total-badge').innerHTML = `${total === null ? '—' : total}<small>/ ١٢</small>`; updateProgress(); return;
     }
-    const candidate = event.target.closest('[data-knight]');
-    if (candidate && !busy && weekOpen(week)) { chosenKnight = candidate.dataset.knight; knightDirty = true; root.querySelectorAll('[data-knight]').forEach(button => { const selected = button.dataset.knight === chosenKnight; button.classList.toggle('chosen', selected); button.setAttribute('aria-pressed', String(selected)); button.querySelector('.choice-label').textContent = selected ? '✓ اختيارك لفارس الأسبوع' : 'اختيار هذا الطالب'; }); root.querySelector('#save-knight').disabled = week > today() || !selectedTerm()?.active || !weekOpen(week); return; }
     const report = event.target.closest('[data-teacher-report]');
     if (report && !busy) { if (!await mayLeave()) return; teacherId = report.dataset.teacherReport; view = 'evaluation'; updateSelectors(); await loadContext(); return; }
     const id = event.target.closest('button')?.id;
@@ -569,6 +570,7 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
     }
   });
   root.addEventListener('change', async event => {
+    if (event.target.id === 'knight-student' && !admin && !busy && weekOpen(week)) { chosenKnight = event.target.value; knightDirty = true; root.querySelector('#save-knight').disabled = !chosenKnight || week > today() || !selectedTerm()?.active || !weekOpen(week); return; }
     if (event.target.hasAttribute('data-nomination-filter') && nominationViewer && !busy) {
       const field = event.target.dataset.nominationFilter;
       nominationFilters[field] = field === 'parts' ? Array.from(event.target.selectedOptions).map(o=>Number(o.value)) : event.target.value;
