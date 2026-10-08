@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { applySavedNominations, validTestParts, formatTestParts, normalizeIdentityNumber, validIdentityNumber } from '../dist/assets/khairkom-model.mjs';
+import { applyEditedNominee, applySavedNominations, validTestParts, formatTestParts, normalizeIdentityNumber, validIdentityNumber } from '../dist/assets/khairkom-model.mjs';
 
 test('acknowledged save replaces only the teacher batch, preserves external nominees, and advances version',()=>{
   const data={sets:[{id:'old',teacher_username:'a',version:1},{id:'external',teacher_username:'a',version:1},{id:'other',teacher_username:'b',version:1}],rows:[{set_id:'old',student_id:'old',teacher_username:'a'},{set_id:'external',student_id:'manual',teacher_username:'a',external:true},{set_id:'other',student_id:'other',teacher_username:'b'}],students:[]};
@@ -54,4 +54,14 @@ test('nomination filters intersect teacher and class and match all or any select
  assert.equal(filterNominations(data,owners,{teacher:'t1',className:'2/A'}).length,0);
  assert.equal(filterNominations(data,owners,{}).length,2);
  assert.match(nominationFilterLabel({teacher:'t1',parts:[1,2],mode:'all'},owners),/معلم أول.*جميع الأجزاء معًا/);
+});
+
+test('confirmed nominee correction updates its report row only, even without a network refresh',()=>{
+ const data={sets:[{id:'set',version:3},{id:'other',version:8}],rows:[{set_id:'set',student_id:'one',identity_number:'001234',test_parts:[1]},{set_id:'other',student_id:'two',test_parts:[30]}],students:[{id:'one',full_name:'Original'},{id:'two',full_name:'Other'}]};
+ const args={p_set:'set',p_student:'one',p_version:3,p_name:'Corrected',p_identity:'0000001',p_parts:[2,30]};
+ const next=applyEditedNominee(data,{saved:true,version:4},args);
+ assert.equal(next.students[0].full_name,'Corrected');assert.equal(next.rows[0].identity_number,'0000001');assert.deepEqual(next.rows[0].test_parts,[2,30]);assert.equal(next.sets[0].version,4);
+ assert.equal(next.rows[1],data.rows[1]);assert.equal(next.students[1],data.students[1]);assert.equal(next.sets[1],data.sets[1]);assert.equal(data.students[0].full_name,'Original');
+ assert.throws(()=>applyEditedNominee(data,{saved:true,version:3},args),/تأكيد/);
+ assert.throws(()=>applyEditedNominee(data,null,args),/تأكيد/);
 });

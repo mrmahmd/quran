@@ -65,3 +65,13 @@ export function nominationFilterLabel(filters, teachers) {
   if (filters.parts?.length) labels.push((filters.mode === 'any' ? 'أي جزء من: ' : 'جميع الأجزاء معًا: ') + formatTestParts(filters.parts));
   return labels.length ? labels.join(' · ') : 'جميع المرشحين · دون فلترة';
 }
+
+// Apply a confirmed edit before a separate network refresh can fail.
+export function applyEditedNominee(data, saved, args) {
+  if (saved?.saved !== true || saved.version !== args.p_version + 1) throw new Error('لم يصل تأكيد واضح للحفظ. حدّث البيانات للتحقق.');
+  return {...data,
+    sets:data.sets.map(s=>s.id===args.p_set?{...s,version:saved.version}:s),
+    rows:data.rows.map(r=>r.set_id===args.p_set&&r.student_id===args.p_student?{...r,identity_number:args.p_identity,test_parts:[...args.p_parts]}:r),
+    students:data.students.map(s=>s.id===args.p_student?{...s,full_name:args.p_name}:s)
+  };
+}

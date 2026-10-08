@@ -1,8 +1,8 @@
 import { emptyMonthly, monthlyProblem, termMonths } from './monthly-model.mjs?v=knight2';
 import { SCORE_FIELDS, emptyScores, scoreTotal, validateScores, termWeeks, semesterSummary, weekNumber, weekEnd } from './evaluation-model.mjs?v=rosters2';
-import { applySavedNominations, filterNominations, nominationFilterLabel, formatTestParts, normalizeIdentityNumber, validIdentityNumber, validTestParts } from './khairkom-model.mjs?v=mobile-save1';
-import { buildWeeklyReport, buildKhairkomReport, buildChampionsReport, buildTeacherProgressReport } from './report-layout.mjs?v=khairkom-week4-only1';
-import { summarizeTeacherProgress } from './admin-progress-model.mjs?v=khairkom-week4-only1';
+import { applyEditedNominee, applySavedNominations, filterNominations, nominationFilterLabel, formatTestParts, normalizeIdentityNumber, validIdentityNumber, validTestParts } from './khairkom-model.mjs?v=khairkom-edit-nominee1';
+import { buildWeeklyReport, buildKhairkomReport, buildChampionsReport, buildTeacherProgressReport } from './report-layout.mjs?v=khairkom-edit-nominee1';
+import { summarizeTeacherProgress } from './admin-progress-model.mjs?v=khairkom-edit-nominee1';
 
 const esc = value => String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]);
 const dateLabel = date => new Intl.DateTimeFormat('ar-EG', { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(new Date(`${date}T00:00:00Z`));
@@ -244,7 +244,7 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
       ${admin ? progressMarkup : ''}
       ${nominationFilterControls(data,teachers)}
       <div class="admin-summary"><div><strong>${rows.length}</strong><span>طلاب مرشحون</span></div><div><strong>${nominatedTeachers.size}</strong><span>معلمون رشحوا طلابًا</span></div><div><strong>${teachers.length-reviewedCount}</strong><span>لم يراجعوا الترشيحات بعد</span></div></div>
-      ${rows.length ? `<div class="monthly-table-wrap"><table class="monthly-report-table khairkom-table"><thead><tr><th>م</th><th>الطالب المرشح</th><th>الفصل</th><th>رقم الهوية</th><th>المعلم</th><th>أجزاء الاختبار</th></tr></thead><tbody>${rows.map((row,index)=>{const owner=teacherNames.get(row.teacher_username), student=studentNames.get(row.student_id);return `<tr><td>${index+1}</td><th scope="row">${esc(student?.full_name || 'طالب مؤرشف')}</th><td><bdi dir="ltr">${esc(student?.source_class || owner?.class_name || '—')}</bdi></td><td><bdi dir="ltr" class="khairkom-report-identity">${esc(row.identity_number || 'لم يُسجّل')}</bdi>${identityEditor ? `<button class="light-button" data-edit-nomination="${esc(row.set_id)}" data-nomination-student="${esc(row.student_id)}">تعديل الهوية</button>` : ''}</td><td>${esc(owner?.full_name || row.teacher_username)}</td><td><span class="khairkom-report-parts">${esc(formatTestParts(row.test_parts))}</span></td></tr>`;}).join('')}</tbody></table></div>` : empty('لا توجد نتائج مطابقة', 'غيّر الأجزاء أو المعلم أو الفصل، أو اضغط إلغاء الفلاتر لعرض جميع المرشحين.', '◆')}
+      ${rows.length ? `<div class="monthly-table-wrap"><table class="monthly-report-table khairkom-table"><thead><tr><th>م</th><th>الطالب المرشح</th><th>الفصل</th><th>رقم الهوية</th><th>المعلم</th><th>أجزاء الاختبار</th></tr></thead><tbody>${rows.map((row,index)=>{const owner=teacherNames.get(row.teacher_username), student=studentNames.get(row.student_id);return `<tr><td>${index+1}</td><th scope="row">${esc(student?.full_name || 'طالب مؤرشف')}</th><td><bdi dir="ltr">${esc(student?.source_class || owner?.class_name || '—')}</bdi></td><td><bdi dir="ltr" class="khairkom-report-identity">${esc(row.identity_number || 'لم يُسجّل')}</bdi>${identityEditor ? `<button class="light-button" data-edit-nomination="${esc(row.set_id)}" data-nomination-student="${esc(row.student_id)}">تعديل المرشح</button>` : ''}</td><td>${esc(owner?.full_name || row.teacher_username)}</td><td><span class="khairkom-report-parts">${esc(formatTestParts(row.test_parts))}</span></td></tr>`;}).join('')}</tbody></table></div>` : empty('لا توجد نتائج مطابقة', 'غيّر الأجزاء أو المعلم أو الفصل، أو اضغط إلغاء الفلاتر لعرض جميع المرشحين.', '◆')}
       <div class="save-bar khairkom-report-bar"><span>التقرير مجمّع تلقائيًا من لوحات المعلمين.</span><div><button class="light-button" id="refresh-khairkom">↻ تحديث الترشيحات</button><button class="solid-button" id="print-khairkom">معاينة وحفظ PDF</button></div></div>`;
       return;
     }
@@ -378,25 +378,32 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
       const row = reportData().rows.find(r=>r.set_id===identityButton.dataset.editNomination && r.student_id===identityButton.dataset.nominationStudent);
       const student = reportData().students.find(s=>s.id===row?.student_id);
       if (!row) return;
-      const value = row.identity_number || '';
-      dialog.querySelector('h2').textContent = 'رقم هوية ' + (student?.full_name || 'الطالب المرشح');
-      dialog.querySelector('p').innerHTML = '<label>رقم الهوية<input id="nomination-identity-edit" dir="ltr" inputmode="numeric" maxlength="24" value="'+esc(value)+'"></label><small>من ٦ إلى ٢٠ رقمًا، وتُحفظ الأصفار في البداية.</small><span id="identity-edit-error" role="alert"></span>';
-      dialog.querySelector('[data-answer="confirm"]').textContent = 'حفظ الهوية';
-      dialog.showModal();
-      dialog.querySelector('input').focus();
-      const choice = await new Promise(resolve=>{
-        const finish=value=>{dialog.removeEventListener('click',click);dialog.removeEventListener('cancel',cancel);resolve(value);};
-        const cancel=()=>finish(null);
-        const click=e=>{const b=e.target.closest('[data-answer]');if(!b)return;
-          if(b.dataset.answer==='confirm'&&!validIdentityNumber(dialog.querySelector('input').value)){dialog.querySelector('#identity-edit-error').textContent='أدخل رقم هوية صحيحًا من ٦ إلى ٢٠ رقمًا.';return;}
-          finish(b.dataset.answer==='confirm'?normalizeIdentityNumber(dialog.querySelector('input').value):null);
-        };
-        dialog.addEventListener('click',click);dialog.addEventListener('cancel',cancel);
-      });
-      dialog.close(); dialog.querySelector('[data-answer="confirm"]').textContent = 'تأكيد'; dialog.querySelector('p').textContent = '';
-      if (choice===null) return;
       const version = reportData().sets.find(s=>s.id===row.set_id)?.version;
-      await action(async()=>{await repo.updateKhairkomIdentity({p_set:row.set_id,p_student:row.student_id,p_identity:choice,p_version:version});await loadContext();},'تم حفظ رقم الهوية.');return;
+      await action(async()=>{
+        const modal = document.createElement('dialog'); modal.className = 'nomination-add-dialog';
+        modal.innerHTML = `<form><p class="section-kicker khairkom-text">ترشيحات جمعية خيركم</p><h2>تعديل بيانات المرشح</h2><label>اسم الطالب<input name="full_name" maxlength="150" required value="${esc(student?.full_name || '')}"></label><p>تعديل الاسم يخص تقرير الترشيحات فقط؛ تظل قائمة الحلقة والتقييمات كما هي.</p><label>رقم هوية الطالب<input name="identity" dir="ltr" inputmode="numeric" maxlength="24" value="${esc(row.identity_number || '')}"></label><fieldset><legend>أجزاء الاختبار · اختر جزءًا أو أكثر</legend><div class="nomination-part-grid">${Array.from({length:30},(_,i)=>`<label><input type="checkbox" name="parts" value="${i+1}" ${(row.test_parts||[]).includes(i+1)?'checked':''}><span>${i+1}</span></label>`).join('')}</div></fieldset><p class="nomination-form-error" role="alert"></p><div class="nomination-modal-actions"><button class="light-button" type="button" data-cancel-nomination>إلغاء</button><button class="solid-button" type="submit">حفظ تعديلات المرشح</button></div></form>`;
+        root.append(modal);modal.showModal();
+        try {
+          await new Promise(resolve=>{
+            modal.addEventListener('cancel',e=>{if(modal.querySelector('[type="submit"]').disabled)e.preventDefault();else resolve();});
+            modal.querySelector('[data-cancel-nomination]').addEventListener('click',()=>resolve(),{once:true});
+            modal.querySelector('form').addEventListener('submit',async e=>{
+              e.preventDefault();e.stopPropagation();
+              const form=new FormData(e.target), name=String(form.get('full_name')||'').trim(), identity=normalizeIdentityNumber(form.get('identity')), parts=form.getAll('parts').map(Number), error=modal.querySelector('.nomination-form-error');
+              if(name.length<3){error.textContent='اكتب اسم الطالب كاملًا (٣ أحرف على الأقل).';return;}
+              if(!validIdentityNumber(identity)){error.textContent='أدخل رقم هوية صحيحًا من ٦ إلى ٢٠ رقمًا.';return;}
+              if(!validTestParts(parts)){error.textContent='اختر جزءًا واحدًا على الأقل للاختبار.';return;}
+              const save=modal.querySelector('[type="submit"]'),cancel=modal.querySelector('[data-cancel-nomination]');
+              save.disabled=true;cancel.disabled=true;save.textContent='جارٍ الحفظ…';error.textContent='';
+              try {
+                const args={p_set:row.set_id,p_student:row.student_id,p_name:name,p_identity:identity,p_parts:parts,p_version:version};
+                const saved=await repo.updateKhairkomNominee(args);
+                nominationReport=applyEditedNominee(reportData(),saved,args);renderKhairkom();notify('تم حفظ الاسم والهوية وأجزاء الاختبار.');resolve();
+              } catch(err){error.textContent=errorText(err);} finally{save.disabled=false;cancel.disabled=false;save.textContent='حفظ تعديلات المرشح';}
+            });
+          });
+        } finally {modal.close();modal.remove();}
+      },'');return;
     }
     const progressCard = event.target.closest('[data-progress-focus]');
     if (progressCard && admin && !busy) { progressFocus = progressCard.dataset.progressFocus; renderReports(); return; }

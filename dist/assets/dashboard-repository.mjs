@@ -62,6 +62,7 @@ export function createDashboardRepository(client) {
     khairkomReport: term => result(client.rpc('khairkom_report_snapshot', {p_term:term})),
     khairkomCandidates: term => result(client.rpc('khairkom_nomination_candidates', {p_term:term})),
     addKhairkomNomination: args => result(client.rpc('add_khairkom_nomination', args)),
+    updateKhairkomNominee: args => result(client.rpc('update_khairkom_nominee', args)),
     updateKhairkomIdentity: args => result(client.rpc('update_khairkom_identity', args)),
     saveKhairkom: args => result(client.rpc('save_khairkom_nominations', args)),
     champions: (term, week) => result(client.rpc('weekly_champions', {p_term:term,p_week:week})),
