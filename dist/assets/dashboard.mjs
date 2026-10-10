@@ -1,8 +1,8 @@
 import { emptyMonthly, monthlyProblem, termMonths } from './monthly-model.mjs?v=knight2';
 import { SCORE_FIELDS, emptyScores, scoreTotal, validateScores, termWeeks, semesterSummary, weekNumber, weekEnd } from './evaluation-model.mjs?v=rosters2';
-import { applyEditedNominee, applySavedNominations, filterNominations, nominationFilterLabel, formatTestParts, normalizeIdentityNumber, validIdentityNumber, validTestParts } from './khairkom-model.mjs?v=khairkom-edit-nominee1';
-import { buildWeeklyReport, buildKhairkomReport, buildChampionsReport, buildTeacherProgressReport } from './report-layout.mjs?v=khairkom-edit-nominee1';
-import { summarizeTeacherProgress } from './admin-progress-model.mjs?v=khairkom-edit-nominee1';
+import { applyEditedNominee, applySavedNominations, filterNominations, nominationFilterLabel, formatTestParts, normalizeIdentityNumber, validIdentityNumber, validTestParts } from './khairkom-model.mjs?v=champions-mobile-pdf1';
+import { buildWeeklyReport, buildKhairkomReport, buildChampionsReport, buildTeacherProgressReport } from './report-layout.mjs?v=champions-mobile-pdf1';
+import { summarizeTeacherProgress } from './admin-progress-model.mjs?v=champions-mobile-pdf1';
 
 const esc = value => String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]);
 const dateLabel = date => new Intl.DateTimeFormat('ar-EG', { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(new Date(`${date}T00:00:00Z`));
@@ -93,6 +93,8 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
     if (kind === 'progress') markup = buildTeacherProgressReport({ ...common, progress: freshProgress || adminProgress() });
     if (!markup) return;
     root.querySelector('#report-preview-body').innerHTML = markup;
+    root.querySelector('#report-print').textContent = kind === 'champions' ? 'تحميل PDF · صفحة واحدة' : 'حفظ PDF / طباعة';
+    root.querySelector('.report-preview-toolbar>span').textContent = kind === 'champions' ? 'ملف واحد بصفحة واحدة، بنفس التنسيق على الجوال والكمبيوتر.' : 'اختر «حفظ PDF» من نافذة الطباعة للحصول على الملف.';
     reportPreview.hidden = false;
     document.body.classList.add('report-is-open');
     reportPreview.scrollTop = 0;
@@ -413,7 +415,17 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
       return;
     }
     if (event.target.closest('#report-close')) { closeReport(); return; }
-    if (event.target.closest('#report-print') && !reportPreview.hidden) { await document.fonts.ready; window.print(); return; }
+    if (event.target.closest('#report-print') && !reportPreview.hidden) {
+      const championsSheet = reportPreview.querySelector('.report-champions');
+      if (!championsSheet) { await document.fonts.ready; window.print(); return; }
+      const button = event.target.closest('#report-print');
+      if (button.disabled) return;
+      button.disabled=true;button.textContent='جارٍ تجهيز PDF…';
+      try {const {downloadChampionsPdf}=await import('./champions-pdf.mjs?v=champions-mobile-pdf1');await downloadChampionsPdf(championsSheet);}
+      catch(error){notify(errorText(error),true);}
+      finally{button.disabled=false;button.textContent='تحميل PDF · صفحة واحدة';}
+      return;
+    }
     if (event.target.closest('#preview-teacher-progress') && admin && !busy && termId && week) {
       const reportTerm = selectedTerm(), reportWeek = week;
       const button = event.target.closest('#preview-teacher-progress');

@@ -119,3 +119,45 @@
 .khairkom-save-confirmation{display:flex;flex-direction:column;gap:10px;padding:22px;margin-top:18px;border:1px solid #6dcbb2;border-radius:20px;background:linear-gradient(110deg,#daf7e8,#e4f6ff);color:#095f53;font-size:18px;line-height:1.9;box-shadow:0 10px 28px #14846e14}.khairkom-save-confirmation strong{font-size:23px}.save-error{color:#ae234b;font-weight:700}
 
 .knight-select-panel{padding:26px;border-radius:24px;background:#fff7df;border:1px solid #f0d590;margin-bottom:24px}.knight-select-panel label{display:block;font-size:22px;font-weight:800;color:#855b08;margin-bottom:14px}.knight-select-panel select{width:100%;padding:18px;border:2px solid #d9ad43;border-radius:16px;background:white;font:700 20px Alexandria,sans-serif;color:#173b77}.knight-select-panel p{font-size:16px;color:#876c32}.saved-knight-card{display:flex;align-items:center;gap:24px;padding:32px;margin:24px 0;border-radius:28px;background:linear-gradient(120deg,#153b78,#6351a7);color:white;border:3px solid #f4d578;box-shadow:0 16px 36px #173b7722}.saved-knight-medal{display:grid;place-items:center;flex-shrink:0;width:90px;height:90px;border-radius:50%;background:linear-gradient(135deg,#fff1ad,#f7b935);color:#805405;font-size:56px}.saved-knight-card h3{font-size:30px;line-height:1.8;margin:8px 0;color:white}.saved-knight-card span:not(.saved-knight-medal){font-size:18px;color:#ffe6a4;font-weight:700}.saved-knight-card p{font-size:18px;color:#eef1ff}.saved-knight-note{background:#ffffff15;padding:12px;border-radius:12px}@media(max-width:600px){.saved-knight-card{flex-direction:column;text-align:center;padding:24px 16px}.saved-knight-card h3{font-size:26px}.knight-select-panel{padding:20px 16px}.knight-select-panel select{font-size:18px}}
+
+/* Fixed report columns: ring names wrap by word, never by individual Arabic letters. */
+.report-champions .report-table :is(th,td){box-sizing:border-box;overflow-wrap:normal;word-break:normal}
+.report-champions .report-table :is(th,td):first-child{width:5%}
+.report-champions .report-table :is(th,td):nth-child(2){width:30%}
+.report-champions .report-table :is(th,td):nth-child(3){width:48%}
+.report-champions .report-table :is(th,td):last-child{width:17%;padding-left:8px;padding-right:8px}
+.report-champions .champion-ring{white-space:normal;overflow-wrap:normal;word-break:normal;line-height:1.5}
+.champions-export-host{position:fixed;left:-10000px;top:0;width:1180px;pointer-events:none;z-index:-1}
+.report-is-open .champions-pdf-sheet{width:1180px!important;max-width:none!important;margin:0!important;background:white;box-shadow:none;font-size:18px;box-sizing:border-box}
+.report-is-open .champions-pdf-sheet .report-hero{display:grid;grid-template-columns:1fr 1fr;padding:14px 24px;gap:5px 20px}
+.report-is-open .champions-pdf-sheet .report-hero:after{display:none}
+.report-is-open .champions-pdf-sheet .report-identity{grid-row:1/3;gap:14px}
+.report-is-open .champions-pdf-sheet .report-identity img{width:90px;height:90px}
+.report-is-open .champions-pdf-sheet .report-identity strong{font-size:20px}
+.report-is-open .champions-pdf-sheet .report-identity small{font-size:14px}
+.report-is-open .champions-pdf-sheet .report-label{display:none}
+.report-is-open .champions-pdf-sheet .report-hero h1{grid-column:2;font-size:27px;margin:0}
+.report-is-open .champions-pdf-sheet .report-hero p{grid-column:2;font-size:14px;margin:0}
+.report-is-open .champions-pdf-sheet .report-meta{grid-column:1/-1;justify-content:center;margin:0;gap:12px}
+.report-is-open .champions-pdf-sheet .report-meta span{font-size:14px;padding:4px 12px}
+.report-is-open .champions-pdf-sheet .report-body{padding:12px 22px}
+.report-is-open .champions-pdf-sheet .report-stats{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:10px}
+.report-is-open .champions-pdf-sheet .report-stat{display:flex;align-items:center;justify-content:center;gap:12px;padding:8px 14px;border-radius:12px}
+.report-is-open .champions-pdf-sheet .report-stat strong{font-size:26px}
+.report-is-open .champions-pdf-sheet .report-stat span{font-size:15px;margin:0}
+.report-is-open .champions-pdf-sheet .champions-register-heading{margin-bottom:4px}
+.report-is-open .champions-pdf-sheet .champions-register-heading h2{font-size:18px}
+.report-is-open .champions-pdf-sheet .champions-register-heading>span{font-size:14px}
+.report-is-open .champions-pdf-sheet .report-table-wrap{overflow:visible}
+.report-is-open .champions-pdf-sheet .report-table{min-width:0;table-layout:fixed;border-spacing:0 4px;font-size:18px;width:100%}
+.report-is-open .champions-pdf-sheet .report-table :is(th,td){padding:7px 12px;line-height:1.5;overflow-wrap:normal;word-break:normal}
+.report-is-open .champions-pdf-sheet .report-table thead th{font-size:17px;text-align:center}
+.report-is-open .champions-pdf-sheet .report-table :is(th,td):last-child{padding:5px 8px}
+.report-is-open .champions-pdf-sheet .champion-ring{padding:4px 8px;font-size:16px}
+.report-is-open .champions-pdf-sheet .champion-medal{font-size:20px;margin-left:7px}
+.report-is-open .champions-pdf-sheet .champion-choice-note{font-size:12px;line-height:1.5;margin:2px 0 0}
+.report-is-open .champions-pdf-sheet .report-note{font-size:13px;padding:6px 12px;margin-top:7px;line-height:1.6}
+.report-is-open .champions-pdf-sheet .report-footer{font-size:12px;padding:8px 22px}
+@media print{.report-is-open .report-champions .report-table :is(th,td):last-child{width:17%;padding:1mm 2mm}.report-is-open .report-champions .champion-ring{white-space:normal;word-break:normal;overflow-wrap:normal}}
+
+.report-champions .report-hero h1{letter-spacing:normal}
