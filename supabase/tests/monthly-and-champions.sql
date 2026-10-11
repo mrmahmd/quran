@@ -21,8 +21,12 @@ do $$declare payload jsonb; saved jsonb; wk jsonb; amount jsonb := '{"none":fals
  saved:=public.save_monthly_report('quran90',(select term from reporting_ids),'2026-09-01',payload,0);
  if (saved->>'version')::integer<>1 or (select count(*) from public.monthly_entries where teacher_username='quran90')<>2 then raise exception 'Monthly save failed'; end if;
  failed:=false;
- begin perform public.save_monthly_report('quran90',(select term from reporting_ids),'2026-09-01',payload,0); exception when others then if sqlerrm like '%محفوظ ومغلق%' then failed:=true; else raise; end if; end;
- if not failed then raise exception 'Locked monthly report changed'; end if;
+ begin perform public.save_monthly_report('quran90',(select term from reporting_ids),'2026-09-01',payload,0); exception when others then if sqlerrm like '%تم تحديث التقرير%' then failed:=true; else raise; end if; end;
+ if not failed then raise exception 'Stale monthly version accepted'; end if;
+ payload:=jsonb_set(payload,'{0,note}','"edited monthly report"');
+ saved:=public.save_monthly_report('quran90',(select term from reporting_ids),'2026-09-01',payload,1);
+ if (saved->>'version')::integer<>2 or not exists(select 1 from public.monthly_entries where report_id=(saved->>'id')::uuid and note='edited monthly report') then raise exception 'Monthly edit failed';end if;
+
  begin
   perform public.save_monthly_report('quran90',(select term from reporting_ids),'2026-12-01',payload,0);
   raise exception 'ROLLBACK fourth-month probe';
