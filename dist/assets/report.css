@@ -161,3 +161,5 @@
 @media print{.report-is-open .report-champions .report-table :is(th,td):last-child{width:17%;padding:1mm 2mm}.report-is-open .report-champions .champion-ring{white-space:normal;word-break:normal;overflow-wrap:normal}}
 
 .report-champions .report-hero h1{letter-spacing:normal}
+
+.monthly-range-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.monthly-range-end{padding:15px;border-radius:15px;background:#edf8fa;border:1px solid #c9e5e8;min-width:0}.monthly-range-end>b{display:block;color:#117d84;font-size:18px;margin-bottom:10px}.monthly-range-end label{display:block;margin:10px 0;font-size:16px}.monthly-range-end select,.monthly-range-end input{width:100%;font:inherit;font-size:16px;padding:12px 8px;border:1px solid #b7d9dd;border-radius:10px;background:white;color:#184579;box-sizing:border-box}.monthly-range-summary{font-size:15px;line-height:1.9;padding:12px;background:#fff5de;border-radius:12px;color:#886012}@media(max-width:520px){.monthly-range-grid{grid-template-columns:1fr}}

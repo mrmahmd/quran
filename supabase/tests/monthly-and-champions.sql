@@ -21,8 +21,17 @@ do $$declare payload jsonb; saved jsonb; wk jsonb; amount jsonb := '{"none":fals
  saved:=public.save_monthly_report('quran90',(select term from reporting_ids),'2026-09-01',payload,0);
  if (saved->>'version')::integer<>1 or (select count(*) from public.monthly_entries where teacher_username='quran90')<>2 then raise exception 'Monthly save failed'; end if;
  failed:=false;
- begin perform public.save_monthly_report('quran90',(select term from reporting_ids),'2026-09-01',payload,0); exception when others then if sqlerrm like '%تم تحديث التقرير%' then failed:=true; else raise; end if; end;
- if not failed then raise exception 'Stale monthly version accepted'; end if;
+ begin perform public.save_monthly_report('quran90',(select term from reporting_ids),'2026-09-01',payload,0); exception when others then if sqlerrm like '%محفوظ ومغلق%' then failed:=true; else raise; end if; end;
+ if not failed then raise exception 'Locked monthly report changed'; end if;
+ begin
+  perform public.save_monthly_report('quran90',(select term from reporting_ids),'2026-12-01',payload,0);
+  raise exception 'ROLLBACK fourth-month probe';
+ exception when others then if sqlerrm<>'ROLLBACK fourth-month probe' then raise; end if; end;
+ failed:=false;
+ begin perform public.save_monthly_report('quran90',(select term from reporting_ids),'2027-01-01',payload,0);exception when others then if sqlerrm like '%الأول إلى الرابع%' then failed:=true;else raise;end if;end;
+ if not failed then raise exception 'Fifth month accepted';end if;
+ if not quran_private.valid_monthly_amount('{"none":false,"text":"range","range":{"from_surah":2,"to_surah":2,"from_ayah":1,"to_ayah":286}}') or quran_private.valid_monthly_amount('{"none":false,"text":"range","range":{"from_surah":114,"to_surah":114,"from_ayah":1,"to_ayah":7}}') then raise exception 'Ayah validation failed';end if;
+
  begin perform public.save_monthly_report('quran91',(select term from reporting_ids),'2026-09-01','[]',0); raise exception 'Other teacher write allowed'; exception when insufficient_privilege then null; end;
  begin perform public.weekly_champions((select term from reporting_ids),'2026-09-27'); raise exception 'Ordinary teacher read all champions'; exception when insufficient_privilege then null; end;
  if exists(select 1 from public.monthly_entries where teacher_username<>'quran90') then raise exception 'Other teacher report exposed'; end if;
