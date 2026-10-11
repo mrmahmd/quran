@@ -39,3 +39,10 @@ export function applyMonthlyAmounts(rows, studentIds, amounts) {
  for(const kind of kinds){const probe=emptyMonthly('check');probe.memorization={none:true,text:''};probe.revision={none:true,text:''};probe[kind]=amounts[kind];if(monthlyProblem(probe))throw new Error('أكمل السور والآيات الصحيحة للمقدار المحدد.');}
  return rows.map(row=>ids.has(row.student_id)?{...row,...structuredClone(amounts)}:row);
 }
+
+export function copyMonthlyAmounts(rows, sourceId, studentIds) {
+ const source=rows.find(row=>row.student_id===sourceId);
+ if(!source || monthlyProblem(source)) throw new Error('أكمل مقدار الحفظ والمراجعة للطالب أولًا، أو اختر «لا يوجد».');
+ if(studentIds.includes(sourceId)) throw new Error('اختر طلابًا آخرين غير الطالب المصدر.');
+ return applyMonthlyAmounts(rows,studentIds,{memorization:source.memorization,revision:source.revision});
+}
