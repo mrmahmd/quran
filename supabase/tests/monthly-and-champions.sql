@@ -23,6 +23,14 @@ do $$declare payload jsonb; saved jsonb; wk jsonb; amount jsonb := '{"none":fals
  failed:=false;
  begin perform public.save_monthly_report('quran90',(select term from reporting_ids),'2026-09-01',payload,0); exception when others then if sqlerrm like '%تم تحديث التقرير%' then failed:=true; else raise; end if; end;
  if not failed then raise exception 'Stale monthly version accepted'; end if;
+
+ begin
+  saved:=public.save_monthly_report('quran90',(select term from reporting_ids),'2026-10-01',jsonb_set(payload,'{0,revision}','{"none":false,"text":"","range":{"from_surah":2,"from_ayah":1,"to_surah":null,"to_ayah":null}}'),0);
+  if saved->>'status'<>'draft' or not exists(select 1 from public.monthly_entries where report_id=(saved->>'id')::uuid and not is_complete and revision->'range'->>'from_ayah'='1') then raise exception 'Partial data not preserved';end if;
+  saved:=public.save_monthly_report('quran90',(select term from reporting_ids),'2026-10-01',payload,1);
+  if saved->>'status'<>'complete' or exists(select 1 from public.monthly_entries where report_id=(saved->>'id')::uuid and not is_complete) then raise exception 'Draft completion failed';end if;
+  raise exception 'ROLLBACK draft probe';
+ exception when others then if sqlerrm<>'ROLLBACK draft probe' then raise;end if;end;
  payload:=jsonb_set(payload,'{0,note}','"edited monthly report"');
  saved:=public.save_monthly_report('quran90',(select term from reporting_ids),'2026-09-01',payload,1);
  if (saved->>'version')::integer<>2 or not exists(select 1 from public.monthly_entries where report_id=(saved->>'id')::uuid and note='edited monthly report') then raise exception 'Monthly edit failed';end if;

@@ -25,3 +25,8 @@ export function monthlyRangeText(r) {
  if(!validMonthlyRange(r))return '';
  return `من سورة ${SURAHS[r.from_surah-1].name} آية ${r.from_ayah} إلى سورة ${SURAHS[r.to_surah-1].name} آية ${r.to_ayah}`;
 }
+
+export function monthlyProgress(rows) {
+ const list=[...rows], total=list.length, completed=list.filter(row=>!monthlyProblem(row)).length;
+ return {total,completed,remaining:total-completed,percent:total?Math.floor(completed*100/total):0,complete:total>0&&completed===total};
+}
