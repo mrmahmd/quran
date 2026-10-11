@@ -1,8 +1,8 @@
-import { emptyMonthly, monthlyProblem, termMonths, monthlyLabel, SURAHS, monthlyRangeText, monthlyProgress } from './monthly-model.mjs?v=monthly-drafts1';
+import { emptyMonthly, monthlyProblem, termMonths, monthlyLabel, SURAHS, monthlyRangeText, monthlyProgress } from './monthly-model.mjs?v=monthly-drafts2';
 import { SCORE_FIELDS, emptyScores, scoreTotal, validateScores, termWeeks, semesterSummary, weekNumber, weekEnd } from './evaluation-model.mjs?v=rosters2';
-import { applyEditedNominee, applySavedNominations, filterNominations, nominationFilterLabel, formatTestParts, normalizeIdentityNumber, validIdentityNumber, validTestParts } from './khairkom-model.mjs?v=monthly-drafts1';
-import { buildWeeklyReport, buildKhairkomReport, buildChampionsReport, buildTeacherProgressReport } from './report-layout.mjs?v=monthly-drafts1';
-import { summarizeTeacherProgress } from './admin-progress-model.mjs?v=monthly-drafts1';
+import { applyEditedNominee, applySavedNominations, filterNominations, nominationFilterLabel, formatTestParts, normalizeIdentityNumber, validIdentityNumber, validTestParts } from './khairkom-model.mjs?v=monthly-drafts2';
+import { buildWeeklyReport, buildKhairkomReport, buildChampionsReport, buildTeacherProgressReport } from './report-layout.mjs?v=monthly-drafts2';
+import { summarizeTeacherProgress } from './admin-progress-model.mjs?v=monthly-drafts2';
 
 const esc = value => String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]);
 const dateLabel = date => new Intl.DateTimeFormat('ar-EG', { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(new Date(`${date}T00:00:00Z`));
@@ -428,7 +428,7 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
       const button = event.target.closest('#report-print');
       if (button.disabled) return;
       button.disabled=true;button.textContent='جارٍ تجهيز PDF…';
-      try {const {downloadChampionsPdf}=await import('./champions-pdf.mjs?v=monthly-drafts1');await downloadChampionsPdf(championsSheet);}
+      try {const {downloadChampionsPdf}=await import('./champions-pdf.mjs?v=monthly-drafts2');await downloadChampionsPdf(championsSheet);}
       catch(error){notify(errorText(error),true);}
       finally{button.disabled=false;button.textContent='تحميل PDF · صفحة واحدة';}
       return;
@@ -524,8 +524,19 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
     if (event.target.closest('#save-monthly') && !busy && !monthlyReadonly()) {
       const missing = monthlyStudents().filter(student => monthlyProblem(monthlyRows.get(student.id)));
       root.querySelectorAll('.needs-attention').forEach(card => card.classList.remove('needs-attention'));
-      if (missing.length && !await confirm('لم تنتهِ من جميع الطلاب', `متبقي ${missing.length} طالبًا: ${missing.slice(0,6).map(s=>s.full_name).join('، ')}. هل تريد حفظ التقرير غير المكتمل والعودة لاحقًا لاستكماله؟`, 'نعم، حفظ المسودة')) return;
-      await action(async () => { const saved=await repo.saveMonthly({p_teacher:teacherId,p_term:termId,p_month:month,p_rows:[...monthlyRows.values()],p_version:monthlyData.report?.version || 0}); if(!saved?.id)throw new Error('لم يصل تأكيد الحفظ. حدّث البيانات للتحقق.');monthlyData={report:saved,entries:[...monthlyRows.values()]};monthlyDirty=false;renderMonthly(); }, missing.length ? 'تم حفظ التقرير كمسودة غير مكتملة. يمكنك العودة لاحقًا لاستكمال التقرير.' : 'تم حفظ التقرير الشهري مكتملًا وتحديثه عند الإدارة.'); return;
+      if (dialog.open) return;
+      if (missing.length && !await confirm('التقرير غير مكتمل', 'هل تريد حفظ التقرير والعودة لاحقًا لاستكماله؟', 'نعم، حفظ التقرير')) return;
+      const saveButton=root.querySelector('#save-monthly'),saveStatus=root.querySelector('#monthly-save-state'),originalLabel=saveButton.textContent;
+      saveButton.disabled=true;saveButton.textContent='جارٍ حفظ التقرير…';saveStatus.classList.remove('save-error');saveStatus.textContent='جارٍ الحفظ؛ انتظر رسالة التأكيد.';
+      await action(async () => {
+        try {
+          const saved=await repo.saveMonthly({p_teacher:teacherId,p_term:termId,p_month:month,p_rows:[...monthlyRows.values()],p_version:monthlyData.report?.version || 0});
+          if(!saved?.id)throw new Error('لم يصل تأكيد الحفظ. حاول مرة أخرى؛ البيانات المدخلة ما زالت موجودة.');
+          monthlyData={report:saved,entries:[...monthlyRows.values()]};monthlyDirty=false;renderMonthly();
+          root.querySelector('#monthly-save-state').textContent=missing.length?'تم الحفظ. يمكنك العودة لاحقًا لاستكمال التقرير غير المكتمل.':'تم حفظ التقرير مكتملًا.';
+        } catch(error) {saveStatus.textContent=errorText(error)+' البيانات المدخلة ما زالت موجودة.';saveStatus.classList.add('save-error');throw error;}
+        finally {if(saveButton.isConnected){saveButton.disabled=false;saveButton.textContent=originalLabel;}}
+      }, missing.length ? 'تم حفظ التقرير كمسودة غير مكتملة. يمكنك العودة لاحقًا لاستكمال التقرير.' : 'تم حفظ التقرير الشهري مكتملًا وتحديثه عند الإدارة.'); return;
     }
     const edit = event.target.closest('[data-edit-student]');
     if (edit && manager && !busy) { editingStudent=edit.dataset.editStudent; renderSetup(); root.querySelector('#student-edit-form input').focus(); return; }
