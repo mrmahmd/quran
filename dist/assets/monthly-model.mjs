@@ -30,3 +30,12 @@ export function monthlyProgress(rows) {
  const list=[...rows], total=list.length, completed=list.filter(row=>!monthlyProblem(row)).length;
  return {total,completed,remaining:total-completed,percent:total?Math.floor(completed*100/total):0,complete:total>0&&completed===total};
 }
+
+export function applyMonthlyAmounts(rows, studentIds, amounts) {
+ const ids=new Set(studentIds), kinds=Object.keys(amounts);
+ if(!ids.size || !kinds.length || kinds.some(k=>!['memorization','revision'].includes(k))) throw new Error('اختر الطلاب والمقدار المطلوب تطبيقه.');
+ const source=new Map(rows.map(r=>[r.student_id,r]));
+ if([...ids].some(id=>!source.has(id))) throw new Error('أحد الطلاب ليس ضمن تقرير الحلقة.');
+ for(const kind of kinds){const probe=emptyMonthly('check');probe.memorization={none:true,text:''};probe.revision={none:true,text:''};probe[kind]=amounts[kind];if(monthlyProblem(probe))throw new Error('أكمل السور والآيات الصحيحة للمقدار المحدد.');}
+ return rows.map(row=>ids.has(row.student_id)?{...row,...structuredClone(amounts)}:row);
+}

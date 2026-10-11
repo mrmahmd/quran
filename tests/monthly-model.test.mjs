@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { emptyMonthly, monthlyProblem, termMonths, monthlyLabel, SURAHS, validMonthlyRange, monthlyRangeText, monthlyProgress } from '../dist/assets/monthly-model.mjs';
+import { emptyMonthly, monthlyProblem, termMonths, monthlyLabel, SURAHS, validMonthlyRange, monthlyRangeText, monthlyProgress, applyMonthlyAmounts } from '../dist/assets/monthly-model.mjs';
 test('monthly periods include the partial first and last months', () => {
   assert.deepEqual(termMonths({starts_on:'2026-09-27',ends_on:'2026-12-17'}), ['2026-09-01','2026-10-01','2026-11-01','2026-12-01']);
 });
@@ -35,4 +35,14 @@ test('monthly progress counts students only when both amounts are complete',()=>
  b.memorization={none:false,text:'partial',range:{from_surah:2,from_ayah:1}};assert.equal(monthlyProgress([a,b]).percent,50);
  b.memorization={none:false,text:'old report'};b.revision={none:true,text:''};assert.equal(monthlyProgress([a,b]).complete,true);
  assert.equal(monthlyProgress([]).complete,false);
+});
+
+test('bulk amounts change selected fields only, preserve notes and isolate student copies',()=>{
+ const rows=['a','b','c'].map(emptyMonthly);rows[0].note='keep note';rows[0].revision={none:false,text:'old revision'};
+ const range={from_surah:2,to_surah:2,from_ayah:1,to_ayah:20},amount={none:false,text:monthlyRangeText(range),range};
+ const next=applyMonthlyAmounts(rows,['a','b'],{memorization:amount});
+ assert.equal(next[0].note,'keep note');assert.equal(next[0].revision.text,'old revision');assert.deepEqual(next[2],rows[2]);assert.equal(rows[0].memorization.text,'');
+ next[0].memorization.range.to_ayah=10;assert.equal(next[1].memorization.range.to_ayah,20);assert.equal(amount.range.to_ayah,20);
+ const both=applyMonthlyAmounts(rows,['a','b'],{memorization:amount,revision:amount});assert.equal(monthlyProgress(both).completed,2);
+ assert.throws(()=>applyMonthlyAmounts(rows,[],{memorization:amount}));assert.throws(()=>applyMonthlyAmounts(rows,['outside'],{memorization:amount}));assert.throws(()=>applyMonthlyAmounts(rows,['a'],{memorization:{...amount,range:{...range,to_ayah:287}}}));
 });
