@@ -64,3 +64,8 @@ export function setMonthlyAbsent(row, absent) {
   : structuredClone(row[kind].before_absence || emptyMonthly(row.student_id)[kind]);
  return next;
 }
+
+export function mergeMonthlyRoster(students, entries, pending=[]) {
+ const saved=new Map(entries.map(row=>[row.student_id,row])),drafts=new Map(pending.map(row=>[row.student_id,row]));
+ return new Map(students.filter(s=>s.active||saved.has(s.id)).map(s=>[s.id,structuredClone(drafts.get(s.id)||saved.get(s.id)||emptyMonthly(s.id))]));
+}

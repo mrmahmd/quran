@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { emptyMonthly, monthlyProblem, termMonths, monthlyLabel, SURAHS, validMonthlyRange, monthlyRangeText, monthlyProgress, applyMonthlyAmounts, copyMonthlyAmounts, copyMemorizationToRevision, monthlyAbsent, setMonthlyAbsent } from '../dist/assets/monthly-model.mjs';
+import { emptyMonthly, monthlyProblem, termMonths, monthlyLabel, SURAHS, validMonthlyRange, monthlyRangeText, monthlyProgress, applyMonthlyAmounts, copyMonthlyAmounts, copyMemorizationToRevision, monthlyAbsent, setMonthlyAbsent, mergeMonthlyRoster } from '../dist/assets/monthly-model.mjs';
 test('monthly periods include the partial first and last months', () => {
   assert.deepEqual(termMonths({starts_on:'2026-09-27',ends_on:'2026-12-17'}), ['2026-09-01','2026-10-01','2026-11-01','2026-12-01']);
 });
@@ -76,4 +76,14 @@ test('absent student completes monthly report, round trips JSON and restores pre
  const saved=JSON.parse(JSON.stringify(absent));assert.ok(monthlyAbsent(saved));assert.deepEqual(setMonthlyAbsent(saved,false),original);
  assert.throws(()=>copyMemorizationToRevision(absent));assert.throws(()=>copyMonthlyAmounts([absent,emptyMonthly('target')],'absent',['target']));
  assert.throws(()=>applyMonthlyAmounts([absent],['absent'],{memorization:{none:true,text:''}}));
+});
+
+test('roster refresh adds new students and preserves unsaved amounts, absence and saved version data',()=>{
+ const saved=emptyMonthly('old'),draft=setMonthlyAbsent(saved,true);draft.note='unsaved note';
+ const students=[{id:'old',active:true},{id:'new1',active:true},{id:'new2',active:true},{id:'archived',active:false}];
+ const rows=mergeMonthlyRoster(students,[saved],[draft]);
+ assert.equal(rows.size,3);assert.deepEqual(rows.get('old'),draft);assert.equal(monthlyProblem(rows.get('new1')),'الحفظ');assert.equal(rows.get('new2').student_id,'new2');
+ rows.get('old').note='changed';assert.equal(draft.note,'unsaved note');assert.equal(saved.note,'');
+ assert.ok(mergeMonthlyRoster(students,[emptyMonthly('archived')]).has('archived'));
+ assert.ok(!mergeMonthlyRoster(students,[emptyMonthly('transferred')]).has('transferred'));
 });
