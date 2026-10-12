@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { emptyMonthly, monthlyProblem, termMonths, monthlyLabel, SURAHS, validMonthlyRange, monthlyRangeText, monthlyProgress, applyMonthlyAmounts, copyMonthlyAmounts, copyMemorizationToRevision } from '../dist/assets/monthly-model.mjs';
+import { emptyMonthly, monthlyProblem, termMonths, monthlyLabel, SURAHS, validMonthlyRange, monthlyRangeText, monthlyProgress, applyMonthlyAmounts, copyMonthlyAmounts, copyMemorizationToRevision, monthlyAbsent, setMonthlyAbsent } from '../dist/assets/monthly-model.mjs';
 test('monthly periods include the partial first and last months', () => {
   assert.deepEqual(termMonths({starts_on:'2026-09-27',ends_on:'2026-12-17'}), ['2026-09-01','2026-10-01','2026-11-01','2026-12-01']);
 });
@@ -67,4 +67,13 @@ test('memorization to revision preserves source and notes and rejects partial me
  row.memorization={none:false,text:'legacy amount'};assert.equal(copyMemorizationToRevision(row).revision.text,'legacy amount');
  assert.throws(()=>copyMemorizationToRevision(emptyMonthly('a')));
  row.memorization={none:false,text:'partial',range:{from_surah:2,from_ayah:1}};assert.throws(()=>copyMemorizationToRevision(row));
+});
+
+test('absent student completes monthly report, round trips JSON and restores previous amounts',()=>{
+ const row=emptyMonthly('absent');row.note='keep';row.memorization.range.from_surah=2;
+ const original=structuredClone(row),absent=setMonthlyAbsent(row,true);
+ assert.deepEqual(row,original);assert.ok(monthlyAbsent(absent));assert.equal(monthlyProblem(absent),'');assert.equal(monthlyProgress([absent]).percent,100);
+ const saved=JSON.parse(JSON.stringify(absent));assert.ok(monthlyAbsent(saved));assert.deepEqual(setMonthlyAbsent(saved,false),original);
+ assert.throws(()=>copyMemorizationToRevision(absent));assert.throws(()=>copyMonthlyAmounts([absent,emptyMonthly('target')],'absent',['target']));
+ assert.throws(()=>applyMonthlyAmounts([absent],['absent'],{memorization:{none:true,text:''}}));
 });

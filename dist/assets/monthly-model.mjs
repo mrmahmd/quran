@@ -37,17 +37,30 @@ export function applyMonthlyAmounts(rows, studentIds, amounts) {
  const source=new Map(rows.map(r=>[r.student_id,r]));
  if([...ids].some(id=>!source.has(id))) throw new Error('أحد الطلاب ليس ضمن تقرير الحلقة.');
  for(const kind of kinds){const probe=emptyMonthly('check');probe.memorization={none:true,text:''};probe.revision={none:true,text:''};probe[kind]=amounts[kind];if(monthlyProblem(probe))throw new Error('أكمل السور والآيات الصحيحة للمقدار المحدد.');}
+ if(rows.some(row=>ids.has(row.student_id)&&monthlyAbsent(row))) throw new Error('ألغِ الغياب قبل تطبيق مقدار لهذا الطالب.');
  return rows.map(row=>ids.has(row.student_id)?{...row,...structuredClone(amounts)}:row);
 }
 
 export function copyMonthlyAmounts(rows, sourceId, studentIds) {
  const source=rows.find(row=>row.student_id===sourceId);
- if(!source || monthlyProblem(source)) throw new Error('أكمل مقدار الحفظ والمراجعة للطالب أولًا، أو اختر «لا يوجد».');
+ if(!source || monthlyAbsent(source) || monthlyProblem(source)) throw new Error('أكمل مقدار الحفظ والمراجعة للطالب أولًا، أو اختر «لا يوجد».');
  if(studentIds.includes(sourceId)) throw new Error('اختر طلابًا آخرين غير الطالب المصدر.');
  return applyMonthlyAmounts(rows,studentIds,{memorization:source.memorization,revision:source.revision});
 }
 
 export function copyMemorizationToRevision(row) {
+ if (monthlyAbsent(row)) throw new Error('الطالب مسجل غائبًا.');
  if (!row) throw new Error('لم يتم العثور على بيانات الطالب.');
  return applyMonthlyAmounts([row],[row.student_id],{revision:row.memorization})[0];
+}
+
+// Attendance is stored inside the existing JSON amounts, through the same versioned save.
+export const monthlyAbsent = row => row?.memorization?.absent === true && row?.revision?.absent === true;
+export function setMonthlyAbsent(row, absent) {
+ if (absent === monthlyAbsent(row)) return row;
+ const next={...row};
+ for(const kind of ['memorization','revision']) next[kind]=absent
+  ? {none:true,text:'',absent:true,before_absence:structuredClone(row[kind])}
+  : structuredClone(row[kind].before_absence || emptyMonthly(row.student_id)[kind]);
+ return next;
 }

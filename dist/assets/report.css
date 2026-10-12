@@ -169,3 +169,5 @@
 .monthly-copy-button{width:100%;margin-top:18px;padding:15px;border:1px solid #9cdcd8;border-radius:13px;background:linear-gradient(110deg,#e0faf2,#e8f0ff);color:#126d7e;font:inherit;font-size:17px;font-weight:700;cursor:pointer;transition:box-shadow .2s,transform .2s}.monthly-copy-button:hover{box-shadow:0 5px 18px #1a8b8c22;transform:translateY(-2px)}.monthly-copy-summary{padding:18px;margin:20px 0;border:1px solid #c8e4ee;border-radius:16px;background:linear-gradient(110deg,#e6faf4,#eef0ff)}.monthly-copy-summary p{margin:10px 0;color:#235d7a}.monthly-copy-summary strong{color:#0b827d}@media print{.monthly-copy-button{display:none!important}}
 
 .monthly-copy-revision{margin:12px 0 18px;background:linear-gradient(110deg,#e6efff,#ede7ff);border-color:#c4c8f0;color:#344c91}
+
+.monthly-absence{display:flex;align-items:center;gap:12px;padding:16px;margin:15px 0;background:#fff1df;border:1px solid #efcf9a;border-radius:14px;color:#955a16;font-weight:700;font-size:18px}.monthly-absence input{width:23px;height:23px;accent-color:#b67425}.monthly-absence-info{padding:20px;border-radius:14px;background:#fff7ea;color:#845b23;font-size:17px;line-height:1.9}
