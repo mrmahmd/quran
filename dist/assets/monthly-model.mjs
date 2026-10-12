@@ -46,3 +46,8 @@ export function copyMonthlyAmounts(rows, sourceId, studentIds) {
  if(studentIds.includes(sourceId)) throw new Error('اختر طلابًا آخرين غير الطالب المصدر.');
  return applyMonthlyAmounts(rows,studentIds,{memorization:source.memorization,revision:source.revision});
 }
+
+export function copyMemorizationToRevision(row) {
+ if (!row) throw new Error('لم يتم العثور على بيانات الطالب.');
+ return applyMonthlyAmounts([row],[row.student_id],{revision:row.memorization})[0];
+}

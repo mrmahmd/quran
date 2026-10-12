@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { emptyMonthly, monthlyProblem, termMonths, monthlyLabel, SURAHS, validMonthlyRange, monthlyRangeText, monthlyProgress, applyMonthlyAmounts, copyMonthlyAmounts } from '../dist/assets/monthly-model.mjs';
+import { emptyMonthly, monthlyProblem, termMonths, monthlyLabel, SURAHS, validMonthlyRange, monthlyRangeText, monthlyProgress, applyMonthlyAmounts, copyMonthlyAmounts, copyMemorizationToRevision } from '../dist/assets/monthly-model.mjs';
 test('monthly periods include the partial first and last months', () => {
   assert.deepEqual(termMonths({starts_on:'2026-09-27',ends_on:'2026-12-17'}), ['2026-09-01','2026-10-01','2026-11-01','2026-12-01']);
 });
@@ -55,4 +55,16 @@ test('copy both amounts preserves source, target notes, other students and indep
  next[1].memorization.range.to_ayah=10;assert.equal(rows[0].memorization.range.to_ayah,20);
  assert.throws(()=>copyMonthlyAmounts(rows,'source',['source']));assert.throws(()=>copyMonthlyAmounts(rows,'other',['target']));assert.throws(()=>copyMonthlyAmounts(rows,'source',[]));
  rows[0].memorization={none:false,text:'legacy saved amount'};assert.equal(copyMonthlyAmounts(rows,'source',['target'])[1].memorization.text,'legacy saved amount');
+});
+
+test('memorization to revision preserves source and notes and rejects partial memorization',()=>{
+ const row=emptyMonthly('a'),range={from_surah:2,to_surah:2,from_ayah:1,to_ayah:20};
+ row.note='keep';row.memorization={none:false,text:monthlyRangeText(range),range};
+ const before=structuredClone(row),next=copyMemorizationToRevision(row);
+ assert.deepEqual(row,before);assert.deepEqual(next.revision,row.memorization);assert.equal(next.note,'keep');
+ next.revision.range.to_ayah=10;assert.equal(row.memorization.range.to_ayah,20);assert.equal(next.memorization.range.to_ayah,20);
+ row.memorization={none:true,text:''};assert.equal(copyMemorizationToRevision(row).revision.none,true);
+ row.memorization={none:false,text:'legacy amount'};assert.equal(copyMemorizationToRevision(row).revision.text,'legacy amount');
+ assert.throws(()=>copyMemorizationToRevision(emptyMonthly('a')));
+ row.memorization={none:false,text:'partial',range:{from_surah:2,from_ayah:1}};assert.throws(()=>copyMemorizationToRevision(row));
 });
