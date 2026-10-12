@@ -57,6 +57,16 @@ export function createDashboardRepository(client) {
       const entries = report ? await allRows(() => client.from('monthly_entries').select('*').eq('report_id', report.id).order('student_id')) : [];
       return { report, entries };
     },
+    monthStates: term => result(client.from('monthly_workflow_access').select('month_start,is_open,updated_at').eq('term_id',term).order('month_start')),
+    setMonthOpen: (term,month,open) => result(client.rpc('set_month_workflow_open',{p_term:term,p_month:month,p_open:open})),
+    async monthlyOverview(term,month) {
+      const [reports,students]=await Promise.all([
+        allRows(()=>client.from('monthly_reports').select('*').eq('term_id',term).eq('month_start',month).order('teacher_username')),
+        allRows(()=>client.from('students').select('id,full_name,source_class,teacher_username,active').order('id')),
+      ]);
+      const entries=reports.length?await allRows(()=>client.from('monthly_entries').select('*').in('report_id',reports.map(r=>r.id)).order('report_id').order('student_id')):[];
+      return {reports,students,entries};
+    },
     saveMonthly: args => result(client.rpc('save_monthly_report', args)),
     khairkom: term => loadKhairkom(client, term),
     khairkomReport: term => result(client.rpc('khairkom_report_snapshot', {p_term:term})),
