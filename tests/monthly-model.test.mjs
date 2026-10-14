@@ -87,3 +87,22 @@ test('roster refresh adds new students and preserves unsaved amounts, absence an
  assert.ok(mergeMonthlyRoster(students,[emptyMonthly('archived')]).has('archived'));
  assert.ok(!mergeMonthlyRoster(students,[emptyMonthly('transferred')]).has('transferred'));
 });
+
+import {monthlySavedComplete,monthlyStudentPayload,monthlyHasChanges} from '../dist/assets/monthly-model.mjs';
+test('student completion submits only that student and preserves other unsaved drafts',()=>{
+ const a=setMonthlyAbsent(emptyMonthly('a'),true),b=setMonthlyAbsent(emptyMonthly('b'),true),blank=emptyMonthly('c');
+ b.note='unsaved note';
+ const oldB=emptyMonthly('b'),rows=[a,b,blank],original=structuredClone(rows);
+ const payload=monthlyStudentPayload(rows,[oldB],'a');
+ assert.deepEqual(rows,original);assert.deepEqual(payload[0],a);assert.deepEqual(payload[1],oldB);assert.deepEqual(payload[2],blank);
+ assert.ok(!monthlySavedComplete(a,undefined));assert.ok(monthlySavedComplete(a,payload[0]));assert.ok(!monthlySavedComplete(b,payload[1]));
+ assert.ok(monthlyHasChanges(rows,payload));assert.ok(!monthlyHasChanges([a,oldB,blank],payload));
+ payload[0].note='independent saved snapshot';assert.equal(a.note,'');
+ assert.throws(()=>monthlyStudentPayload(rows,[],'c'));assert.throws(()=>monthlyStudentPayload(rows,[],'missing'));
+});
+test('saved student becomes pending after edits and is complete again only after acknowledgment',()=>{
+ const saved=setMonthlyAbsent(emptyMonthly('student'),true),draft=structuredClone(saved);
+ assert.ok(monthlySavedComplete(draft,saved));draft.note='new note';assert.ok(!monthlySavedComplete(draft,saved));
+ const payload=monthlyStudentPayload([draft],[saved],'student');
+ assert.equal(saved.note,'');assert.ok(!monthlySavedComplete(draft,saved));assert.ok(monthlySavedComplete(draft,payload[0]));
+});

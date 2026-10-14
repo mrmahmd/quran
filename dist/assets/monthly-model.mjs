@@ -69,3 +69,18 @@ export function mergeMonthlyRoster(students, entries, pending=[]) {
  const saved=new Map(entries.map(row=>[row.student_id,row])),drafts=new Map(pending.map(row=>[row.student_id,row]));
  return new Map(students.filter(s=>s.active||saved.has(s.id)).map(s=>[s.id,structuredClone(drafts.get(s.id)||saved.get(s.id)||emptyMonthly(s.id))]));
 }
+
+const monthlyContent = row => JSON.stringify([row.memorization,row.revision,row.note]);
+export const monthlySavedComplete = (row,saved) => !!saved && !monthlyProblem(row) && monthlyContent(row)===monthlyContent(saved);
+export const monthlyHasChanges = (rows,entries) => {
+ const saved=new Map(entries.map(r=>[r.student_id,r]));
+ return [...rows].some(row=>monthlyContent(row)!==monthlyContent(saved.get(row.student_id)||emptyMonthly(row.student_id)));
+};
+// The existing versioned RPC requires the whole roster. Only the chosen student's
+// draft is submitted; other students retain their last saved amounts.
+export function monthlyStudentPayload(rows,entries,studentId) {
+ const list=[...rows],selected=list.find(r=>r.student_id===studentId);
+ if(!selected || monthlyProblem(selected))throw new Error('أكمل مقدار الحفظ والمراجعة للطالب أولًا، أو حدده غائبًا.');
+ const saved=new Map(entries.map(r=>[r.student_id,r]));
+ return list.map(row=>structuredClone(row.student_id===studentId?row:saved.get(row.student_id)||emptyMonthly(row.student_id)));
+}
