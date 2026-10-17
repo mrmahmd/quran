@@ -19,6 +19,12 @@ async function loadKhairkom(client, term) {
 }
 export function createDashboardRepository(client) {
   return {
+    teacherAppearance: () => result(client.from('teacher_preferences').select('text_size').maybeSingle()),
+    async saveTeacherAppearance(text_size) {
+      const {data,error}=await client.auth.getUser();if(error)throw error;
+      if(!data.user)throw new Error('تعذر التحقق من تسجيل الدخول.');
+      return result(client.from('teacher_preferences').upsert({user_id:data.user.id,text_size}).select('text_size').single());
+    },
     terms: () => result(client.from('school_terms').select('*').order('starts_on', { ascending: false })),
     teachers: () => result(client.from('teacher_accounts').select('username, full_name, class_name, ring_name, active').eq('active', true).order('username')),
     weekStates: term => result(client.from('weekly_workflow_access').select('week_start,is_open,updated_at').eq('term_id', term).order('week_start')),

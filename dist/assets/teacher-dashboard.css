@@ -1,0 +1,140 @@
+/* Teacher workspace only. Printed reports retain their own typography and layout. */
+@media screen {
+ .teacher-dashboard{--teacher-scale:1;--teacher-ink:#193e64;--teacher-muted:#4e657e;font-family:Alexandria,Tahoma,sans-serif;line-height:1.8;color:var(--teacher-ink);background:radial-gradient(ellipse at top right,#e2f4f7,transparent 50%),#f4f7fc}
+ .teacher-dashboard[data-text-size=large]{--teacher-scale:1.12}
+ .teacher-dashboard[data-text-size=xlarge]{--teacher-scale:1.24}
+ .teacher-dashboard .dashboard-main{width:min(1280px,calc(100% - 48px));padding-top:26px}
+ .teacher-dashboard .dashboard-topbar{box-shadow:0 4px 24px #173d8008}
+ .teacher-dashboard .dashboard-user{font-size:calc(17px * var(--teacher-scale));color:#294b70;flex-wrap:wrap}
+ .teacher-dashboard .welcome-banner{background:linear-gradient(115deg,#e0f6f3,#eaf0ff 70%,#f4eafa);padding:28px 32px;border:1px solid #cddfe9;border-radius:26px;box-shadow:0 12px 34px #173d8008}
+ .teacher-dashboard .welcome-banner h1{font-size:calc(30px * var(--teacher-scale));line-height:1.7;letter-spacing:0;overflow-wrap:anywhere}
+ .teacher-dashboard .welcome-banner .eyebrow{font-size:calc(16px * var(--teacher-scale));font-weight:700;color:#217073}
+ .teacher-dashboard .welcome-banner p:last-child{font-size:calc(18px * var(--teacher-scale));color:#395b79;line-height:1.9}
+ .teacher-appearance{display:flex;align-items:center;gap:18px;flex-wrap:wrap;background:#fff;border:1px solid #d7e3ef;border-radius:20px;padding:18px 22px;margin:18px 0;box-shadow:0 6px 20px #173d8006}
+ .teacher-appearance>div:first-child{display:grid;gap:4px;margin-inline-end:auto}
+ .teacher-appearance strong{font-size:calc(19px * var(--teacher-scale));color:#1a506f}
+ .teacher-appearance span,.teacher-preference-state{font-size:calc(15px * var(--teacher-scale));color:#4d667e;line-height:1.8}
+ .teacher-preference-state{margin:0;width:100%;border-top:1px solid #edf1f7;padding-top:8px}
+ .teacher-text-options{display:flex;gap:6px;background:#edf4fa;border-radius:14px;padding:5px;flex-wrap:wrap}
+ .teacher-dashboard .teacher-text-options button{font-size:18px;font-weight:700;min-height:46px;border:0;border-radius:10px;background:transparent;padding:8px 17px;color:#254c70;cursor:pointer}
+ .teacher-dashboard .teacher-text-options button[aria-pressed=true]{color:#fff;background:#176e85;box-shadow:0 4px 10px #176e8525}
+ .teacher-dashboard .dashboard-toolbar{background:#ffffffc9;border:1px solid #d8e5ef;border-radius:20px;padding:20px;gap:16px}
+ .teacher-dashboard .dashboard-toolbar label,.teacher-dashboard .class-tag{font-size:calc(17px * var(--teacher-scale));color:#365570}
+ .teacher-dashboard .dashboard-toolbar select{font-size:calc(18px * var(--teacher-scale));padding:14px;min-height:54px;border-color:#bfd3e3;border-radius:12px}
+ .teacher-dashboard :is(.light-button,.solid-button,.gold-button,.purple-button,.teal-button,.monthly-finish-button,.monthly-copy-button){font-size:calc(18px * var(--teacher-scale));min-height:50px;padding:13px 20px;border-radius:14px;line-height:1.8;white-space:normal}
+ .teacher-dashboard .dashboard-actions{grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin:22px 0}
+ .teacher-dashboard .action-card{min-width:0;min-height:128px;padding:23px 20px;border-radius:22px;border:1px solid #d6e4ee;box-shadow:0 9px 24px #173d800a;transition:transform .18s,box-shadow .18s;text-align:start}
+ .teacher-dashboard .action-card strong{font-size:calc(21px * var(--teacher-scale));line-height:1.6;font-weight:800;margin-bottom:6px}
+ .teacher-dashboard .action-card small{font-size:calc(16px * var(--teacher-scale));line-height:1.8;opacity:1;color:inherit}
+ .teacher-dashboard .action-symbol{width:52px;height:52px;border-radius:16px;font-size:28px}
+ .teacher-dashboard .action-card.selected{outline:2px solid currentColor;outline-offset:2px;box-shadow:0 10px 24px #173d8015}
+ .teacher-dashboard .blue-card{background:linear-gradient(130deg,#e5f1ff,#f0f6ff);color:#215c97}
+ .teacher-dashboard .gold-card{background:linear-gradient(130deg,#fff0cb,#fff9e9);color:#89600e}
+ .teacher-dashboard .purple-card{background:linear-gradient(130deg,#f6e7f4,#fff4fa);color:#854385}
+ .teacher-dashboard .teal-card{background:linear-gradient(130deg,#dff6f0,#f0fcf8);color:#116f69}
+ .teacher-dashboard .khairkom-card{background:linear-gradient(130deg,#eae5ff,#f6f2ff);color:#65449b}
+ .teacher-dashboard .action-arrow{flex-shrink:0}
+ .teacher-dashboard .admin-tabs{flex-wrap:wrap;align-items:center}
+ .teacher-dashboard .admin-tabs>span{font-size:calc(16px * var(--teacher-scale));color:#4e657e}
+ .teacher-dashboard .section-heading{padding:23px 25px;border:1px solid #d8e5ef;border-radius:22px;background:#fff;align-items:flex-start}
+ .teacher-dashboard .section-heading h2{font-size:calc(27px * var(--teacher-scale));line-height:1.7;margin:0;color:#194a75}
+ .teacher-dashboard .section-heading .section-kicker{font-size:calc(16px * var(--teacher-scale));font-weight:700}
+ .teacher-dashboard .section-heading p{font-size:calc(17px * var(--teacher-scale));color:#4e657e;line-height:1.9}
+ .teacher-help{margin-top:12px}
+ .teacher-help summary{font-size:calc(16px * var(--teacher-scale));font-weight:600;color:#286b8b;cursor:pointer;padding:5px 0}
+ .teacher-help[open]{background:#f3f8fc;padding:12px 16px;border-radius:12px}
+ .teacher-dashboard .status-pill{font-size:calc(16px * var(--teacher-scale));font-weight:600;padding:10px 16px;line-height:1.8;white-space:normal;flex-shrink:1;color:#375c82}
+ .teacher-dashboard .status-pill.approved{color:#0c6b53;background:#ddf5e9}
+ .teacher-dashboard :is(.help-pill,.progress-copy,.bonus-row label,.monthly-toolbar label,.note-panel label,.note-panel small,.monthly-note,.none-choice,.khairkom-card-label,.month-workflow p,.monthly-finish-hint){font-size:calc(17px * var(--teacher-scale));color:var(--teacher-muted);line-height:1.9}
+ .teacher-dashboard .progress-copy{background:#fff;border:1px solid #cfe2ea;border-radius:17px;padding:16px 20px;flex:1}
+ .teacher-dashboard .progress-copy strong{font-size:calc(25px * var(--teacher-scale));color:#126e80}
+ .teacher-dashboard .progress-copy strong small{font-size:calc(17px * var(--teacher-scale))}
+ .teacher-dashboard .progress-track{height:9px;width:170px}
+ .teacher-dashboard .students-grid{gap:22px}
+ .teacher-dashboard :is(.student-score-card,.monthly-card){padding:24px;border:1px solid #ccdeec;border-radius:24px;box-shadow:0 12px 30px #173d8008;min-width:0;background:#fff}
+ .teacher-dashboard .student-score-card{border-top:4px solid #78afd8}
+ .teacher-dashboard .student-score-card[data-entry-state=partial]{border-top-color:#dca144}
+ .teacher-dashboard .student-score-card[data-entry-state=ready]{border-top-color:#21a183}
+ .teacher-dashboard :is(.student-score-card,.monthly-card) header{gap:12px;align-items:flex-start;flex-wrap:wrap}
+ .teacher-dashboard .student-score-card header>div{flex:1;min-width:130px}
+ .teacher-dashboard :is(.student-score-card,.monthly-card) h3{font-size:calc(22px * var(--teacher-scale));line-height:1.8;color:#173f6b;overflow-wrap:anywhere}
+ .teacher-dashboard .student-score-card header small{font-size:calc(15px * var(--teacher-scale));color:#506782;line-height:1.9}
+ .teacher-dashboard .student-avatar{width:48px;height:48px;flex-shrink:0;font-size:22px;background:#e8f3fb;color:#216a9d}
+ .teacher-score-status{display:inline-block;font-size:calc(14px * var(--teacher-scale));font-weight:600;padding:5px 10px;border-radius:10px;margin-top:8px;background:#eaf2fb;color:#285b86}
+ .teacher-dashboard [data-entry-state=partial] .teacher-score-status{background:#fff1d9;color:#865b12}
+ .teacher-dashboard [data-entry-state=ready] .teacher-score-status{background:#e0f6eb;color:#0c6b53}
+ .teacher-dashboard .total-badge{font-size:calc(28px * var(--teacher-scale));padding:10px 13px;line-height:1.5;flex-shrink:0}
+ .teacher-dashboard .total-badge small{font-size:16px!important;color:#247689!important}
+ .teacher-dashboard .score-groups{gap:14px}
+ .teacher-dashboard .score-group{padding:12px;background:#f7faff;border:1px solid #e4edf5;border-radius:14px;display:grid;gap:12px}
+ .teacher-dashboard .score-group>span{font-size:calc(18px * var(--teacher-scale));font-weight:600;color:#24486a;display:flex;align-items:center;justify-content:space-between;gap:10px}
+ .teacher-dashboard .score-group span small{font-size:calc(14px * var(--teacher-scale));color:#526a83;margin:0;font-weight:400}
+ .teacher-dashboard .score-group [role=group]{gap:8px;flex-wrap:wrap;justify-content:flex-start}
+ .teacher-dashboard .point-chip{width:48px;height:48px;font-size:calc(20px * var(--teacher-scale));border-color:#bdd3e7;border-radius:12px;background:white;color:#27577f;font-weight:700}
+ .teacher-dashboard .point-chip[aria-pressed=true]{color:#fff;background:#226da5;border-color:#226da5;box-shadow:0 4px 12px #226da530}
+ .teacher-dashboard .bonus-row{gap:14px}.teacher-dashboard .bonus-row label{color:#4b587b}
+ .teacher-dashboard input[type=checkbox]{width:22px;height:22px;flex-shrink:0;accent-color:#147f89}
+ .teacher-dashboard :is(input:not([type=checkbox]),select,textarea){font-size:calc(18px * var(--teacher-scale));line-height:1.8;color:#234967;border-color:#bfd3e3;max-width:100%;min-width:0}
+ .teacher-dashboard textarea{padding:14px;border-radius:12px}
+ .teacher-dashboard .monthly-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:22px}
+ .teacher-dashboard .monthly-card{border-top:4px solid #21a193}
+ .teacher-dashboard .monthly-section{padding:18px;border-radius:17px;border:1px solid #beddd6;background:#f0faf6;margin-top:18px}
+ .teacher-dashboard .monthly-section.revision{background:#eff6ff;border-color:#c5d9ee}
+ .teacher-dashboard .monthly-section h4{font-size:calc(20px * var(--teacher-scale));font-weight:700;color:#146f61;margin:0 0 12px}
+ .teacher-dashboard .monthly-section.revision h4{color:#255c91}
+ .teacher-dashboard .monthly-range-end b{font-size:calc(17px * var(--teacher-scale));color:#2d5870}
+ .teacher-dashboard .monthly-range-end label{font-size:calc(16px * var(--teacher-scale));color:#43627c}
+ .teacher-dashboard .monthly-range-summary{font-size:calc(16px * var(--teacher-scale));line-height:1.9;color:#355d6b}
+ .teacher-dashboard .monthly-absence{font-size:calc(17px * var(--teacher-scale));line-height:1.9;align-items:center}
+ .teacher-dashboard :is(.monthly-absence-info,.zero-report){font-size:calc(17px * var(--teacher-scale));line-height:1.9}
+ .teacher-dashboard .monthly-progress{border-radius:22px;padding:22px;background:linear-gradient(120deg,#e5f8f0,#ecf6ff);border-color:#b8dbd5}
+ .teacher-dashboard .monthly-progress strong{font-size:calc(21px * var(--teacher-scale))}.teacher-dashboard .monthly-progress b{font-size:calc(30px * var(--teacher-scale))}
+ .teacher-dashboard .monthly-progress p{font-size:calc(17px * var(--teacher-scale));color:#345a70;line-height:1.9}
+ .teacher-dashboard .monthly-student-filters button{font-size:calc(18px * var(--teacher-scale));min-height:52px}
+ .teacher-dashboard .monthly-copy-button{background:#edf5fc;color:#275c87;border:1px solid #c4d9ea;box-shadow:none}
+ .teacher-dashboard .monthly-finish-button{background:linear-gradient(115deg,#087e7d,#149b76);box-shadow:0 6px 16px #087e7d25}
+ .teacher-dashboard .monthly-finish-button:disabled{background:#e8edf3;color:#596e82;box-shadow:none;opacity:1}
+ .teacher-dashboard :is(.knight-select-panel label,.knight-preview h3,.knight-chosen h3,.honor-name h3){font-size:calc(22px * var(--teacher-scale));line-height:1.8}
+ .teacher-dashboard .saved-knight-card h3{font-size:calc(27px * var(--teacher-scale));line-height:1.8}
+ .teacher-dashboard .saved-knight-note{font-size:calc(18px * var(--teacher-scale));line-height:1.9;color:#6f562d}
+ .teacher-dashboard .khairkom-choice strong{font-size:calc(21px * var(--teacher-scale));line-height:1.8}
+ .teacher-dashboard .khairkom-choice small,.teacher-dashboard .khairkom-part-empty{font-size:calc(16px * var(--teacher-scale));line-height:1.8;color:#476a64}
+ .teacher-dashboard .khairkom-part-panel>label,.teacher-dashboard .khairkom-identity-label{font-size:calc(17px * var(--teacher-scale));color:#345d58}
+ .teacher-dashboard .khairkom-add-part{font-size:calc(18px * var(--teacher-scale));min-height:50px}
+ .teacher-dashboard .khairkom-part-chip{font-size:calc(17px * var(--teacher-scale))}
+ .teacher-dashboard .khairkom-part-chip button{width:40px;height:40px}
+ .teacher-dashboard :is(.knight-select-panel select,.knight-preview p,.note-panel textarea,.honor-name small,.honor-stats span){font-size:calc(17px * var(--teacher-scale));line-height:1.9}
+ .teacher-dashboard .save-bar{border-color:#c7dce8;border-radius:20px;padding:16px 20px;box-shadow:0 9px 32px #173d8017}
+ .teacher-dashboard .save-bar>span{font-size:calc(16px * var(--teacher-scale));color:#3e5c75;line-height:1.8}
+ .teacher-dashboard .dashboard-message{font-size:calc(18px * var(--teacher-scale));line-height:1.9;border-radius:16px;animation:teacher-feedback .25s ease-out}
+ .teacher-dashboard :is(.empty-state p,.dashboard-footer){font-size:calc(16px * var(--teacher-scale));line-height:1.9;color:#4e657e}
+ .teacher-dashboard .empty-state h2{font-size:calc(25px * var(--teacher-scale));line-height:1.7}
+ .teacher-dashboard .week-workflow strong{font-size:calc(20px * var(--teacher-scale))}.teacher-dashboard .week-workflow small{font-size:calc(16px * var(--teacher-scale));color:#345f65}
+ .teacher-dashboard .confirm-dialog h2{font-size:calc(25px * var(--teacher-scale))}.teacher-dashboard .confirm-dialog p{font-size:calc(18px * var(--teacher-scale));line-height:1.9}
+ @keyframes teacher-feedback{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+ @media(max-width:1050px){.teacher-dashboard .dashboard-actions{grid-template-columns:repeat(2,minmax(0,1fr))}.teacher-dashboard .students-grid{grid-template-columns:1fr}}
+ @media(max-width:760px){
+  .teacher-dashboard .dashboard-main{width:calc(100% - 28px);padding-top:18px}
+  .teacher-dashboard .welcome-banner{padding:24px}.teacher-dashboard .welcome-banner h1{font-size:calc(26px * var(--teacher-scale))}
+  .teacher-dashboard .dashboard-actions,.teacher-dashboard .monthly-grid{grid-template-columns:1fr}
+  .teacher-dashboard .action-card{min-height:108px;padding:20px;gap:14px}
+  .teacher-dashboard .action-card strong{font-size:calc(21px * var(--teacher-scale))}
+  .teacher-dashboard .section-heading{padding:20px}.teacher-dashboard .section-heading h2{font-size:calc(24px * var(--teacher-scale))}
+  .teacher-dashboard .dashboard-toolbar{padding:16px;gap:14px}.teacher-dashboard .dashboard-toolbar label{flex-basis:100%}
+  .teacher-dashboard :is(.student-score-card,.monthly-card){padding:20px}
+  .teacher-dashboard .student-score-card header{display:grid;grid-template-columns:44px minmax(0,1fr);gap:12px}
+  .teacher-dashboard .student-score-card header>div{min-width:0}
+  .teacher-dashboard .student-score-card .total-badge{grid-column:2;justify-self:start;margin:0}
+  .teacher-dashboard .monthly-card header h3{flex:1;min-width:0}
+  .teacher-dashboard .monthly-range-grid{grid-template-columns:1fr;gap:14px}
+  .teacher-dashboard .monthly-section{padding:15px}
+  .teacher-dashboard .save-bar{position:static;bottom:auto}.teacher-dashboard .save-bar button{width:100%}
+  .teacher-dashboard .admin-tabs{display:grid;grid-template-columns:1fr}.teacher-dashboard .admin-tabs button{width:100%}
+  .teacher-dashboard .dashboard-user .light-button{font-size:16px;padding:10px 14px}
+  .teacher-appearance{padding:18px}.teacher-text-options{width:100%}.teacher-dashboard .teacher-text-options button{flex:1;padding:9px 12px}
+  .teacher-dashboard .honor-name{min-width:0}.teacher-dashboard .honor-stats{flex-wrap:wrap}
+ }
+ @media(max-width:400px){.teacher-dashboard .point-chip{width:44px;height:46px}.teacher-dashboard .score-group [role=group]{gap:6px}}
+ @media(prefers-reduced-motion:reduce){.teacher-dashboard *{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+}
+@media print{.teacher-appearance,.teacher-help,.teacher-score-status{display:none!important}}
