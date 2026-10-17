@@ -2,16 +2,16 @@
 export function mountTeacherAppearance(root, repository) {
   const shell=root.querySelector('.dashboard-shell'),content=root.querySelector('#dashboard-content');
   shell.classList.add('teacher-dashboard');
-  shell.dataset.textSize='normal';
+  shell.dataset.textSize='large';
   const panel=document.createElement('section');
   panel.className='teacher-appearance';
   panel.setAttribute('aria-label','وضوح الخط');
-  panel.innerHTML='<div><strong>لوحتك.. أوضح وأسهل</strong><span>حجم الخط محفوظ على حسابك في جميع أجهزتك</span></div><div class="teacher-text-options" role="group" aria-label="حجم الخط"><button type="button" data-text-size="normal" aria-pressed="true">عادي</button><button type="button" data-text-size="large" aria-pressed="false">كبير</button><button type="button" data-text-size="xlarge" aria-pressed="false">أكبر</button></div><p class="teacher-preference-state" role="status">جارٍ تحميل اختيارك…</p>';
+  panel.innerHTML='<div><strong>وضوح يناسبك</strong><span>حجم الخط محفوظ على حسابك في جميع أجهزتك</span></div><div class="teacher-text-options" role="group" aria-label="حجم الخط"><button type="button" data-text-size="normal" aria-pressed="false">صغير</button><button type="button" data-text-size="large" aria-pressed="true">متوسط</button><button type="button" data-text-size="xlarge" aria-pressed="false">كبير</button></div><p class="teacher-preference-state" role="status">جارٍ تحميل اختيارك…</p>';
   shell.querySelector('.welcome-banner').after(panel);
   const buttons=[...panel.querySelectorAll('[data-text-size]')],message=panel.querySelector('[role="status"]');
-  let size='normal',saving=false,disposed=false;
+  let size='large',saving=false,disposed=false;
   const apply=value=>{
-    size=['normal','large','xlarge'].includes(value)?value:'normal';
+    size=['normal','large','xlarge'].includes(value)?value:'large';
     shell.dataset.textSize=size;
     buttons.forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.textSize===size)));
   };
