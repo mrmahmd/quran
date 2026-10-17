@@ -1,6 +1,6 @@
 /* Teacher workspace only. Printed reports retain their own typography and layout. */
 @media screen {
- .teacher-dashboard{--teacher-scale:.9;--teacher-ink:#193e64;--teacher-muted:#4e657e;font-family:Alexandria,Tahoma,sans-serif;line-height:1.8;color:var(--teacher-ink);background:radial-gradient(ellipse at top right,#e2f4f7,transparent 50%),#f4f7fc}
+ .teacher-dashboard{--teacher-scale:.9;--teacher-ink:#193e64;--teacher-muted:#4e657e;--teacher-accent:#2673aa;font-family:Alexandria,Tahoma,sans-serif;line-height:1.8;color:var(--teacher-ink);background:radial-gradient(ellipse at top right,#e2f4f7,transparent 50%),#f4f7fc}
  .teacher-dashboard[data-text-size=large]{--teacher-scale:1}
  .teacher-dashboard[data-text-size=xlarge]{--teacher-scale:1.22}
  .teacher-dashboard .dashboard-main{width:min(1280px,calc(100% - 48px));padding-top:26px}
@@ -10,11 +10,14 @@
  .teacher-dashboard .welcome-banner h1{font-size:calc(30px * var(--teacher-scale));line-height:1.7;letter-spacing:0;overflow-wrap:anywhere}
  .teacher-dashboard .welcome-banner .eyebrow{font-size:calc(16px * var(--teacher-scale));font-weight:700;color:#217073}
  .teacher-dashboard .welcome-banner p:last-child{font-size:calc(18px * var(--teacher-scale));color:#395b79;line-height:1.9}
- .teacher-appearance{display:flex;align-items:center;gap:18px;flex-wrap:wrap;background:#fff;border:1px solid #d7e3ef;border-radius:20px;padding:18px 22px;margin:18px 0;box-shadow:0 6px 20px #173d8006}
+ .teacher-appearance{display:flex;align-items:center;gap:12px 20px;flex-wrap:wrap;background:#fff;border:1px solid #d7e3ef;border-radius:18px;padding:12px 20px;margin:16px 0;box-shadow:0 6px 20px #173d8006}
  .teacher-appearance>div:first-child{display:grid;gap:4px;margin-inline-end:auto}
  .teacher-appearance strong{font-size:calc(19px * var(--teacher-scale));color:#1a506f}
  .teacher-appearance span,.teacher-preference-state{font-size:calc(15px * var(--teacher-scale));color:#4d667e;line-height:1.8}
  .teacher-preference-state{margin:0;width:100%;border-top:1px solid #edf1f7;padding-top:8px}
+ .teacher-appearance[data-preference-state=ready] .teacher-preference-state{display:none}
+ .teacher-appearance[data-preference-state=error] .teacher-preference-state{color:#a13844;background:#fff3f4;border-radius:10px;padding:9px 12px;border:0}
+ .teacher-appearance[data-preference-state=saved] .teacher-preference-state{color:#126e58}
  .teacher-text-options{display:flex;gap:6px;background:#edf4fa;border-radius:14px;padding:5px;flex-wrap:wrap}
  .teacher-dashboard .teacher-text-options button{font-size:18px;font-weight:700;min-height:46px;border:0;border-radius:10px;background:transparent;padding:8px 17px;color:#254c70;cursor:pointer}
  .teacher-dashboard .teacher-text-options button[aria-pressed=true]{color:#fff;background:#176e85;box-shadow:0 4px 10px #176e8525}
@@ -66,10 +69,10 @@
  .task-check{display:grid;place-items:center;width:34px;height:34px;border-radius:11px;background:#e1eafa;color:#2b6599;font-size:23px;flex-shrink:0}.done .task-check{background:#d4efe1;color:#087652}
  .teacher-dashboard .teacher-task-card .light-button{font-size:calc(15px * var(--teacher-scale));padding:9px 12px;min-height:44px;background:#fff}
  .teacher-task-note{font-size:calc(15px * var(--teacher-scale));color:#71603a;background:#fff6e1;padding:12px;border-radius:12px;line-height:1.9}
- .teacher-home-champion{display:flex;align-items:center;gap:20px;flex-wrap:wrap;padding:24px 28px;margin-top:22px;border:1px solid #e5cc8d;border-radius:24px;background:linear-gradient(110deg,#fff4cf,#fffaf0 65%,#f7edf9);box-shadow:0 10px 28px #9d74090a}
- .teacher-champion-star{display:grid;place-items:center;width:70px;height:70px;font-size:40px;color:#9b6d12;background:#ffedb8;border:1px solid #e4c677;border-radius:22px;flex-shrink:0}
+ .teacher-home-champion{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:18px 22px;margin-top:18px;border:1px solid #e5cc8d;border-radius:22px;background:linear-gradient(110deg,#fff4cf,#fffaf0 65%,#f7edf9);box-shadow:0 8px 24px #9d74090a}
+ .teacher-champion-star{display:grid;place-items:center;width:52px;height:52px;font-size:30px;color:#9b6d12;background:#ffedb8;border:1px solid #e4c677;border-radius:17px;flex-shrink:0}
  .teacher-home-champion>div{flex:1;min-width:150px}.teacher-home-champion div>span{font-size:calc(15px * var(--teacher-scale));font-weight:600;color:#85601c}
- .teacher-home-champion h3{font-size:calc(26px * var(--teacher-scale));color:#604982;line-height:1.8;margin:4px 0;overflow-wrap:anywhere}
+ .teacher-home-champion h3{font-size:calc(23px * var(--teacher-scale));color:#604982;line-height:1.8;margin:3px 0;overflow-wrap:anywhere}
  .teacher-home-champion p{font-size:calc(16px * var(--teacher-scale));color:#6c613f;line-height:1.9;margin:0;overflow-wrap:anywhere}
  .teacher-week-history{background:#fff;border:1px solid #d7e4ee;border-radius:22px;padding:20px 24px;margin-top:22px}
  .teacher-week-history summary{cursor:pointer;font-size:calc(21px * var(--teacher-scale));font-weight:700;color:#254b72}
@@ -80,9 +83,27 @@
  .teacher-history-card[aria-current=date]{outline:3px solid #2672aa;outline-offset:2px}
  .teacher-history-card strong{font-size:calc(19px * var(--teacher-scale))}.teacher-history-card b{font-size:calc(16px * var(--teacher-scale))}.teacher-history-card span,.teacher-history-card small{font-size:calc(13px * var(--teacher-scale));line-height:1.9}
  .teacher-dashboard .action-arrow{flex-shrink:0}
+ .teacher-nav-heading{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin:24px 0 12px}
+ .teacher-nav-heading>span{font-size:calc(20px * var(--teacher-scale));font-weight:700;color:#244c70}
+ .teacher-nav-heading>strong{font-size:calc(15px * var(--teacher-scale));font-weight:600;line-height:1.8;color:#285e7f;background:#e8f2f8;padding:6px 12px;border-radius:10px}
+ .teacher-dashboard .dashboard-actions[data-compact=true]{gap:10px;margin:0 0 24px;padding:12px;border:1px solid #d6e4ee;background:#fff;border-radius:20px}
+ .teacher-dashboard .dashboard-actions[data-compact=true] .action-card{min-height:62px;padding:12px;gap:10px;box-shadow:none;border:1px solid transparent;border-radius:13px;background:#f5f8fc;color:#365c79;align-items:center}
+ .teacher-dashboard .dashboard-actions[data-compact=true] .action-card.selected{background:#e6f2fb;color:#145e8c;border-color:#74a9cb;outline:0;box-shadow:0 2px 8px #17577910}
+ .teacher-dashboard .dashboard-actions[data-compact=true] .action-card strong{font-size:calc(17px * var(--teacher-scale));margin:0;line-height:1.7}
+ .teacher-dashboard .dashboard-actions[data-compact=true] .action-card small,.teacher-dashboard .dashboard-actions[data-compact=true] .action-arrow{display:none}
+ .teacher-dashboard .dashboard-actions[data-compact=true] .action-symbol{width:30px;height:30px;border-radius:9px;font-size:19px;background:#e5edf5;flex-shrink:0}
+ .teacher-dashboard .dashboard-actions[data-compact=true] .action-card.selected .action-symbol{background:#176f9b;color:#fff}
+ .teacher-dashboard[data-workspace=monthly],.teacher-dashboard[data-workspace=monthlyReport]{--teacher-accent:#149487}
+ .teacher-dashboard[data-workspace=knight],.teacher-dashboard[data-workspace=champions]{--teacher-accent:#be8a20}
+ .teacher-dashboard[data-workspace=honors]{--teacher-accent:#9a59aa}
+ .teacher-dashboard[data-workspace=khairkom],.teacher-dashboard[data-workspace=khairkomReport]{--teacher-accent:#7b60b5}
+ .teacher-dashboard:not([data-workspace=home]) .welcome-banner{padding:15px 24px;border-radius:20px}
+ .teacher-dashboard:not([data-workspace=home]) .welcome-banner h1{font-size:calc(23px * var(--teacher-scale));margin:0}
+ .teacher-dashboard:not([data-workspace=home]) .welcome-banner .eyebrow,.teacher-dashboard:not([data-workspace=home]) .welcome-banner p:last-child{display:none}
+ .teacher-dashboard:not([data-workspace=home]) .welcome-symbol{width:44px;height:44px;font-size:27px}
  .teacher-dashboard .admin-tabs{flex-wrap:wrap;align-items:center}
  .teacher-dashboard .admin-tabs>span{font-size:calc(16px * var(--teacher-scale));color:#4e657e}
- .teacher-dashboard .section-heading{padding:23px 25px;border:1px solid #d8e5ef;border-radius:22px;background:#fff;align-items:flex-start}
+ .teacher-dashboard .section-heading{padding:20px 24px;border:1px solid #d8e5ef;border-inline-start:4px solid var(--teacher-accent);border-radius:20px;background:linear-gradient(110deg,#fff,#f8fbfe);align-items:flex-start}
  .teacher-dashboard .section-heading h2{font-size:calc(27px * var(--teacher-scale));line-height:1.7;margin:0;color:#194a75}
  .teacher-dashboard .section-heading .section-kicker{font-size:calc(16px * var(--teacher-scale));font-weight:700}
  .teacher-dashboard .section-heading p{font-size:calc(17px * var(--teacher-scale));color:#4e657e;line-height:1.9}
@@ -106,6 +127,9 @@
  .teacher-dashboard :is(.student-score-card,.monthly-card) h3{font-size:calc(22px * var(--teacher-scale));line-height:1.8;color:#173f6b;overflow-wrap:anywhere}
  .teacher-dashboard .student-score-card header small{font-size:calc(15px * var(--teacher-scale));color:#506782;line-height:1.9}
  .teacher-dashboard .student-avatar{width:48px;height:48px;flex-shrink:0;font-size:22px;background:#e8f3fb;color:#216a9d}
+ .teacher-dashboard .student-score-card header{padding-bottom:16px;margin-bottom:18px;border-bottom:1px solid #e5edf5}
+ .teacher-dashboard .student-score-card header small{display:inline-block;padding:3px 8px;background:#f1f6fb;border-radius:7px}
+ .teacher-dashboard .total-badge{border:1px solid #b5ddd9;background:linear-gradient(130deg,#e6f7f2,#ecf6ff);color:#146c7c}
  .teacher-score-status{display:inline-block;font-size:calc(14px * var(--teacher-scale));font-weight:600;padding:5px 10px;border-radius:10px;margin-top:8px;background:#eaf2fb;color:#285b86}
  .teacher-dashboard [data-entry-state=partial] .teacher-score-status{background:#fff1d9;color:#865b12}
  .teacher-dashboard [data-entry-state=ready] .teacher-score-status{background:#e0f6eb;color:#0c6b53}
@@ -121,9 +145,13 @@
  .teacher-dashboard .bonus-row{gap:14px}.teacher-dashboard .bonus-row label{color:#4b587b}
  .teacher-dashboard input[type=checkbox]{width:22px;height:22px;flex-shrink:0;accent-color:#147f89}
  .teacher-dashboard :is(input:not([type=checkbox]),select,textarea){font-size:calc(18px * var(--teacher-scale));line-height:1.8;color:#234967;border-color:#bfd3e3;max-width:100%;min-width:0}
+ .teacher-dashboard :is(input,select,textarea):focus-visible{outline:3px solid #247e9d44;outline-offset:2px;border-color:#267f9c;box-shadow:0 0 0 4px #2c85a00b}
+ .teacher-dashboard :is(.monthly-copy-button,.light-button,.point-chip,.action-card):not(:disabled):hover{filter:brightness(.98);border-color:#82abc2}
  .teacher-dashboard textarea{padding:14px;border-radius:12px}
  .teacher-dashboard .monthly-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:22px}
  .teacher-dashboard .monthly-card{border-top:4px solid #21a193}
+ .teacher-dashboard .monthly-card header{padding:0 0 16px;border-bottom:1px solid #dcebe7}
+ .teacher-dashboard .monthly-absence{background:#f2f6fa;border:1px solid #dce5ed;border-radius:12px;padding:10px 13px;margin:0}
  .teacher-dashboard .monthly-section{padding:18px;border-radius:17px;border:1px solid #beddd6;background:#f0faf6;margin-top:18px}
  .teacher-dashboard .monthly-section.revision{background:#eff6ff;border-color:#c5d9ee}
  .teacher-dashboard .monthly-section h4{font-size:calc(20px * var(--teacher-scale));font-weight:700;color:#146f61;margin:0 0 12px}
@@ -137,6 +165,10 @@
  .teacher-dashboard .monthly-progress strong{font-size:calc(21px * var(--teacher-scale))}.teacher-dashboard .monthly-progress b{font-size:calc(30px * var(--teacher-scale))}
  .teacher-dashboard .monthly-progress p{font-size:calc(17px * var(--teacher-scale));color:#345a70;line-height:1.9}
  .teacher-dashboard .monthly-student-filters button{font-size:calc(18px * var(--teacher-scale));min-height:52px}
+ .teacher-dashboard .monthly-student-filters{padding:6px;background:#eaf1f7;border:1px solid #d5e2ec;border-radius:17px;gap:6px}
+ .teacher-dashboard .monthly-student-filters button{border:0;border-radius:12px;background:transparent;box-shadow:none;color:#355973}
+ .teacher-dashboard .monthly-student-filters button[aria-pressed=true]{background:#fff;color:#087a70;box-shadow:0 3px 12px #28557914}
+ .teacher-dashboard .monthly-student-filters b{display:inline-grid;place-items:center;min-width:30px;padding:0 6px;border-radius:8px;background:#e0f1eb;color:#146b5c}
  .teacher-dashboard .monthly-copy-button{background:#edf5fc;color:#275c87;border:1px solid #c4d9ea;box-shadow:none}
  .teacher-dashboard .monthly-finish-button{background:linear-gradient(115deg,#087e7d,#149b76);box-shadow:0 6px 16px #087e7d25}
  .teacher-dashboard .monthly-finish-button:disabled{background:#e8edf3;color:#596e82;box-shadow:none;opacity:1}
@@ -178,13 +210,21 @@
   .teacher-dashboard .admin-tabs{display:grid;grid-template-columns:1fr}.teacher-dashboard .admin-tabs button{width:100%}
   .teacher-dashboard .dashboard-user .light-button{font-size:16px;padding:10px 14px}
   .teacher-appearance{padding:18px}.teacher-text-options{width:100%}.teacher-dashboard .teacher-text-options button{flex:1;padding:9px 12px}
+  .teacher-nav-heading{margin:18px 0 10px}.teacher-nav-heading>strong{width:100%}
+  .teacher-dashboard .dashboard-actions[data-compact=true]{grid-template-columns:repeat(2,minmax(0,1fr));padding:8px;gap:7px}
+  .teacher-dashboard .dashboard-actions[data-compact=true] .action-card{padding:10px 8px;gap:7px}
+  .teacher-dashboard .dashboard-actions[data-compact=true] .action-card strong{font-size:calc(16px * var(--teacher-scale))}
+  .teacher-dashboard .dashboard-actions[data-compact=true] .action-symbol{width:25px;height:25px;font-size:17px}
+  .teacher-dashboard .monthly-student-filters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:stretch}
+  .teacher-dashboard .monthly-student-filters button{display:flex;flex-direction:column;justify-content:center;gap:5px;min-width:0;padding:8px 5px;font-size:calc(16px * var(--teacher-scale));line-height:1.7}
   .teacher-dashboard .honor-name{min-width:0}.teacher-dashboard .honor-stats{flex-wrap:wrap}
   .teacher-home-grid>article{padding:18px}.teacher-week-card{gap:10px 12px}.teacher-week-heading h2{font-size:calc(23px * var(--teacher-scale))}.teacher-week-meter{padding:6px 9px}.teacher-week-meter>span{max-width:95px}
-  .teacher-home-champion{padding:22px;gap:14px}.teacher-home-champion h3{font-size:calc(23px * var(--teacher-scale))}.teacher-home-champion button{width:100%}
+  .teacher-home-champion{display:grid;grid-template-columns:44px minmax(0,1fr);padding:18px;gap:12px}.teacher-champion-star{width:44px;height:44px;font-size:27px;border-radius:14px}
+  .teacher-home-champion>div{min-width:0}.teacher-home-champion h3{font-size:calc(22px * var(--teacher-scale))}.teacher-home-champion button{width:auto;grid-column:2;justify-self:start;font-size:calc(16px * var(--teacher-scale));padding:9px 14px;min-height:44px}
   .teacher-task-card li{padding:10px}.teacher-task-card li button{width:100%}.teacher-week-history{padding:20px}.teacher-week-history summary small{display:block;margin:8px 0 0}
   .teacher-history-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.teacher-history-card{padding:13px}.teacher-history-card strong{font-size:calc(17px * var(--teacher-scale))}
  }
  @media(max-width:400px){.teacher-dashboard .point-chip{width:44px;height:46px}.teacher-dashboard .score-group [role=group]{gap:6px}}
  @media(prefers-reduced-motion:reduce){.teacher-dashboard *{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 }
-@media print{.teacher-appearance,.teacher-help,.teacher-score-status,#teacher-home,.teacher-save-indicator{display:none!important}}
+@media print{.teacher-appearance,.teacher-help,.teacher-score-status,#teacher-home,.teacher-save-indicator,.teacher-nav-heading{display:none!important}}

@@ -1,5 +1,5 @@
-import {mountTeacherAppearance} from './teacher-appearance.mjs?v=teacher-home3';
-import {teacherWeeks} from './teacher-week-model.mjs?v=teacher-home3';
+import {mountTeacherAppearance} from './teacher-appearance.mjs?v=teacher-layout5';
+import {teacherWeeks} from './teacher-week-model.mjs?v=teacher-layout5';
 import { summarizeMonthlyTeachers } from './monthly-progress-model.mjs?v=monthly-admin1';
 import { emptyMonthly, monthlyProblem, termMonths, monthlyLabel, SURAHS, monthlyRangeText, monthlyProgress, applyMonthlyAmounts, copyMonthlyAmounts, copyMemorizationToRevision, monthlyAbsent, setMonthlyAbsent, mergeMonthlyRoster, monthlySavedComplete, monthlyStudentPayload, monthlyHasChanges } from './monthly-model.mjs?v=monthly-finish1';
 import { SCORE_FIELDS, emptyScores, scoreTotal, validateScores, termWeeks, semesterSummary, weekNumber, weekEnd } from './evaluation-model.mjs?v=rosters2';
@@ -69,7 +69,11 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
   const dialog = root.querySelector('#dashboard-confirm');
   const reportPreview = root.querySelector('#report-preview');
   function updateToolbarVisibility() {
-    if (!admin) { if(monthlyReader){root.querySelector('[data-filter="week"]').hidden=view==='monthlyReport';root.querySelector('[data-filter="teacher"]').hidden=view==='monthlyReport';} return;}
+    if (!admin) {
+      root.querySelector('[data-filter="week"]').hidden=!['home','evaluation','knight','champions'].includes(view);
+      if (manager) root.querySelector('[data-filter="teacher"]').hidden=['monthlyReport','khairkomReport','champions'].includes(view);
+      return;
+    }
     const showTeacher = ['evaluation', 'monthly', 'honors', 'setup'].includes(view);
     const showWeek = ['reports', 'evaluation', 'champions'].includes(view);
     root.querySelector('[data-filter="term"]').hidden = view === 'reports';
@@ -193,6 +197,7 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
   }
   function render() {
     if (!admin && account.roster_manager && teacherId !== account.username && !['champions','setup','khairkomReport',...(monthlyReader?['monthlyReport']:[])].includes(view)) view = 'setup';
+    teacherAppearance?.setView(view);
     updateToolbarVisibility();
     renderWeekWorkflow();
     renderTeacherHome(); updateTeacherSaveState();

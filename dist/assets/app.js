@@ -60,7 +60,7 @@ async function showAccount(user) {
 
 async function openDashboard(account) {
   const [{ mountDashboard }, { createDashboardRepository }] = await Promise.all([
-    import('./dashboard.mjs?v=teacher-home3'), import('./dashboard-repository.mjs?v=teacher-home3'),
+    import('./dashboard.mjs?v=teacher-layout5'), import('./dashboard-repository.mjs?v=teacher-layout5'),
   ]);
   const previousRoot = document.querySelector('#dashboard-root');
   const root = previousRoot.cloneNode(false);
