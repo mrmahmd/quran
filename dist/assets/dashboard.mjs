@@ -1,5 +1,5 @@
-import {mountTeacherAppearance} from './teacher-appearance.mjs?v=teacher-home2';
-import {teacherWeeks} from './teacher-week-model.mjs?v=teacher-home2';
+import {mountTeacherAppearance} from './teacher-appearance.mjs?v=teacher-home3';
+import {teacherWeeks} from './teacher-week-model.mjs?v=teacher-home3';
 import { summarizeMonthlyTeachers } from './monthly-progress-model.mjs?v=monthly-admin1';
 import { emptyMonthly, monthlyProblem, termMonths, monthlyLabel, SURAHS, monthlyRangeText, monthlyProgress, applyMonthlyAmounts, copyMonthlyAmounts, copyMemorizationToRevision, monthlyAbsent, setMonthlyAbsent, mergeMonthlyRoster, monthlySavedComplete, monthlyStudentPayload, monthlyHasChanges } from './monthly-model.mjs?v=monthly-finish1';
 import { SCORE_FIELDS, emptyScores, scoreTotal, validateScores, termWeeks, semesterSummary, weekNumber, weekEnd } from './evaluation-model.mjs?v=rosters2';
