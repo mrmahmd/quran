@@ -44,14 +44,6 @@ export function mountTeacherAppearance(root, repository) {
   setView('home');
   const enhance=()=>{
     if(disposed)return;
-    // Keep the task title visible and put only its explanatory paragraph in Help.
-    content.querySelectorAll('.section-heading>div').forEach(heading=>{
-      if(heading.querySelector('.teacher-help'))return;
-      const paragraphs=[...heading.children].filter(el=>el.tagName==='P'&&!el.classList.contains('section-kicker'));
-      if(!paragraphs.length)return;
-      const details=document.createElement('details');details.className='teacher-help';
-      const summary=document.createElement('summary');summary.textContent='طريقة الاستخدام';details.append(summary,...paragraphs);heading.append(details);
-    });
     content.querySelectorAll('.student-score-card').forEach(card=>{
       const groups=[...card.querySelectorAll('.score-group [role="group"]')];
       const filled=groups.filter(group=>group.querySelector('[aria-pressed="true"]')).length;

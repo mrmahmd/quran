@@ -1,5 +1,6 @@
-import {mountTeacherAppearance} from './teacher-appearance.mjs?v=roster-approval1';
-import {teacherWeeks} from './teacher-week-model.mjs?v=roster-approval1';
+import {mountTeacherAppearance} from './teacher-appearance.mjs?v=clear-ui4';
+import {mountDashboardIdentity} from './dashboard-identity.mjs?v=clear-ui4';
+import {teacherWeeks} from './teacher-week-model.mjs?v=clear-ui4';
 import { summarizeMonthlyTeachers } from './monthly-progress-model.mjs?v=monthly-admin1';
 import { emptyMonthly, monthlyProblem, termMonths, monthlyLabel, SURAHS, monthlyRangeText, monthlyProgress, applyMonthlyAmounts, copyMonthlyAmounts, copyMemorizationToRevision, monthlyAbsent, setMonthlyAbsent, mergeMonthlyRoster, monthlySavedComplete, monthlyStudentPayload, monthlyHasChanges } from './monthly-model.mjs?v=monthly-finish1';
 import { SCORE_FIELDS, emptyScores, scoreTotal, validateScores, termWeeks, semesterSummary, weekNumber, weekEnd } from './evaluation-model.mjs?v=rosters2';
@@ -64,6 +65,7 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
 
   const teacherAppearance = admin ? null : mountTeacherAppearance(root,repo);
   const content = root.querySelector('#dashboard-content');
+  const dashboardIdentity = mountDashboardIdentity(root);
   const termSelect = root.querySelector('#term-select');
   const weekSelect = root.querySelector('#week-select');
   const teacherSelect = root.querySelector('#teacher-select');
@@ -184,7 +186,7 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
     if (!state) { panel.hidden = true; return; }
     const open = weekOpen(week) && selectedTerm().active && !state.future;
     const task = (done,title,detail,target) => done&&!state.complete ? '' : `<li class="${done?'done':'pending'}"><span class="task-check" aria-hidden="true">${done?'✓':'○'}</span><div><strong>${title}</strong><span>${esc(detail)}</span></div>${!done&&open?`<button class="light-button" data-view="${target}">${target==='evaluation'?'استكمال التقييم':target==='knight'?'اختيار الفارس':'فتح الترشيحات'} ←</button>`:''}</li>`;
-    const status = state.complete ? '✓ أنجزت مهام الأسبوع' : state.future ? 'الأسبوع لم يبدأ بعد' : !open ? 'الأسبوع مغلق · بيانات محفوظة' : 'خطوات بسيطة.. ويكتمل أسبوعك';
+    const status = state.complete ? '✓ أنجزت مهام الأسبوع' : state.future ? 'الأسبوع لم يبدأ بعد' : !open ? 'الأسبوع مغلق · بيانات محفوظة' : 'أكمل مهام أسبوعك';
     panel.innerHTML = `<div class="teacher-home-grid"><article class="teacher-week-card ${state.complete?'complete':''}"><div class="teacher-week-heading"><div><p>متابعة حلقتك</p><h2>${state.label}</h2><span>${dateLabel(week)} – ${dateLabel(weekEnd(week))}</span></div><span class="teacher-week-emblem" aria-hidden="true">${state.complete?'✓':'✦'}</span></div><strong class="teacher-week-status">${status}</strong><div class="teacher-week-meter"><b>${state.percent}<small>٪</small></b><span>المهام المحفوظة: ${state.done} / ${state.taskCount}</span></div><div class="teacher-completion-track" role="progressbar" aria-label="إنجاز مهام الأسبوع المحفوظة" aria-valuenow="${state.percent}" aria-valuemin="0" aria-valuemax="100"><i style="width:${state.percent}%"></i></div><div class="teacher-week-badges"><span>${state.evaluation?'✓ التقييم محفوظ':'○ التقييم لم يُعتمد'}</span><span>${state.champion?'★ الفارس محفوظ':'○ الفارس لم يُختر'}</span></div><p class="teacher-persisted-note">الحالة مبنية على البيانات المحفوظة، وتبقى اختياراتك اليدوية للفارس كما هي.</p></article><article class="teacher-task-card"><p class="teacher-section-eyebrow">خطوتك التالية</p><h2>${state.complete?'أحسنت.. اكتمل المطلوب':'المطلوب منك الآن'}</h2><ul>${task(state.evaluation,'التقييم الأسبوعي',state.evaluation?`تم حفظ تقييم ${state.rated} طالبًا`:state.total?`${state.rated} من ${state.total} طالبًا بتقييم محفوظ · ${state.remaining} متبقٍ${state.remaining===0?' · يلزم اعتماد التقييم':''}`:'بانتظار إضافة طلاب الحلقة','evaluation')}${task(state.champion,'فارس الأسبوع',state.champion?state.championName:'اختر طالبًا بنفسك، ثم احفظ الاختيار','knight')}${state.khairkomRequired?task(state.khairkom,'ترشيحات جمعية خيركم',state.khairkom?'تم حفظ مرشح واحد على الأقل':'تكليف الأسبوع الرابع فقط','khairkom'):''}</ul>${!open&&!state.complete?'<p class="teacher-task-note">يمكنك استعراض المحفوظ. الإدخال متاح عندما يكون الأسبوع مفتوحًا وقد بدأ.</p>':''}</article></div>${state.champion?`<article class="teacher-home-champion"><span class="teacher-champion-star" aria-hidden="true">★</span><div><span>فارس ${state.label} · اختيارك المحفوظ</span><h3>${esc(state.championName)}</h3><p>${esc(teacher().ring_name || teacher().class_name)}${state.championNote?' · '+esc(state.championNote):''}</p></div><button class="gold-button" data-view="knight">${open?'تغيير الفارس':'عرض الفارس'} ←</button></article>`:''}<details class="teacher-week-history"><summary><span>سجل أسابيعك</span><small>الأسابيع المكتملة: ${weeks.filter(row=>row.complete).length} · اضغط للاستعراض</small></summary><div class="teacher-history-grid">${weeks.map(row=>`<button type="button" data-teacher-week="${row.start}" class="teacher-history-card ${row.complete?'complete':row.future?'upcoming':'pending'}" aria-current="${row.start===week?'date':'false'}"><strong>${row.label}</strong><span>${dateLabel(row.start)} – ${dateLabel(weekEnd(row.start))}</span><b>${row.complete?'✓ مكتمل':row.future?'◷ قادم':'○ غير مكتمل'}</b><small>${row.evaluation?'✓':'○'} التقييم · ${row.champion?'★':'○'} الفارس${row.khairkomRequired?' · '+(row.khairkom?'✓':'○')+' خيركم':''}</small></button>`).join('')}</div></details>`;
   }
   function updateTeacherSaveState() {
@@ -199,6 +201,7 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
   function render() {
     if (!admin && account.roster_manager && teacherId !== account.username && !['champions','setup','khairkomReport',...(monthlyReader?['monthlyReport']:[])].includes(view)) view = 'setup';
     teacherAppearance?.setView(view);
+    root.querySelector('.dashboard-shell').dataset.workspace = view;
     updateToolbarVisibility();
     renderWeekWorkflow();
     updateRosterRequestBadges();
@@ -822,7 +825,7 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
       updateSelectors(); await loadContext();
     }, 'تم تحديث البيانات.');
     if (id === 'dashboard-logout' && !busy && await mayLeave()) {
-      try { await onLogout(); dashboardClosed=true;clearInterval(rosterPollTimer);teacherAppearance?.destroy(); for (const type of ['input','change','click']) root.removeEventListener(type,queueTeacherSaveState); clearTimeout(messageTimer); window.removeEventListener('beforeunload', beforeUnload); }
+      try { await onLogout(); dashboardClosed=true;clearInterval(rosterPollTimer);teacherAppearance?.destroy();dashboardIdentity.destroy(); for (const type of ['input','change','click']) root.removeEventListener(type,queueTeacherSaveState); clearTimeout(messageTimer); window.removeEventListener('beforeunload', beforeUnload); }
       catch (error) { notify(errorText(error), true); }
     }
   });

@@ -1,0 +1,230 @@
+/* One screen identity for every dashboard. PDF sheets keep their existing print geometry. */
+@media screen {
+ .dashboard-shell {
+  --ui-scale:var(--teacher-scale,1);--ui-ink:#193e64;--ui-muted:#425e77;
+  --ui-accent:#2367a8;--ui-soft:#edf4ff;--ui-line:#ccdce9;
+  --ui-small:max(16px,calc(17px * var(--ui-scale)));
+  --ui-body:calc(18px * var(--ui-scale));--ui-name:calc(22px * var(--ui-scale));
+  --ui-title:calc(26px * var(--ui-scale));--ui-shadow:0 8px 26px #193e6409;
+  font-family:Alexandria,Tahoma,sans-serif;font-size:var(--ui-body);font-weight:600;
+  line-height:1.85;color:var(--ui-ink);font-synthesis:none;
+  background:radial-gradient(ellipse at top right,#e3f4f7,transparent 45%),#f4f7fc;
+ }
+ .dashboard-shell[data-workspace=monthly],.dashboard-shell[data-workspace=monthlyReport]{--ui-accent:#087a70;--ui-soft:#eaf8f3}
+ .dashboard-shell[data-workspace=knight],.dashboard-shell[data-workspace=champions]{--ui-accent:#8a6115;--ui-soft:#fff5dc}
+ .dashboard-shell[data-workspace=khairkom],.dashboard-shell[data-workspace=khairkomReport]{--ui-accent:#7250a2;--ui-soft:#f3edfc}
+ .dashboard-shell[data-workspace=honors]{--ui-accent:#8b418c;--ui-soft:#f9edf7}
+ .dashboard-shell[data-workspace=setup],.dashboard-shell[data-workspace=rosterRequests]{--ui-accent:#176c80;--ui-soft:#eaf6f9}
+ .dashboard-shell :is(button,input,select,textarea){font-family:inherit;letter-spacing:0}
+ .dashboard-shell :is(p,small,label,summary){font-weight:600}
+ .dashboard-shell :is(h1,h2,h3,h4,strong,b){font-weight:800;letter-spacing:0}
+ .dashboard-shell :is(h1,h2,h3,h4,p,small,strong,span){overflow-wrap:anywhere}
+ .dashboard-shell .dashboard-main{width:min(1440px,calc(100% - 48px));padding-top:26px}
+ .dashboard-shell .dashboard-topbar{border-bottom:1px solid #dce7f0;box-shadow:0 4px 22px #193e6407}
+ .dashboard-shell .dashboard-user{font-size:var(--ui-small);font-weight:700;color:var(--ui-ink);flex-wrap:wrap}
+ .dashboard-shell .welcome-banner{background:linear-gradient(115deg,#def2f3,#eaf1ff 68%,#f5eafa);border-color:#cddfe9;border-radius:24px;padding:26px 30px;box-shadow:var(--ui-shadow)}
+ .dashboard-shell .welcome-banner h1{font-size:calc(32px * var(--ui-scale));line-height:1.65;color:#193f6b}
+ .dashboard-shell .welcome-banner :is(.eyebrow,p:last-child){font-size:var(--ui-small);font-weight:600;line-height:1.9;color:#355b77}
+ .dashboard-shell .welcome-banner .eyebrow{font-weight:800;color:#176d7c}
+ .teacher-dashboard:not([data-workspace=home]) .welcome-banner{padding:14px 24px}
+ .teacher-dashboard:not([data-workspace=home]) .welcome-banner h1{font-size:calc(24px * var(--ui-scale))}
+ .dashboard-shell .dashboard-toolbar{padding:18px;background:#ffffffed;border:1px solid var(--ui-line);border-radius:18px;gap:16px;box-shadow:var(--ui-shadow)}
+ .dashboard-shell :is(.dashboard-toolbar label,.monthly-toolbar label,.class-tag,.student-picker){font-size:var(--ui-small);font-weight:700;color:var(--ui-ink)}
+ .dashboard-shell :is(input:not([type=checkbox]),select,textarea){font-size:var(--ui-body);font-weight:600;line-height:1.8;min-width:0;max-width:100%;border-color:#b9ccde;color:#244963;background-color:white;border-radius:12px}
+ .dashboard-shell select{min-height:52px;padding:12px 14px}
+ .dashboard-shell input::placeholder,.dashboard-shell textarea::placeholder{color:#60758b;opacity:1;font-weight:500}
+ .dashboard-shell :is(.light-button,.solid-button,.gold-button,.purple-button,.teal-button,.monthly-finish-button,.monthly-copy-button,.roster-archive-button,.khairkom-add-part){font-size:var(--ui-body);font-weight:700;line-height:1.8;min-height:50px;border-radius:13px;padding:12px 18px;white-space:normal}
+ .dashboard-shell .solid-button{background:linear-gradient(115deg,#17477e,#236fae);box-shadow:0 5px 14px #2367a81c}
+ .dashboard-shell .teal-button,.dashboard-shell .monthly-finish-button{background:linear-gradient(115deg,#08796e,#159182);color:white;box-shadow:0 5px 14px #08796e1c}
+ .dashboard-shell .light-button{border-color:#bdcede;color:#244f78;background:#fff}
+ .dashboard-shell .gold-button{color:#63470e;background:linear-gradient(115deg,#f8cf71,#ffe4a5);border-color:#e2bb65}
+ .dashboard-shell button{transition:background .18s,border-color .18s,box-shadow .18s,transform .18s}
+ .dashboard-shell button:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 5px 14px #193e6414}
+ .dashboard-shell :is(button,input,select,textarea,summary,[tabindex]):focus-visible{outline:3px solid #168798;outline-offset:3px}
+ .dashboard-shell .action-card{border-radius:20px;box-shadow:var(--ui-shadow);border:1px solid #ccdeec;position:relative}
+ .dashboard-shell .action-card strong{font-size:var(--ui-name);font-weight:800;line-height:1.7}
+ .dashboard-shell .action-card small{font-size:var(--ui-small);font-weight:600;opacity:1;line-height:1.8}
+ .dashboard-shell .blue-card{background:linear-gradient(115deg,#e3efff,#f0f6ff);color:#215c95}
+ .dashboard-shell .gold-card{background:linear-gradient(115deg,#fff0cd,#fff9eb);color:#805b13}
+ .dashboard-shell .teal-card{background:linear-gradient(115deg,#dff5ef,#f0fcf7);color:#0e6e63}
+ .dashboard-shell :is(.purple-card,.khairkom-card){background:linear-gradient(115deg,#f0e6fa,#faf4ff);color:#744997}
+ .dashboard-shell .action-card.selected{border-color:currentColor;outline:2px solid currentColor;outline-offset:2px}
+ .teacher-dashboard .dashboard-actions[data-compact=true] .action-card strong{font-size:var(--ui-small)}
+ .teacher-dashboard .dashboard-actions[data-compact=true] .action-card.selected{color:var(--ui-accent);background:var(--ui-soft);outline:0;border-color:currentColor}
+ .dashboard-shell .section-heading{padding:20px 24px;border:1px solid var(--ui-line);border-inline-start:5px solid var(--ui-accent);border-radius:20px;background:linear-gradient(110deg,#fff,#fbfdff);box-shadow:var(--ui-shadow);align-items:flex-start}
+ .dashboard-shell .section-heading h2{font-size:var(--ui-title);line-height:1.7;margin:0;color:var(--ui-ink)}
+ .dashboard-shell .section-heading .section-kicker{font-size:var(--ui-small);color:var(--ui-accent);font-weight:800;margin-bottom:6px}
+ .dashboard-shell .section-heading p{font-size:var(--ui-small);line-height:1.95;color:var(--ui-muted)}
+ .dashboard-help{margin-top:10px}.dashboard-help summary{font-size:var(--ui-small);color:var(--ui-accent);cursor:pointer;font-weight:700;padding:4px 0}
+ .dashboard-help[open]{padding:10px 14px;background:var(--ui-soft);border-radius:12px}.dashboard-help p{margin-top:8px!important}
+ .dashboard-shell :is(.status-pill,.teacher-score-status,.monthly-teacher-state,.roster-kind){font-size:var(--ui-small);line-height:1.8;font-weight:700;padding:7px 11px;white-space:normal;max-width:100%}
+ .dashboard-shell :is(.help-pill,.progress-copy,.save-bar>span,.dashboard-message,.monthly-note,.monthly-amount,.none-choice,.bonus-row label,.monthly-finish-hint){font-size:var(--ui-small);font-weight:600;line-height:1.9;color:var(--ui-muted)}
+ .dashboard-shell .save-bar{border:1px solid #bdcfdf;border-inline-start:5px solid var(--ui-accent);background:#fffffff5;box-shadow:0 8px 24px #193e6410;border-radius:17px;padding:16px 20px;flex-wrap:wrap}
+ .dashboard-shell .save-bar>div{flex-wrap:wrap}
+ .dashboard-shell .dashboard-message{font-weight:700}.dashboard-shell .dashboard-message:not(.is-error){color:#11654d;background:#edf9f2;border-color:#b8dfcc}
+ .dashboard-shell .dashboard-message.is-error{color:#96364b;background:#fff1f4;border-color:#e9c0cc}
+ .dashboard-shell :is(.empty-state p,.note-panel small,.note-panel label,.setup-card p,.setup-card label,.report-intro span,.monthly-cards-toolbar>span){font-size:var(--ui-small);color:var(--ui-muted);font-weight:600;line-height:1.95}
+ .dashboard-shell .empty-state h2{font-size:var(--ui-title);line-height:1.8}.dashboard-shell .empty-state{border-color:#b9ccdf;border-radius:22px}
+ .dashboard-shell :is(.setup-card,.note-panel,.roster-summary,.roster-archive){background:#fff;border:1px solid var(--ui-line);border-radius:20px;padding:22px;box-shadow:var(--ui-shadow)}
+ .dashboard-shell :is(.setup-card h3,.roster-summary h3,.report-intro strong){font-size:calc(21px * var(--ui-scale));line-height:1.8;color:var(--ui-ink)}
+ .dashboard-shell .roster-row{gap:12px;border:1px solid #d8e5ef;border-radius:14px;padding:14px;background:#f5f9fd;flex-wrap:wrap;margin-top:12px}
+ .dashboard-shell .roster-row strong{font-size:var(--ui-name);color:var(--ui-ink);line-height:1.8}
+ .dashboard-shell :is(.roster-row small,.roster-archive summary,.roster-request-card small){font-size:var(--ui-small);font-weight:600;color:var(--ui-muted)}
+ .dashboard-shell .roster-row>span{min-width:0;flex:1}.dashboard-shell .roster-row>div{display:flex;gap:8px;flex-wrap:wrap}
+ .dashboard-shell .roster-request-card h3{font-size:var(--ui-name)}.dashboard-shell .roster-request-card p,.dashboard-shell .roster-request-card label{font-size:var(--ui-small);font-weight:600}
+ .dashboard-shell .roster-request-card header>strong{font-size:var(--ui-small);font-weight:700}
+ .dashboard-shell :is(.student-score-card,.monthly-card,.admin-student-card){border-radius:20px;border-color:#c8dbe9;box-shadow:var(--ui-shadow)}
+ .dashboard-shell :is(.student-score-card,.monthly-card) h3{font-size:var(--ui-name);line-height:1.8;color:var(--ui-ink)}
+ .dashboard-shell :is(.student-score-card header small,.score-group span small,.total-badge small,.monthly-card header small){font-size:var(--ui-small)!important;font-weight:600;color:#405e7c!important}
+ .dashboard-shell .score-group>span{font-size:var(--ui-body);font-weight:700;color:#264e71}
+ .dashboard-shell .total-badge{font-size:calc(28px * var(--ui-scale));font-weight:800;background:#e8f5f6;color:#176a79}
+ .dashboard-shell .point-chip{font-size:calc(20px * var(--ui-scale));font-weight:800;min-height:46px;min-width:42px}
+ .dashboard-shell .monthly-section h4{font-size:calc(20px * var(--ui-scale));font-weight:800}
+ .dashboard-shell :is(.monthly-range-end b,.monthly-range-end label,.monthly-range-summary,.monthly-copy-summary,.monthly-absence,.monthly-absence-info,.zero-report,.monthly-section>p){font-size:var(--ui-small);font-weight:600;line-height:1.9}
+ .dashboard-shell .monthly-range-end{border:1px solid #c6dcd8;border-radius:13px;background:#ffffffc9;padding:12px}
+ .dashboard-shell .monthly-range-end>b{color:#166b65;font-weight:800}.dashboard-shell .revision .monthly-range-end>b{color:#714e9a}
+ .dashboard-shell .monthly-toolbar{padding:18px;border:1px solid #cbdedc;border-radius:18px;background:#fff;gap:14px;font-size:var(--ui-small)}
+ .dashboard-shell .monthly-student-filters button{font-size:var(--ui-small);font-weight:700;min-height:48px}
+ .dashboard-shell :is(.knight-select-panel label,.knight-select-panel p,.saved-knight-card p,.saved-knight-card div>span,.champion-card p,.champion-card small,.champion-card blockquote){font-size:var(--ui-small);font-weight:600;line-height:1.9}
+ .dashboard-shell :is(.saved-knight-card h3,.champion-card h3){font-size:var(--ui-name);font-weight:800;line-height:1.8}
+ .dashboard-shell .champion-card{border-radius:20px;border-color:#dfc98f;background:linear-gradient(115deg,#fff5dc,#fffcf5);box-shadow:var(--ui-shadow)}
+ .dashboard-shell .pending-champion{border-style:dashed;border-color:#becddc;background:#f8fafd}
+ .dashboard-shell .knight-select-panel{border-inline-start:5px solid #b78a2e;border-radius:18px}
+ .dashboard-shell :is(.honor-name h3,.khairkom-choice strong){font-size:var(--ui-name);font-weight:800;line-height:1.8}
+ .dashboard-shell :is(.honor-name small,.honor-stats span,.candidate-detail,.choice-label,.khairkom-choice small,.khairkom-part-empty,.khairkom-identity-label small,.nomination-filters p,.khairkom-save-confirmation){font-size:var(--ui-small);font-weight:600;line-height:1.85;color:var(--ui-muted)}
+ .dashboard-shell .honor-stats strong{font-size:calc(23px * var(--ui-scale))}
+ .dashboard-shell :is(.khairkom-part-panel>label,.khairkom-amount,.khairkom-part-chip,.nomination-filter-fields label){font-size:var(--ui-small);font-weight:700}
+ .dashboard-shell .khairkom-student{border-inline-start:4px solid #c6b4e0;border-radius:20px}.dashboard-shell .khairkom-student.chosen{border-color:#baa2d7;background:linear-gradient(115deg,#f5effc,#fff)}
+ .dashboard-shell .khairkom-part-chip{color:#674392;background:#f1eafb;border-color:#d6c6e8}
+ .dashboard-shell .nomination-filters{border-color:#d5c6e6;border-radius:20px;background:#fcf9ff}
+ .dashboard-shell :is(.nomination-filter-fields small,.khairkom-progress p,.khairkom-progress span,.khairkom-teacher small,.khairkom-teacher b,.monthly-progress p){font-size:var(--ui-small);font-weight:600;line-height:1.9;color:var(--ui-muted)}
+ .dashboard-shell .khairkom-teacher strong{font-size:20px;font-weight:800;line-height:1.8}.dashboard-shell .khairkom-progress strong{font-size:36px;font-weight:800}
+ .dashboard-shell .khairkom-teacher{border-radius:17px;padding:17px;gap:10px;min-width:0}
+ .dashboard-shell .monthly-report-table{font-size:var(--ui-body);line-height:1.9}
+ .dashboard-shell .monthly-report-table :is(td,th){padding:16px 18px;font-weight:600;vertical-align:middle;border-bottom-color:#d7e4eb}
+ .dashboard-shell .monthly-report-table thead{background:linear-gradient(115deg,#174c77,var(--ui-accent));color:white}
+ .dashboard-shell .monthly-report-table thead th{font-weight:800;text-align:center}
+ .dashboard-shell .monthly-report-table tbody th{font-weight:800;color:var(--ui-ink)}
+ .dashboard-shell .monthly-report-table td small{font-size:var(--ui-small);color:var(--ui-muted);font-weight:600}
+ .dashboard-shell .monthly-table-wrap{border:1px solid #bdd3e2;border-radius:16px;scrollbar-color:#78a5be #edf4fa}
+ .dashboard-shell .monthly-report-table tbody tr:nth-child(even){background:#f0f7fb}
+ .dashboard-shell .monthly-report-table tbody tr:hover{background:#e6f3fa}
+ /* Admin workspace: the same hierarchy, without teacher-only size controls. */
+ .dashboard-shell .admin-workspace{grid-template-columns:256px minmax(0,1fr);gap:22px}
+ .dashboard-shell .admin-sidebar{background:linear-gradient(155deg,#173e70,#1b6289 70%,#087a83);border-radius:22px;box-shadow:0 12px 28px #193e641c}
+ .dashboard-shell .admin-sidebar-title strong{font-size:22px;font-weight:800;line-height:1.6}
+ .dashboard-shell .admin-sidebar-title small{font-size:16px;font-weight:600;color:#e0f1ff;line-height:1.8}
+ .dashboard-shell .admin-sidebar nav{padding:12px;gap:7px}
+ .dashboard-shell .admin-sidebar nav button{font-size:18px;font-weight:700;min-height:54px;padding:12px;line-height:1.8;gap:10px;color:#f0f7ff}
+ .dashboard-shell .admin-sidebar nav button.selected,.dashboard-shell .admin-sidebar nav button:hover{color:#194a74;background:#f3f8ff;border-color:#e4efff}
+ .dashboard-shell .admin-sidebar nav button>span{width:34px;height:34px;font-size:21px;border-radius:10px}
+ .dashboard-shell .admin-sidebar-note{font-size:16px;font-weight:600;line-height:1.95;color:#edf7ff;padding:16px 20px}
+ .dashboard-shell .report-card h3{font-size:22px;line-height:1.8}.dashboard-shell .report-card p,.dashboard-shell .report-card>div{font-size:17px;font-weight:600;color:var(--ui-muted);line-height:1.9}
+ .dashboard-shell .report-class{font-size:18px;font-weight:800}.dashboard-shell .report-card{border-radius:20px;padding:22px}
+ .dashboard-shell :is(.progress-hero h2,.monthly-admin-hero h2){font-size:28px;font-weight:800;line-height:1.7}
+ .dashboard-shell :is(.progress-hero p,.progress-hero>div>span,.progress-hero-week,.monthly-admin-hero p,.monthly-admin-hero>div>span){font-size:17px;font-weight:600;line-height:1.9}
+ .dashboard-shell .progress-hero{border-radius:22px;padding:24px;background:linear-gradient(115deg,#16496f,#1c7188 70%,#665389)}
+ .dashboard-shell .progress-summary-card{border:1px solid #d0dfeb;border-radius:20px;box-shadow:var(--ui-shadow);padding:22px;text-align:start}
+ .dashboard-shell :is(.progress-summary-title,.progress-summary-card p,.progress-summary-link,.progress-summary-card small){font-size:17px;font-weight:700;line-height:1.9}
+ .dashboard-shell .progress-summary-card>strong{font-size:40px;font-weight:800;line-height:1.5}
+ .dashboard-shell :is(.progress-details-heading h3,.admin-block-heading h3,.monthly-detail-title){font-size:24px;line-height:1.8;font-weight:800}
+ .dashboard-shell :is(.progress-details-heading p,.admin-block-heading p,.admin-block-heading>div>span,.progress-teacher-checks span,.progress-teacher-state,.progress-teacher-link,.progress-teacher-name small){font-size:17px;font-weight:600;line-height:1.85}
+ .dashboard-shell .progress-teacher-name strong{font-size:20px;font-weight:800;line-height:1.8}
+ .dashboard-shell .progress-teacher-row{padding:18px;border-radius:17px;border-color:#ccddea;gap:14px}
+ .dashboard-shell .progress-teacher-checks{gap:8px;flex-wrap:wrap}.dashboard-shell .progress-teacher-checks span{padding:7px 10px;border-radius:10px}
+ .dashboard-shell .progress-teacher-link{min-height:44px;font-weight:700}
+ .dashboard-shell .progress-report-action button{font-size:18px;font-weight:700;line-height:1.8;min-height:50px;white-space:normal}
+ .dashboard-shell .progress-details-heading>div>span{font-size:17px;font-weight:700}
+ .dashboard-shell .admin-student-top h4,.dashboard-shell .admin-leader-card h4{font-size:21px;font-weight:800;line-height:1.8}
+ .dashboard-shell :is(.admin-student-top small,.admin-leader-card>small,.admin-leader-card>strong small,.admin-block-heading>span){font-size:16px;font-weight:600;color:var(--ui-muted)}
+ .dashboard-shell .admin-student-top{align-items:flex-start;flex-wrap:wrap}.dashboard-shell .admin-student-top>div{min-width:120px}
+ .dashboard-shell .admin-student-top>strong,.dashboard-shell .admin-leader-card>strong{font-size:27px;font-weight:800}
+ .dashboard-shell .admin-student-top>strong small{font-size:16px}
+ .dashboard-shell .admin-student-scores{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+ .dashboard-shell .admin-student-scores span{font-size:16px;font-weight:600;line-height:1.8;padding:10px 7px;color:#36556d}
+ .dashboard-shell .admin-student-scores strong{font-size:21px}
+ .dashboard-shell :is(.admin-detail-table summary,.admin-leader-empty,.admin-summary span){font-size:17px;font-weight:600;color:var(--ui-muted)}
+ .dashboard-shell .admin-summary strong{font-size:30px}.dashboard-shell .admin-summary .gold-summary strong{font-size:21px}
+ .dashboard-shell .monthly-admin-hero{padding:24px;border-radius:20px}
+ .dashboard-shell :is(.monthly-admin-stats span,.monthly-admin-stats small,.monthly-teacher-status>span,.monthly-teacher-status small){font-size:17px;font-weight:600;line-height:1.9}
+ .dashboard-shell .monthly-admin-stats strong{font-size:38px;font-weight:800}
+ .dashboard-shell .monthly-teacher-status h3{font-size:21px;font-weight:800;line-height:1.8}
+ .dashboard-shell .monthly-teacher-status strong{font-size:30px;font-weight:800}
+ .dashboard-shell .monthly-teacher-status{border-radius:18px;padding:20px;min-width:0}
+ .dashboard-shell :is(.week-workflow strong,.month-workflow strong){font-size:calc(20px * var(--ui-scale));font-weight:800;line-height:1.8}
+ .dashboard-shell :is(.week-workflow p,.week-workflow small,.month-workflow p,.week-toggle b){font-size:var(--ui-small);font-weight:600;line-height:1.9}
+ .dashboard-shell .week-toggle{min-height:50px;flex-shrink:0}
+ .dashboard-shell .teacher-appearance :is(span,.teacher-preference-state){font-size:var(--ui-small);font-weight:600}
+ .dashboard-shell .teacher-save-indicator{font-size:var(--ui-small);font-weight:700}
+ .dashboard-shell :is(.teacher-task-card li div span,.teacher-task-note,.teacher-week-heading span,.teacher-week-badges span,.teacher-week-history summary small,.teacher-history-card span,.teacher-history-card small,.teacher-home-champion div>span,.teacher-home-champion p){font-size:var(--ui-small);font-weight:600;line-height:1.8}
+ .dashboard-shell .teacher-task-card li strong{font-size:calc(19px * var(--ui-scale));font-weight:800}
+ .dashboard-shell .teacher-task-card .light-button{font-size:var(--ui-small)}
+ .dashboard-shell .teacher-home-grid>.teacher-week-card{padding:18px;gap:8px 14px}
+ .dashboard-shell .teacher-week-heading h2{font-size:calc(22px * var(--ui-scale))}
+ .dashboard-shell.teacher-dashboard .teacher-week-heading>div>span,.dashboard-shell.teacher-dashboard .teacher-week-badges>span{font-size:max(16px,calc(14px * var(--ui-scale)));line-height:1.7}
+ .dashboard-shell .teacher-week-badges span{padding:5px 8px}.dashboard-shell .teacher-week-status{font-size:calc(18px * var(--ui-scale))}
+ .dashboard-shell .teacher-history-card strong{font-size:calc(20px * var(--ui-scale))}
+ .dashboard-shell .dashboard-footer{font-size:16px;font-weight:600;color:#46627d;line-height:1.9}
+ /* Dialogs are mounted alongside the shell, so they receive their own tokens. */
+ :is(.confirm-dialog,.monthly-bulk-dialog,.nomination-add-dialog){font-family:Alexandria,Tahoma,sans-serif;color:#193e64;border:1px solid #c5d8e7;border-radius:22px;box-shadow:0 24px 80px #193e6433;padding:26px;max-width:calc(100vw - 24px);max-height:calc(100dvh - 32px);overflow:auto}
+ :is(.confirm-dialog,.monthly-bulk-dialog,.nomination-add-dialog) :is(h2,h3){font-size:24px;font-weight:800;line-height:1.8;color:#193e64}
+ :is(.confirm-dialog,.monthly-bulk-dialog,.nomination-add-dialog) :is(p,label,small,summary,.bulk-footnote,.bulk-kind-label,.bulk-selection-heading){font-size:17px;font-weight:600;color:#425e77;line-height:1.95}
+ :is(.confirm-dialog,.monthly-bulk-dialog,.nomination-add-dialog) :is(button,input,select,textarea){font-family:inherit;font-size:18px;font-weight:600;line-height:1.8}
+ :is(.confirm-dialog,.monthly-bulk-dialog,.nomination-add-dialog) button{min-height:48px;font-weight:700;white-space:normal}
+ :is(.confirm-dialog,.monthly-bulk-dialog,.nomination-add-dialog) :is(input:not([type=checkbox]),select,textarea){width:100%;min-width:0;padding:11px;border:1px solid #b7cede;border-radius:12px;color:#244963}
+ :is(.confirm-dialog,.monthly-bulk-dialog,.nomination-add-dialog)::backdrop{background:#122d536b;backdrop-filter:blur(4px)}
+ .monthly-bulk-dialog[open] header :is(h2,p){color:#fff}
+ @media(max-width:1150px){
+  .dashboard-shell .admin-workspace{grid-template-columns:1fr}
+  .dashboard-shell .admin-sidebar{position:static}
+  .dashboard-shell .admin-sidebar nav{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .dashboard-shell .admin-sidebar-note{display:none}
+  .dashboard-shell .admin-sidebar-title{padding:16px 20px}
+  .dashboard-shell .progress-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ }
+ @media(max-width:760px){
+  .dashboard-shell .dashboard-main{width:calc(100% - 28px);padding-top:18px}
+  .dashboard-shell .welcome-banner{padding:20px}.dashboard-shell .welcome-banner h1{font-size:calc(27px * var(--ui-scale))}
+  .dashboard-shell .section-heading{padding:18px;gap:14px;flex-wrap:wrap}.dashboard-shell .section-heading h2{font-size:calc(24px * var(--ui-scale))}
+  .dashboard-shell .dashboard-toolbar{padding:15px;gap:12px}.dashboard-shell .dashboard-toolbar label{flex-basis:100%;min-width:0}
+  .dashboard-shell .dashboard-user .light-button{font-size:16px;padding:10px 12px;min-height:44px}
+  .dashboard-shell .admin-sidebar nav{grid-template-columns:repeat(2,minmax(0,1fr));padding:10px;gap:7px}
+  .dashboard-shell .admin-sidebar nav button{font-size:17px;padding:10px 8px;gap:7px;min-width:0}
+  .dashboard-shell .admin-sidebar nav button>span{width:28px;height:28px;font-size:19px}
+  .dashboard-shell .admin-sidebar-title strong{font-size:21px}
+  .dashboard-shell :is(.admin-workspace-content .report-grid,.admin-student-grid,.admin-leader-grid,.monthly-teacher-grid,.progress-teacher-list){grid-template-columns:1fr}
+  .dashboard-shell :is(.progress-hero,.monthly-admin-hero){padding:20px;flex-direction:column;align-items:stretch;gap:16px}
+  .dashboard-shell :is(.progress-hero h2,.monthly-admin-hero h2){font-size:25px}
+  .dashboard-shell .progress-summary-card{padding:17px}.dashboard-shell .progress-summary-title{font-size:17px}
+  .dashboard-shell .progress-summary-card>strong{font-size:34px}
+  .dashboard-shell .progress-teacher-row{display:flex;flex-direction:column;align-items:stretch;gap:12px}
+  .dashboard-shell .progress-teacher-checks{display:flex;flex-wrap:wrap}
+  .dashboard-shell .progress-teacher-name{min-width:0}.dashboard-shell .progress-teacher-state{align-self:flex-start}
+  .dashboard-shell .progress-details-heading,.dashboard-shell .admin-block-heading{flex-wrap:wrap;gap:12px}
+  .dashboard-shell :is(.progress-report-action,.report-intro){flex-direction:column;align-items:stretch;gap:12px}
+  .dashboard-shell .progress-report-action button,.dashboard-shell .report-intro button{white-space:normal;width:100%;font-size:18px;line-height:1.8;min-height:50px}
+  .dashboard-shell .admin-student-scores{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .dashboard-shell .monthly-admin-stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+  .dashboard-shell .monthly-admin-stats article{padding:16px}.dashboard-shell .monthly-admin-stats strong{font-size:32px}
+  .dashboard-shell .monthly-range-grid{grid-template-columns:1fr}
+  .dashboard-shell .monthly-toolbar{padding:16px}.dashboard-shell .monthly-toolbar>label{width:100%;min-width:0}.dashboard-shell .monthly-toolbar select{min-width:0;width:100%}
+  .dashboard-shell .monthly-range-end{padding:12px}.dashboard-shell .monthly-section{padding:14px}
+  .dashboard-shell .monthly-student-filters{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+  .dashboard-shell .monthly-student-filters button{font-size:var(--ui-small);padding:9px 4px;min-width:0}
+  .dashboard-shell .save-bar{position:static;padding:16px;gap:12px;align-items:stretch}.dashboard-shell .save-bar>div{display:grid;grid-template-columns:1fr;width:100%}.dashboard-shell .save-bar button{width:100%}
+  .dashboard-shell .monthly-report-table{min-width:760px}.dashboard-shell .monthly-table-wrap{max-width:100%;overflow:auto}
+  .dashboard-shell .roster-row>span{flex-basis:100%}.dashboard-shell .roster-row>div{width:100%}.dashboard-shell .roster-row>div button{flex:1;min-width:0;font-size:var(--ui-small);padding:10px}
+  .dashboard-shell .teacher-week-badges{grid-template-columns:repeat(2,minmax(0,1fr))}.dashboard-shell .teacher-week-heading>div>span{display:block}
+  .dashboard-shell .teacher-week-card{gap:8px 10px}.dashboard-shell .teacher-week-status{line-height:1.7}
+  .dashboard-shell .teacher-history-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  :is(.confirm-dialog,.monthly-bulk-dialog,.nomination-add-dialog){padding:20px}
+ }
+ @media(max-width:420px){
+  .dashboard-shell .progress-summary-grid,.dashboard-shell .monthly-admin-stats{grid-template-columns:1fr}
+  .dashboard-shell .admin-student-scores{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .dashboard-shell .teacher-history-grid{grid-template-columns:1fr}
+  .dashboard-shell .progress-summary-card{padding:18px 20px}
+ }
+ @media(prefers-reduced-motion:reduce){.dashboard-shell *{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+}
+@media print{.dashboard-help{display:none!important}}
