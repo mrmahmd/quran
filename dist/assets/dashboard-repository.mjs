@@ -88,6 +88,10 @@ export function createDashboardRepository(client) {
     manageStudent: args => result(client.rpc('manage_student', args)),
     manageOwnStudent: args => result(client.rpc('manage_own_student', args)),
     addOwnStudents: students => result(client.rpc('add_own_students', {p_rows:students.map(({full_name,student_code})=>({full_name,student_code:student_code||null}))})),
+    rosterRequests: () => allRows(()=>client.from('roster_change_requests').select('*').order('created_at',{ascending:false}).order('id')),
+    requestRosterAdditions: (students,teacher) => result(client.rpc('request_roster_additions',{p_rows:students.map(({full_name,student_code})=>({full_name,student_code:student_code||null})),p_teacher:teacher})),
+    requestRosterStatus: (student,active) => result(client.rpc('request_roster_status',{p_student:student,p_active:active})),
+    decideRosterRequest: (id,approve,note) => result(client.rpc('decide_roster_request',{p_request:id,p_approve:approve,p_note:note})),
     addTerm: term => result(client.from('school_terms').insert(term).select().single()),
     addStudents: students => result(client.from('students').insert(students).select('id')),
   };

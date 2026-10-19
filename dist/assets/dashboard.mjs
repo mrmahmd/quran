@@ -1,5 +1,5 @@
-import {mountTeacherAppearance} from './teacher-appearance.mjs?v=own-roster1';
-import {teacherWeeks} from './teacher-week-model.mjs?v=own-roster1';
+import {mountTeacherAppearance} from './teacher-appearance.mjs?v=roster-approval1';
+import {teacherWeeks} from './teacher-week-model.mjs?v=roster-approval1';
 import { summarizeMonthlyTeachers } from './monthly-progress-model.mjs?v=monthly-admin1';
 import { emptyMonthly, monthlyProblem, termMonths, monthlyLabel, SURAHS, monthlyRangeText, monthlyProgress, applyMonthlyAmounts, copyMonthlyAmounts, copyMemorizationToRevision, monthlyAbsent, setMonthlyAbsent, mergeMonthlyRoster, monthlySavedComplete, monthlyStudentPayload, monthlyHasChanges } from './monthly-model.mjs?v=monthly-finish1';
 import { SCORE_FIELDS, emptyScores, scoreTotal, validateScores, termWeeks, semesterSummary, weekNumber, weekEnd } from './evaluation-model.mjs?v=rosters2';
@@ -23,7 +23,7 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
   let context = { students: [], reviews: [], evaluations: [], honors: [] }, overview = null, weekStates = [], monthStates = [], monthlyOverview = {reports:[],entries:[],students:[]};
   let scores = new Map(), dirty = false, honorDirty = false, knightDirty = false, busy = false, generation = 0, monthlyDirty = false, month = '', monthlyData = { report: null, entries: [] }, monthlyRows = new Map(), champions = [], chosenKnight = '', selectedHonors = new Set(), khairkomData = { sets: [], rows: [], students: [] }, nominatedStudents = new Map(), identityNumbers = new Map(), nominationDirty = false;
   let messageTimer, editingStudent = '', rosterDirty = false, monthlyCardsVisible = false, monthlyStudentFilter = 'pending';
-  let nominationSaveReceipt = null;
+  let nominationSaveReceipt = null, rosterRequests = [], requestFilter = 'pending', rosterPollTimer, rosterPolling=false, dashboardClosed=false;
   let progressFocus = 'weekly';
   let nominationFilters = {parts:[], mode:'all', teacher:'', className:''}, nominationReport = null;
   const nominationViewer = account.role === 'admin' || account.khairkom_viewer === true;
@@ -57,7 +57,7 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
     ${preview ? '<div class="preview-banner">معاينة تصميم محلية - جميع الأسماء والدرجات هنا تجريبية</div>' : ''}
     <main class="dashboard-main"><section class="welcome-banner"><div><p class="eyebrow">${admin ? 'إشراف واضح.. ودعم لكل حلقة' : 'خطوة صغيرة.. وأثر كبير'}</p><h1>${admin ? 'لوحة إدارة المدرسة القرآنية' : `أهلًا بك، ${esc(account.full_name)}`}</h1><p>${admin ? 'تابع التقييمات المعتمدة وفرسان الأسبوع والتكريم الفصلي.' : `حلقة ${esc(account.ring_name || "")} <bdi dir="ltr">${esc(account.class_name)}</bdi> · قيّم اجتهاد كل طالب وتقدمه مقارنة بنفسه.`}</p></div><div class="welcome-symbol" aria-hidden="true">✦</div></section>
     ${admin ? '' : toolbar + '<div id="teacher-save-indicator" class="teacher-save-indicator" role="status"></div><section id="teacher-home" hidden aria-label="ملخص عمل الحلقة"></section>'}
-    ${admin ? `<div class="admin-workspace"><aside class="admin-sidebar"><div class="admin-sidebar-title"><span>✦</span><div><strong>مركز الإدارة</strong><small>متابعة الحلقات والتقارير</small></div></div><nav aria-label="أقسام الإدارة"><button data-view="reports"><span>▦</span> نظرة عامة</button><button data-view="evaluation"><span>✓</span> تقييم الحلقة</button><button data-view="champions"><span>★</span> فرسان الأسبوع</button><button data-view="khairkom"><span>◆</span> ترشيحات خيركم</button><button data-view="monthly"><span>▤</span> التقارير الشهرية</button><button data-view="honors"><span>✦</span> التكريم الفصلي</button><button data-view="setup"><span>♧</span> قوائم الطلاب</button></nav><div class="admin-sidebar-note">في النظرة العامة اختر الأسبوع فقط؛ ولعرض طلاب حلقة افتح «تقييم الحلقة» ثم اختر المعلم.</div></aside><div class="admin-workspace-content">${toolbar}` : `<nav class="dashboard-actions" aria-label="أقسام لوحة التحكم"><button class="action-card home-card" data-view="home"><span class="action-symbol">⌂</span><span><strong>الرئيسية</strong><small>إنجازك وما تبقّى عليك</small></span><span class="action-arrow">←</span></button><button class="action-card blue-card" data-view="evaluation"><span class="action-symbol">✓</span><span><strong>التقييم الأسبوعي</strong><small>نقاط واضحة من ١٢</small></span><span class="action-arrow">←</span></button><button class="action-card gold-card" data-view="knight"><span class="action-symbol">★</span><span><strong>فارس الأسبوع</strong><small>احتفِ بالاجتهاد والتحسن</small></span><span class="action-arrow">←</span></button><button class="action-card purple-card" data-view="honors"><span class="action-symbol">✦</span><span><strong>التكريم الفصلي</strong><small>ثمرة رحلة الفصل الدراسي</small></span><span class="action-arrow">←</span></button><button class="action-card teal-card" data-view="monthly"><span class="action-symbol">▤</span><span><strong>التقرير الشهري</strong><small>مقدار الحفظ والمراجعة</small></span><span class="action-arrow">←</span></button><button class="action-card khairkom-card" data-view="khairkom"><span class="action-symbol">◆</span><span><strong>ترشيحات جمعية خيركم</strong><small>رشّح طلاب حلقتك</small></span><span class="action-arrow">←</span></button>${!manager ? '<button class="action-card roster-card" data-view="setup"><span class="action-symbol">♧</span><span><strong>طلاب حلقتي</strong><small>إضافة وتعديل الاسم وأرشفة واستعادة</small></span><span class="action-arrow">←</span></button>' : ''}</nav>${manager ? '<div class="admin-tabs"><span>مشرف الطلاب · تقييمات الحلقات الأخرى تخص معلميها</span><button class="gold-button" data-view="champions">★ فرسان الأسبوع</button><button class="light-button" data-view="setup">إدارة قوائم الطلاب</button></div>' : ''}`}
+    ${admin ? `<div class="admin-workspace"><aside class="admin-sidebar"><div class="admin-sidebar-title"><span>✦</span><div><strong>مركز الإدارة</strong><small>متابعة الحلقات والتقارير</small></div></div><nav aria-label="أقسام الإدارة"><button data-view="reports"><span>▦</span> نظرة عامة</button><button data-view="evaluation"><span>✓</span> تقييم الحلقة</button><button data-view="champions"><span>★</span> فرسان الأسبوع</button><button data-view="khairkom"><span>◆</span> ترشيحات خيركم</button><button data-view="monthly"><span>▤</span> التقارير الشهرية</button><button data-view="honors"><span>✦</span> التكريم الفصلي</button><button data-view="rosterRequests"><span>◷</span> طلبات الطلاب <b data-roster-request-count>0</b></button><button data-view="setup"><span>♧</span> قوائم الطلاب</button></nav><div class="admin-sidebar-note">في النظرة العامة اختر الأسبوع فقط؛ ولعرض طلاب حلقة افتح «تقييم الحلقة» ثم اختر المعلم.</div></aside><div class="admin-workspace-content">${toolbar}` : `<nav class="dashboard-actions" aria-label="أقسام لوحة التحكم"><button class="action-card home-card" data-view="home"><span class="action-symbol">⌂</span><span><strong>الرئيسية</strong><small>إنجازك وما تبقّى عليك</small></span><span class="action-arrow">←</span></button><button class="action-card blue-card" data-view="evaluation"><span class="action-symbol">✓</span><span><strong>التقييم الأسبوعي</strong><small>نقاط واضحة من ١٢</small></span><span class="action-arrow">←</span></button><button class="action-card gold-card" data-view="knight"><span class="action-symbol">★</span><span><strong>فارس الأسبوع</strong><small>احتفِ بالاجتهاد والتحسن</small></span><span class="action-arrow">←</span></button><button class="action-card purple-card" data-view="honors"><span class="action-symbol">✦</span><span><strong>التكريم الفصلي</strong><small>ثمرة رحلة الفصل الدراسي</small></span><span class="action-arrow">←</span></button><button class="action-card teal-card" data-view="monthly"><span class="action-symbol">▤</span><span><strong>التقرير الشهري</strong><small>مقدار الحفظ والمراجعة</small></span><span class="action-arrow">←</span></button><button class="action-card khairkom-card" data-view="khairkom"><span class="action-symbol">◆</span><span><strong>ترشيحات جمعية خيركم</strong><small>رشّح طلاب حلقتك</small></span><span class="action-arrow">←</span></button>${!manager ? '<button class="action-card roster-card" data-view="setup"><span class="action-symbol">♧</span><span><strong>طلاب حلقتي</strong><small>طلبات إضافة وحذف · تعديل الاسم</small></span><span class="action-arrow">←</span></button>' : ''}</nav>${manager ? '<div class="admin-tabs"><span>مشرف الطلاب · تقييمات الحلقات الأخرى تخص معلميها</span><button class="gold-button" data-view="champions">★ فرسان الأسبوع</button><button class="light-button" data-view="setup">إدارة قوائم الطلاب</button></div>' : ''}`}
     ${!admin && monthlyReader ? '<div class="admin-tabs"><button class="solid-button" data-view="monthlyReport">▤ استعراض التقارير الشهرية لجميع الحلقات</button></div>' : ''}${!admin && nominationViewer ? '<div class="admin-tabs"><button class="solid-button" data-view="khairkomReport">◆ استعراض ترشيحات جميع المعلمين</button></div>' : ''}<div id="week-workflow" class="week-workflow" aria-live="polite"></div><div id="dashboard-message" class="dashboard-message" role="status" hidden></div><section id="dashboard-content" aria-live="polite"></section>
     ${admin ? '</div></div>' : ''}</main><footer class="dashboard-footer">مدارس الأندلس الأهلية · نحتفي بالتقدم والتحسن والإتقان</footer>
     <dialog id="dashboard-confirm" class="confirm-dialog"><h2></h2><p></p><div><button class="light-button" data-answer="cancel">العودة</button><button class="solid-button" data-answer="confirm">تأكيد</button></div></dialog></div><section id="report-preview" class="report-preview" hidden aria-label="معاينة التقرير"><div class="report-preview-toolbar"><strong>معاينة التقرير</strong><span>اختر «حفظ PDF» من نافذة الطباعة للحصول على الملف.</span><div><button type="button" id="report-print">حفظ PDF / طباعة</button><button type="button" id="report-close">إغلاق المعاينة</button></div></div><div id="report-preview-body"></div></section>`;
@@ -77,7 +77,7 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
     }
     const showTeacher = ['evaluation', 'monthly', 'honors', 'setup'].includes(view);
     const showWeek = ['reports', 'evaluation', 'champions'].includes(view);
-    root.querySelector('[data-filter="term"]').hidden = view === 'reports';
+    root.querySelector('[data-filter="term"]').hidden = ['reports','rosterRequests'].includes(view);
     root.querySelector('[data-filter="teacher"]').hidden = !showTeacher;
     root.querySelector('[data-filter="week"]').hidden = !showWeek;
     root.querySelector('.dashboard-toolbar').setAttribute('aria-label', view === 'reports' ? 'اختيار أسبوع المتابعة العامة' : 'مرشحات ' + (view === 'evaluation' ? 'تقييم الحلقة' : 'لوحة الإدارة'));
@@ -158,7 +158,7 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
     if (!admin) root.querySelector('#teacher-home').hidden = true;
     content.innerHTML = '<div class="empty-state"><span class="loading-ring"></span><h2>جارٍ تحميل بيانات الحلقة</h2></div>';
     try {
-      const access = termId ? await repo.weekStates(termId) : [];
+      const [access,requests] = await Promise.all([termId?repo.weekStates(termId):Promise.resolve([]),repo.rosterRequests()]);
       const data = teacherId ? await repo.context(teacherId, termId) : { students: [], reviews: [], evaluations: [], honors: [] };
       const report = admin && termId ? await repo.overview(termId) : null;
       const months = termMonths(selectedTerm());
@@ -170,7 +170,7 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
       const combined = nominationViewer && termId ? await repo.khairkomReport(termId) : null;
       const nominations = termId ? await repo.khairkom(termId) : { sets: [], rows: [], students: [] };
       if (ticket !== generation) return;
-      rosterDirty=false; editingStudent=''; nominationReport = combined; context = data; overview = report; weekStates = access; monthlyData = monthly; monthStates=monthsAccess; monthlyOverview=monthsOverview; champions = gallery; khairkomData = nominations; nominatedStudents = new Map(nominations.rows.filter(row => row.teacher_username === teacherId).map(row => [row.student_id, [...(row.test_parts || [])]])); identityNumbers = new Map(nominations.rows.filter(row => row.teacher_username === teacherId).map(row => [row.student_id, row.identity_number || ''])); nominationDirty = false; loadScores(); loadMonthlyRows(); updateSelectors(); render();
+      rosterRequests=requests; rosterDirty=false; editingStudent=''; nominationReport = combined; context = data; overview = report; weekStates = access; monthlyData = monthly; monthStates=monthsAccess; monthlyOverview=monthsOverview; champions = gallery; khairkomData = nominations; nominatedStudents = new Map(nominations.rows.filter(row => row.teacher_username === teacherId).map(row => [row.student_id, [...(row.test_parts || [])]])); identityNumbers = new Map(nominations.rows.filter(row => row.teacher_username === teacherId).map(row => [row.student_id, row.identity_number || ''])); nominationDirty = false; loadScores(); loadMonthlyRows(); updateSelectors(); render();
     } catch (error) { if (ticket !== generation) return; content.innerHTML = '<div class="empty-state"><h2>تعذر تحميل البيانات</h2><p>اضغط تحديث البيانات للمحاولة مرة أخرى.</p></div>'; notify(errorText(error), true); }
   }
   function empty(title, text, symbol = '✦') { return `<div class="empty-state"><span class="empty-symbol">${symbol}</span><h2>${esc(title)}</h2><p>${esc(text)}</p></div>`; }
@@ -201,9 +201,11 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
     teacherAppearance?.setView(view);
     updateToolbarVisibility();
     renderWeekWorkflow();
+    updateRosterRequestBadges();
     renderTeacherHome(); updateTeacherSaveState();
     root.querySelectorAll('[data-view]').forEach(button => { button.classList.toggle('selected', button.dataset.view === view); button.setAttribute('aria-current', button.dataset.view === view ? 'page' : 'false'); });
     if (view === 'setup') { renderSetup(); return; }
+    if (view === 'rosterRequests' && admin) { renderRosterRequests(); return; }
     if (!termId) { content.innerHTML = empty('جاهزون لبدء الرحلة', 'ستظهر التقييمات بعد إضافة تواريخ الفصل الدراسي وقوائم الطلاب التي سترسلها الإدارة.'); return; }
     if (view === 'home') { content.replaceChildren(); return; }
     if (view === 'champions') { renderChampions(); return; }
@@ -391,22 +393,58 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
         '<button type="button" class="progress-teacher-link" data-teacher-report="' + esc(row.username) + '">تقييم الطلاب ←</button></article>';
     }).join('');
     content.innerHTML = '<section class="progress-hero"><div><span>متابعة مباشرة · الأسبوع ' + weekNumber(selectedTerm(), termWeeks(selectedTerm()).indexOf(week)) + '</span><h2>كل ما تحتاج متابعته، في مكان واحد</h2><p>اختر بطاقة لمعرفة من أنجز المطلوب ومن لا يزال ينتظره. تُحدّث الأرقام من الحفظ الفعلي في لوحات المعلمين.</p></div><span class="progress-hero-week">' + dateLabel(week) + ' – ' + dateLabel(weekEnd(week)) + '</span></section>' +
+      `<button class="roster-request-alert" data-view="rosterRequests">◷ طلبات إضافة وحذف الطلاب <b>${rosterRequests.filter(r=>r.status==='pending').length}</b> بانتظار مراجعتك ←</button>` +
       '<div class="progress-report-action"><button type="button" id="preview-teacher-progress"><span aria-hidden="true">▤</span> تحميل تقرير إنجاز المعلمين PDF</button><button type="button" class="champions-download" id="download-champions"><span aria-hidden="true">★</span> تحميل فرسان الأسبوع PDF</button></div>' +
       '<div class="progress-summary-grid' + (progress.khairkomRequired ? '' : ' three-cards') + '">' + cards + '</div>' +
       '<section class="progress-details"><div class="progress-details-heading"><div><span>تقرير إنجاز المعلمين</span><h3>' + labels[focus] + '</h3><p>' + descriptions[focus] + ' · أنجز ' + progress.completed[focus] + ' من أصل ' + progress.total + ' معلمًا.</p></div><span class="progress-details-percent">' + progress.percent[focus] + '%</span></div>' +
       '<div class="progress-teacher-list">' + (rows || '<p class="progress-empty">لا توجد حسابات معلمين نشطة.</p>') + '</div></section>' +
       '<div class="report-intro"><div><strong>التقرير الأسبوعي المجمّع</strong><span>جميع المعلمين في ملف واحد، مع قسم لكل حلقة وتفاصيل تقييم طلابها.</span></div><button class="solid-button" id="preview-weekly-all">معاينة وحفظ PDF</button></div>';
   }
+  const requestKind={add:'إضافة طالب',archive:'حذف من الحلقة',restore:'استعادة طالب'};
+  const requestStatus={pending:'◷ بانتظار موافقة الإدارة',approved:'✓ تمت الموافقة',rejected:'× تم الرفض'};
+  function requestCard(req,decide=false){
+    const owner=teachers.find(t=>t.username===req.teacher_username);
+    const date=new Date(req.created_at),when=Number.isFinite(date.getTime())?new Intl.DateTimeFormat('ar-EG',{day:'numeric',month:'short',hour:'numeric',minute:'2-digit',timeZone:'Asia/Riyadh'}).format(date):'';
+    return `<article class="roster-request-card request-${esc(req.status)}" data-roster-request="${esc(req.id)}"><header><span class="roster-kind kind-${esc(req.kind)}">${requestKind[req.kind]||'طلب طالب'}</span><strong>${requestStatus[req.status]||''}</strong></header><h3>${esc(req.student_name)}</h3><p>${esc(owner?.full_name||req.teacher_username)} · <bdi dir="auto">${esc(req.source_class||owner?.class_name||'')}</bdi></p><small>أُرسل ${esc(when)}</small>${req.admin_note?`<p class="roster-admin-note">ملاحظة الإدارة: ${esc(req.admin_note)}</p>`:''}${decide&&req.status==='pending'?`<label>ملاحظة الإدارة (اختياري)<textarea data-roster-note maxlength="500" rows="2" placeholder="تظهر الملاحظة للمعلم"></textarea></label><div class="roster-decision-actions"><button type="button" class="teal-button" data-roster-decision="approve" data-request-id="${esc(req.id)}">✓ موافقة وتنفيذ</button><button type="button" class="roster-archive-button" data-roster-decision="reject" data-request-id="${esc(req.id)}">× رفض الطلب</button></div>`:''}</article>`;
+  }
+  function teacherRequestHistory(){
+    const pending=rosterRequests.filter(r=>r.status==='pending'),history=rosterRequests.filter(r=>r.status!=='pending');
+    return `<section class="roster-request-section"><h3>طلباتك لدى الإدارة <b>${pending.length} معلّق</b></h3><p>الإضافة والحذف والاستعادة لا تُنفّذ قبل الموافقة.</p><div class="roster-request-grid">${pending.map(r=>requestCard(r)).join('')||'<p>لا توجد طلبات معلّقة.</p>'}</div>${history.length?`<details class="roster-request-history"><summary>سجل الطلبات التي تمت مراجعتها (${history.length})</summary><div class="roster-request-grid">${history.map(r=>requestCard(r)).join('')}</div></details>`:''}</section>`;
+  }
+  function renderRosterRequests(){
+    const counts={pending:0,approved:0,rejected:0};for(const req of rosterRequests)counts[req.status]++;
+    const labels={pending:'بانتظار المراجعة',approved:'تمت الموافقة',rejected:'مرفوضة',all:'جميع الطلبات'};
+    const rows=rosterRequests.filter(r=>requestFilter==='all'||r.status===requestFilter);
+    content.innerHTML=`<div class="section-heading"><div><p class="section-kicker">مراجعة الإدارة</p><h2>طلبات إضافة وحذف الطلاب</h2><p>راجع طلبات جميع المعلمين. الموافقة تنفّذ التغيير مباشرة، والرفض يحتفظ بالقائمة كما هي. تبقى التقييمات والتقارير محفوظة عند الحذف.</p></div><span class="status-pill">${counts.pending} طلبًا معلّقًا</span></div><div class="roster-request-filters" role="group" aria-label="حالة طلبات الطلاب">${Object.entries(labels).map(([key,label])=>`<button type="button" data-request-filter="${key}" aria-pressed="${requestFilter===key}">${label} <b>${key==='all'?rosterRequests.length:counts[key]}</b></button>`).join('')}</div><div class="roster-request-grid">${rows.map(r=>requestCard(r,true)).join('')||empty('لا توجد طلبات في هذه القائمة','تظهر طلبات المعلمين هنا عند إرسالها.')}</div>`;
+  }
+  function updateRosterRequestBadges(){
+    root.querySelectorAll('[data-roster-request-count],.roster-request-alert b').forEach(node=>node.textContent=rosterRequests.filter(r=>r.status==='pending').length);
+  }
+  async function pollRosterRequests(){
+    if(dashboardClosed||rosterPolling||busy||document.visibilityState==='hidden'||dialog.open)return;
+    rosterPolling=true;const ticket=generation;
+    try{
+      const fresh=await repo.rosterRequests();
+      if(dashboardClosed||ticket!==generation||busy||dialog.open||JSON.stringify(fresh)===JSON.stringify(rosterRequests))return;
+      rosterRequests=fresh;updateRosterRequestBadges();
+      if(view==='setup'&&!rosterDirty)await loadContext();
+      else if(view==='rosterRequests'&&admin&&![...root.querySelectorAll('[data-roster-note]')].some(n=>n.value.trim()))renderRosterRequests();
+    }catch{/* Keep the displayed data and retry without interrupting entered work. */}
+    finally{rosterPolling=false;}
+  }
   function renderSetup() {
     if (!canManageRoster()) { content.innerHTML=empty('غير متاح','يمكنك إدارة طلاب حلقتك فقط.'); return; }
     const active=context.students.filter(s=>s.active), archived=context.students.filter(s=>!s.active);
-    const studentRow=student=>`<div class="roster-row"><span><strong>${esc(student.full_name)}</strong><small>${esc(student.source_class || teacher().class_name || '')}${student.active?'':' · مؤرشف'}</small></span><div><button type="button" class="light-button" data-edit-student="${esc(student.id)}">${manager?'تعديل / نقل':'تعديل الاسم'}</button><button type="button" class="${student.active?'roster-archive-button':'teal-button'}" data-archive-student="${esc(student.id)}">${student.active?'أرشفة الطالب':'استعادة الطالب'}</button></div></div>`;
-    content.innerHTML = `<div class="section-heading"><div><p class="section-kicker">إدارة الطلاب</p><h2>${manager?'الطلاب والفصول الدراسية':'طلاب حلقتي'}</h2><p>${manager?'اختر الحلقة لإضافة الطلاب أو تعديلهم أو نقلهم مع الحفاظ على التقارير السابقة.':'أضف طلابًا لحلقتك أو عدّل أسماءهم. أرشفة الطالب تخفيه من القائمة النشطة وتحتفظ بتقييماته وتقاريره السابقة، ويمكن استعادته.'}</p></div><span class="status-pill">${active.length} طالبًا نشطًا</span></div><div class="setup-grid">${admin ? `<form id="term-form" class="setup-card"><h3>إضافة فصل دراسي</h3><label>اسم الفصل الدراسي<input name="name" maxlength="100" required placeholder="مثال: الفصل الدراسي الأول"></label><div class="date-fields"><label>تاريخ البداية<input name="starts_on" type="date" required></label><label>تاريخ النهاية<input name="ends_on" type="date" required></label></div><button class="solid-button" type="submit">حفظ الفصل الدراسي</button></form>` : ''}<form id="students-form" class="setup-card"><h3>＋ إضافة طلاب للحلقة ${esc(teacher().class_name || '')}</h3><p>اكتب اسم الطالب، أو عدة أسماء كل اسم في سطر. يمكنك إضافة رقم الطالب بعد علامة | لتمييز الأسماء المتشابهة.</p><label>أسماء الطلاب<textarea name="names" required rows="4" placeholder="اسم الطالب الأول&#10;اسم الطالب الثاني"></textarea></label><button class="solid-button" type="submit" ${!teacherId ? 'disabled' : ''}>＋ حفظ الطلاب في الحلقة</button></form>${studentEditor()}</div><section class="roster-summary"><h3>طلاب الحلقة (${active.length})</h3><div>${active.map(studentRow).join('') || '<p>لا يوجد طلاب نشطون في الحلقة حاليًا.</p>'}</div></section>${archived.length?`<details class="roster-archive"><summary>الطلاب المؤرشفون (${archived.length}) · عرض واستعادة</summary><div>${archived.map(studentRow).join('')}</div></details>`:''}`;
+    const studentRow=student=>{
+      const pending=rosterRequests.find(r=>r.student_id===student.id&&r.status==='pending');
+      return `<div class="roster-row"><span><strong>${esc(student.full_name)}</strong><small>${esc(student.source_class || teacher().class_name || '')}${student.active?'':' · مؤرشف'}</small>${pending?'<small class="roster-pending-label">◷ طلب '+(pending.kind==='archive'?'حذف':'استعادة')+' بانتظار الإدارة</small>':''}</span><div><button type="button" class="light-button" data-edit-student="${esc(student.id)}">${admin?'تعديل / نقل':'تعديل الاسم'}</button><button type="button" class="${student.active?'roster-archive-button':'teal-button'}" data-archive-student="${esc(student.id)}" ${pending&&!admin?'disabled':''}>${admin?(student.active?'أرشفة الطالب':'استعادة الطالب'):(student.active?'طلب حذف الطالب':'طلب استعادة الطالب')}</button></div></div>`;
+    };
+    content.innerHTML = `<div class="section-heading"><div><p class="section-kicker">إدارة الطلاب</p><h2>${manager?'الطلاب والفصول الدراسية':'طلاب حلقتي'}</h2><p>${admin?'اختر الحلقة لإدارة الطلاب مع الاحتفاظ بالتقارير السابقة.':'أرسل طلب إضافة أو حذف أو استعادة للإدارة. قائمة الطلاب لا تتغير قبل الموافقة. يمكنك تعديل الاسم مباشرة.'}</p></div><span class="status-pill">${active.length} طالبًا نشطًا</span></div><div class="setup-grid">${admin ? `<form id="term-form" class="setup-card"><h3>إضافة فصل دراسي</h3><label>اسم الفصل الدراسي<input name="name" maxlength="100" required placeholder="مثال: الفصل الدراسي الأول"></label><div class="date-fields"><label>تاريخ البداية<input name="starts_on" type="date" required></label><label>تاريخ النهاية<input name="ends_on" type="date" required></label></div><button class="solid-button" type="submit">حفظ الفصل الدراسي</button></form>` : ''}<form id="students-form" class="setup-card"><h3>＋ إضافة طلاب للحلقة ${esc(teacher().class_name || '')}</h3><p>اكتب اسم الطالب، أو عدة أسماء كل اسم في سطر. يمكنك إضافة رقم الطالب بعد علامة | لتمييز الأسماء المتشابهة.</p><label>أسماء الطلاب<textarea name="names" required rows="4" placeholder="اسم الطالب الأول&#10;اسم الطالب الثاني"></textarea></label><button class="solid-button" type="submit" ${!teacherId ? 'disabled' : ''}>${admin?'＋ حفظ الطلاب في الحلقة':'＋ إرسال طلبات الإضافة'}</button></form>${studentEditor()}</div>${!admin?teacherRequestHistory():''}<section class="roster-summary"><h3>طلاب الحلقة (${active.length})</h3><div>${active.map(studentRow).join('') || '<p>لا يوجد طلاب نشطون في الحلقة حاليًا.</p>'}</div></section>${archived.length?`<details class="roster-archive"><summary>الطلاب المؤرشفون (${archived.length}) · عرض واستعادة</summary><div>${archived.map(studentRow).join('')}</div></details>`:''}`;
   }
   function studentEditor() {
     const student=context.students.find(row=>row.id===editingStudent);
     if (!student) return '';
-    return `<form id="student-edit-form" class="setup-card roster-editor"><h3>تعديل ${esc(student.full_name)}</h3><label>اسم الطالب<input name="full_name" maxlength="150" required value="${esc(student.full_name)}"></label>${manager?`<label>المعلم / الحلقة<select name="teacher">${teachers.map(row=>`<option value="${esc(row.username)}" ${row.username===student.teacher_username?'selected':''}>${esc(row.ring_name ? row.ring_name + " (" + row.class_name + ")" : row.class_name)} · ${esc(row.full_name)}</option>`).join('')}</select></label><p>عند النقل تظل التقييمات السابقة محفوظة لدى الحلقة السابقة، وتبدأ المتابعة في الحلقة الجديدة.</p>`:`<p>حلقتي: <bdi dir="auto">${esc(teacher().class_name)}</bdi></p>`}<div class="roster-editor-actions"><button class="solid-button" type="submit">حفظ التعديل</button><button class="light-button" type="button" id="cancel-student-edit">إلغاء</button></div></form>`;
+    return `<form id="student-edit-form" class="setup-card roster-editor"><h3>تعديل ${esc(student.full_name)}</h3><label>اسم الطالب<input name="full_name" maxlength="150" required value="${esc(student.full_name)}"></label>${admin?`<label>المعلم / الحلقة<select name="teacher">${teachers.map(row=>`<option value="${esc(row.username)}" ${row.username===student.teacher_username?'selected':''}>${esc(row.ring_name ? row.ring_name + " (" + row.class_name + ")" : row.class_name)} · ${esc(row.full_name)}</option>`).join('')}</select></label><p>عند النقل تظل التقييمات السابقة محفوظة لدى الحلقة السابقة، وتبدأ المتابعة في الحلقة الجديدة.</p>`:`<p>حلقتي: <bdi dir="auto">${esc(teacher().class_name)}</bdi></p>`}<div class="roster-editor-actions"><button class="solid-button" type="submit">حفظ التعديل</button><button class="light-button" type="button" id="cancel-student-edit">إلغاء</button></div></form>`;
   }
   async function writeStudent(student,name,active,targetTeacher=student.teacher_username) {
     const saved=manager?await repo.manageStudent({p_id:student.id,p_name:name,p_teacher:targetTeacher,p_active:active}):await repo.manageOwnStudent({p_id:student.id,p_name:name,p_active:active});
@@ -456,6 +494,16 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
     });
   }
   root.addEventListener('click', async event => {
+    const requestFilterButton=event.target.closest('[data-request-filter]');
+    if(requestFilterButton&&admin&&!busy){if(rosterDirty&&!await mayLeave())return;rosterDirty=false;requestFilter=requestFilterButton.dataset.requestFilter;renderRosterRequests();return;}
+    const requestDecision=event.target.closest('[data-roster-decision]');
+    if(requestDecision&&admin&&!busy){
+      const id=requestDecision.dataset.requestId,req=rosterRequests.find(r=>r.id===id),approve=requestDecision.dataset.rosterDecision==='approve';
+      if(!req||req.status!=='pending')return;
+      const note=requestDecision.closest('[data-roster-request]').querySelector('[data-roster-note]').value.trim();
+      if(!await confirm(approve?'الموافقة وتنفيذ الطلب':'رفض الطلب',approve?`سيُنفّذ طلب ${requestKind[req.kind]} للطالب ${req.student_name} الآن، مع الحفاظ على التقارير السابقة.`:`سيُرفض طلب الطالب ${req.student_name} دون تغيير قائمة الحلقة.`))return;
+      await action(async()=>{const saved=await repo.decideRosterRequest(id,approve,note);if(saved?.id!==id||saved.status!==(approve?'approved':'rejected'))throw new Error('تعذر تأكيد القرار. حدّث قائمة الطلبات للمراجعة.');await loadContext();},approve?'تمت الموافقة وتنفيذ الطلب في قائمة الحلقة.':'تم رفض الطلب وإظهار القرار للمعلم.');return;
+    }
     const monthlyFilter=event.target.closest('[data-monthly-filter]');
     if(monthlyFilter&&!busy){monthlyStudentFilter=monthlyFilter.dataset.monthlyFilter;renderMonthly();return;}
     const finishMonthly=event.target.closest('[data-finish-monthly]');
@@ -702,8 +750,13 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
     if (archive && canManageRoster() && !busy) {
       if(rosterDirty&&!await mayLeave())return;
       const student=context.students.find(row=>row.id===archive.dataset.archiveStudent);
-      if (!await confirm(student.active?'أرشفة الطالب':'استعادة الطالب', student.active?'سيُؤرشف الطالب وتظل تقييماته السابقة محفوظة، ويمكن استعادته لاحقًا.':'سيعود الطالب إلى قائمة الحلقة.')) return;
-      await action(async()=>{await writeStudent(student,student.full_name,!student.active); editingStudent=''; await loadContext();},'تم تحديث قائمة الطلاب.'); return;
+      if (!student) return;
+      if (!await confirm(admin?(student.active?'أرشفة الطالب':'استعادة الطالب'):(student.active?'إرسال طلب حذف':'إرسال طلب استعادة'),admin?'ستُحدّث قائمة الطلاب مع الحفاظ على التقارير السابقة.':'لن تتغير حالة الطالب الآن. يُنفّذ الطلب بعد موافقة الإدارة فقط.')) return;
+      await action(async()=>{
+        if(admin) await writeStudent(student,student.full_name,!student.active);
+        else {const req=await repo.requestRosterStatus(student.id,!student.active);if(!req?.id||req.status!=='pending'||req.student_id!==student.id)throw new Error('تعذر تأكيد إرسال الطلب. حدّث القائمة للمراجعة.');}
+        editingStudent='';await loadContext();
+      },admin?'تم تحديث قائمة الطلاب.':'تم إرسال الطلب للإدارة. الطالب باقٍ في حالته الحالية حتى الموافقة.');return;
     }
     const historyWeek = event.target.closest('[data-teacher-week]');
     if (historyWeek && !admin && !busy) {
@@ -769,7 +822,7 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
       updateSelectors(); await loadContext();
     }, 'تم تحديث البيانات.');
     if (id === 'dashboard-logout' && !busy && await mayLeave()) {
-      try { await onLogout(); teacherAppearance?.destroy(); for (const type of ['input','change','click']) root.removeEventListener(type,queueTeacherSaveState); clearTimeout(messageTimer); window.removeEventListener('beforeunload', beforeUnload); }
+      try { await onLogout(); dashboardClosed=true;clearInterval(rosterPollTimer);teacherAppearance?.destroy(); for (const type of ['input','change','click']) root.removeEventListener(type,queueTeacherSaveState); clearTimeout(messageTimer); window.removeEventListener('beforeunload', beforeUnload); }
       catch (error) { notify(errorText(error), true); }
     }
   });
@@ -830,7 +883,7 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
     monthlyDirty=true;root.querySelector('#monthly-save-state').textContent='تغييرات لم تُحفظ بعد';updateMonthlyProgress();
   }
   root.addEventListener('input', event => {
-    if(event.target.closest('#students-form,#student-edit-form'))rosterDirty=true;
+    if(event.target.closest('#students-form,#student-edit-form')||event.target.hasAttribute('data-roster-note'))rosterDirty=true;
     if (event.target.hasAttribute('data-khairkom-identity') && !admin) {
       nominationSaveReceipt=null;content.querySelector('.khairkom-save-confirmation')?.remove();
       const card=event.target.closest('[data-khairkom-student]'), id=card.dataset.khairkomStudent;
@@ -853,8 +906,8 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
     if (event.target.id === 'student-edit-form' && canManageRoster()) {
       const student=context.students.find(row=>row.id===editingStudent), form=new FormData(event.target);
       if (!student) return;
-      if (!await confirm('حفظ بيانات الطالب',manager?'سيُحفظ الاسم والمعلم المختار. عند النقل تبقى التقييمات السابقة محفوظة.':'سيُحدّث اسم الطالب في حلقتك وتقاريره المحفوظة.')) return;
-      await action(async()=>{await writeStudent(student,form.get('full_name').trim(),student.active,manager?form.get('teacher'):account.username); editingStudent=''; await loadContext();},'تم حفظ بيانات الطالب.'); return;
+      if (!await confirm('حفظ بيانات الطالب',admin?'سيُحفظ الاسم والمعلم المختار. عند النقل تبقى التقييمات السابقة محفوظة.':'سيُحدّث اسم الطالب وتقاريره المحفوظة.')) return;
+      await action(async()=>{await writeStudent(student,form.get('full_name').trim(),student.active,admin?form.get('teacher'):student.teacher_username); editingStudent=''; await loadContext();},'تم حفظ بيانات الطالب.'); return;
     }
     if (event.target.id === 'term-form') {
       const form = new FormData(event.target), starts_on = form.get('starts_on'), ends_on = form.get('ends_on'), name = form.get('name').trim();
@@ -870,8 +923,8 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
       if (!rows.length || rows.length > 300 || rows.some(row => !row.full_name || row.full_name.length > 150)) { notify('أدخل قائمة صحيحة، بحد أقصى ٣٠٠ طالب في الدفعة.', true); return; }
       if (rows.some((row, i) => rows.some((other, j) => j !== i && ((row.student_code && row.student_code === other.student_code) || (!row.student_code && row.full_name === other.full_name))))) { notify('يوجد تكرار في القائمة. للأسماء المتشابهة أضف رقم الطالب بعد علامة | لكل اسم.', true); return; }
       if (rows.some(row => context.students.some(student => row.student_code ? student.student_code === row.student_code : student.full_name === row.full_name))) { notify('القائمة تتضمن طالبًا موجودًا بالفعل. راجع الأسماء والأرقام قبل الحفظ.', true); return; }
-      if (!await confirm('حفظ قائمة الطلاب', `سيُضاف ${rows.length} طالبًا إلى حلقة ${teacher().class_name}. تأكد من اختيار الحلقة الصحيحة.`)) return;
-      await action(async () => { const added=manager?await repo.addStudents(rows.map(row=>({...row,source_class:teacher().class_name||''}))):await repo.addOwnStudents(rows); if(!Array.isArray(added)||added.length!==rows.length||added.some(row=>!row.id))throw new Error('تعذر تأكيد إضافة الطلاب. حدّث القائمة قبل إعادة المحاولة.'); await loadContext(); }, 'تم حفظ الطلاب وربطهم بالمعلم.');
+      if (!await confirm('حفظ قائمة الطلاب', admin?`سيُضاف ${rows.length} طالبًا إلى حلقة ${teacher().class_name}.`:`سيُرسل ${rows.length} طلب إضافة للإدارة. لن تُضاف الأسماء للحلقة قبل الموافقة.`)) return;
+      await action(async () => { const added=admin?await repo.addStudents(rows.map(row=>({...row,source_class:teacher().class_name||''}))):await repo.requestRosterAdditions(rows,teacherId); if(!Array.isArray(added)||added.length!==rows.length||added.some(row=>!row.id||!admin&&row.status!=='pending'))throw new Error('تعذر تأكيد إضافة الطلاب. حدّث القائمة قبل إعادة المحاولة.'); await loadContext(); }, admin?'تم حفظ الطلاب وربطهم بالمعلم.':'تم إرسال طلبات الإضافة للإدارة. ستظهر الأسماء في الحلقة بعد الموافقة.');
     }
   });
   function beforeUnload(event) { if (dirty || honorDirty || knightDirty || monthlyDirty || nominationDirty || rosterDirty) { event.preventDefault(); event.returnValue = ''; } }
@@ -885,6 +938,6 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
     termId = terms.find(term => term.active && term.starts_on <= today() && term.ends_on >= today())?.id || terms.find(term => term.active)?.id || terms[0]?.id || '';
     const weeks = selectedTerm() ? termWeeks(selectedTerm()) : [];
     week = weeks.filter(value => value <= today()).at(-1) || weeks[0] || '';
-    updateSelectors(); await loadContext();
+    updateSelectors(); await loadContext();rosterPollTimer=setInterval(pollRosterRequests,30000);
   } catch (error) { content.innerHTML = empty('تعذر تحميل لوحة التحكم', 'اضغط تحديث البيانات بعد التأكد من اتصال الإنترنت.'); notify(errorText(error), true); }
 }

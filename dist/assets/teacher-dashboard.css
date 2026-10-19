@@ -205,6 +205,8 @@
  .teacher-dashboard .roster-row>div{display:flex;gap:8px;flex-wrap:wrap}
  .teacher-dashboard .roster-archive-button{font:inherit;font-size:calc(17px * var(--teacher-scale));line-height:1.8;color:#954356;background:#fff1f3;border:1px solid #e6c4cc;border-radius:13px;padding:10px 16px;min-height:46px;cursor:pointer}
  .teacher-dashboard .roster-archive summary{font-size:calc(19px * var(--teacher-scale));font-weight:600;color:#4f6382;cursor:pointer}
+ .teacher-dashboard .roster-pending-label{color:#8d6417;background:#fff2d6;padding:4px 8px;border-radius:8px;margin-top:6px}
+ .teacher-dashboard .roster-archive-button:disabled{opacity:.55;cursor:default}
  @keyframes teacher-feedback{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
  @media(max-width:1050px){.teacher-dashboard .dashboard-actions{grid-template-columns:repeat(2,minmax(0,1fr))}.teacher-dashboard .students-grid{grid-template-columns:1fr}.teacher-home-grid{grid-template-columns:1fr}.teacher-history-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
  @media(max-width:760px){

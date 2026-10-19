@@ -1,0 +1,31 @@
+/* Shared approval cards. Deliberately separate from evaluation and PDF styles. */
+.roster-request-alert{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;width:100%;font:inherit;font-size:19px;font-weight:700;color:#79571b;background:linear-gradient(115deg,#fff2d5,#fff9ed);border:1px solid #e8cb91;border-radius:18px;padding:18px;margin:20px 0;cursor:pointer}
+.roster-request-alert b,[data-roster-request-count]{display:inline-grid;place-items:center;min-width:30px;min-height:30px;border-radius:9px;padding:2px 6px;background:#ffe4a2;color:#72500d;font-size:17px}
+.roster-request-section{border:1px solid #d3e2ec;border-radius:22px;padding:22px;background:#fff;margin:22px 0}
+.roster-request-section>h3{font-size:22px;color:#204f78;margin:0 0 10px;line-height:1.8}.roster-request-section>h3 b{font-size:16px;background:#fff0cc;color:#775c21;padding:5px 10px;border-radius:9px;margin-inline-start:10px}
+.roster-request-section>p{font-size:17px;color:#536a80;line-height:1.9}
+.roster-request-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;margin:18px 0}
+.roster-request-card{min-width:0;padding:22px;border:1px solid #e7d7ad;border-inline-start:4px solid #c69631;border-radius:20px;background:linear-gradient(120deg,#fffaf0,#fff);box-shadow:0 8px 24px #173d8007}
+.roster-request-card header{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:15px}
+.roster-request-card header>strong{font-size:16px;color:#836321;line-height:1.8}
+.roster-kind{font-size:15px;font-weight:700;padding:7px 11px;border-radius:10px;color:#2c6794;background:#e8f3ff}.roster-kind.kind-archive{color:#934258;background:#ffe9ee}.roster-kind.kind-restore{color:#177463;background:#e4f5ee}
+.roster-request-card h3{font-size:23px;line-height:1.9;color:#244d75;margin:0 0 7px;overflow-wrap:anywhere}
+.roster-request-card p{font-size:17px;color:#49657c;line-height:1.9;margin:8px 0;overflow-wrap:anywhere}.roster-request-card small{font-size:14px;color:#5a6f82;line-height:1.8}
+.roster-request-card label{display:grid;gap:8px;font-size:16px;color:#3d5f7a;margin-top:16px;line-height:1.8}
+.roster-request-card textarea{font:inherit;width:100%;box-sizing:border-box;border:1px solid #c4d5e4;background:white;border-radius:12px;padding:12px;resize:vertical;min-width:0}
+.roster-request-card .roster-admin-note{background:#edf4fa;padding:11px 14px;border-radius:12px;color:#325a7a}
+.roster-decision-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+.roster-decision-actions button{font:inherit;font-size:17px;font-weight:600;min-height:48px;border-radius:12px;padding:12px 17px;cursor:pointer}
+.roster-decision-actions .roster-archive-button{border:1px solid #e2bfc9;color:#94394e;background:#fff1f4}
+.request-approved{background:linear-gradient(120deg,#effaf3,#fff);border-color:#c2e4d2;border-inline-start-color:#239673}.request-approved header>strong{color:#19775a}
+.request-rejected{background:linear-gradient(120deg,#fff3f6,#fff);border-color:#e6cbd4;border-inline-start-color:#c8778e}.request-rejected header>strong{color:#944459}
+.roster-request-filters{display:flex;gap:10px;flex-wrap:wrap;margin:20px 0;padding:9px;border:1px solid #d8e4ef;background:#edf3f8;border-radius:16px}
+.roster-request-filters button{font:inherit;font-size:17px;font-weight:600;min-height:48px;padding:10px 15px;border:1px solid transparent;border-radius:11px;background:transparent;color:#355d7c;cursor:pointer}
+.roster-request-filters button[aria-pressed=true]{background:#fff;border-color:#b9d4e4;box-shadow:0 3px 12px #23467110;color:#116b83}.roster-request-filters b{margin-inline-start:8px}
+.roster-request-history{margin-top:18px;border-top:1px solid #dfe8f0;padding-top:14px}.roster-request-history summary{font-size:18px;color:#486681;font-weight:600;cursor:pointer;line-height:1.9}
+.roster-request-grid>.empty-state{grid-column:1/-1}
+@media screen{
+ .teacher-dashboard .roster-request-card h3{font-size:calc(22px * var(--teacher-scale))}.teacher-dashboard .roster-request-card p{font-size:calc(17px * var(--teacher-scale))}.teacher-dashboard .roster-request-card header>strong{font-size:calc(16px * var(--teacher-scale))}
+}
+@media(max-width:760px){.roster-request-grid{grid-template-columns:1fr}.roster-request-section,.roster-request-card{padding:18px}.roster-request-filters{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.roster-request-filters button{font-size:16px;padding:10px}.roster-decision-actions button{flex:1;min-width:125px}.roster-request-alert{font-size:17px}}
+@media print{.roster-request-alert,.roster-request-section,.roster-request-filters,[data-view=rosterRequests]{display:none!important}}
