@@ -86,6 +86,8 @@ export function createDashboardRepository(client) {
     honors: args => result(client.rpc('save_semester_honors', args)),
     reopen: args => result(client.rpc('reopen_weekly_evaluation', args)),
     manageStudent: args => result(client.rpc('manage_student', args)),
+    manageOwnStudent: args => result(client.rpc('manage_own_student', args)),
+    addOwnStudents: students => result(client.rpc('add_own_students', {p_rows:students.map(({full_name,student_code})=>({full_name,student_code:student_code||null}))})),
     addTerm: term => result(client.from('school_terms').insert(term).select().single()),
     addStudents: students => result(client.from('students').insert(students).select('id')),
   };
