@@ -36,7 +36,7 @@ export function mountTeacherAppearance(root, repository) {
   const navigation=shell.querySelector('.dashboard-actions');
   const navigationHeading=document.createElement('div');navigationHeading.className='teacher-nav-heading';
   navigationHeading.innerHTML='<span>أقسام لوحتك</span><strong></strong>';navigation.before(navigationHeading);
-  const viewNames={home:'اختر القسم المطلوب',evaluation:'التقييم الأسبوعي',knight:'فارس الأسبوع',monthly:'التقرير الشهري',honors:'التكريم الفصلي',khairkom:'ترشيحات جمعية خيركم',champions:'فرسان جميع الحلقات',setup:'إدارة قوائم الطلاب',monthlyReport:'تقارير الحلقات الشهرية',khairkomReport:'ترشيحات جميع المعلمين'};
+  const viewNames={home:'اختر القسم المطلوب',evaluation:'التقييم الأسبوعي',knight:'فارس الأسبوع',monthly:'التقرير الشهري',honors:'التكريم الفصلي',khairkom:'ترشيحات جمعية خيركم',champions:'فرسان جميع الحلقات',setup:'إدارة قوائم الطلاب',monthlyReport:'تقارير الحلقات الشهرية',monthlyProgress:'إنجاز التقارير الشهرية',khairkomReport:'ترشيحات جميع المعلمين'};
   function setView(view){
     shell.dataset.workspace=view;navigation.dataset.compact=String(view!=='home');
     navigationHeading.querySelector('strong').textContent=view==='home'?viewNames.home:'أنت الآن في: '+(viewNames[view]||'لوحة المعلم');

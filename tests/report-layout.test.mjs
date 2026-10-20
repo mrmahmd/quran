@@ -1,12 +1,26 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildWeeklyReport, buildKhairkomReport, buildChampionsReport, buildTeacherProgressReport } from '../dist/assets/report-layout.mjs';
+import { buildWeeklyReport, buildKhairkomReport, buildChampionsReport, buildTeacherProgressReport, buildMonthlyReport } from '../dist/assets/report-layout.mjs';
 import { summarizeTeacherProgress } from '../dist/assets/admin-progress-model.mjs';
 
 const term = {name:'الفصل الأول'};
 const teachers = [{username:'a',full_name:'المعلم الأول',class_name:'1/A'}, {username:'b',full_name:'المعلم الثاني',class_name:'2/B'}];
 const overview = {students:[{id:'s1',teacher_username:'a',full_name:'أحمد',source_class:'1/A',active:true},{id:'s2',teacher_username:'a',full_name:'علي',active:true},{id:'s3',teacher_username:'b',full_name:'يوسف',active:true}],reviews:[{id:'r1',teacher_username:'a',week_start:'2026-09-27',status:'submitted'},{id:'r2',teacher_username:'b',week_start:'2026-09-27',status:'draft'}],evaluations:[{review_id:'r1',student_id:'s1',total:0,memorization:0,revision:0,improvement:0,commitment:0},{review_id:'r1',student_id:'s2',total:9,memorization:3,revision:2,improvement:2,commitment:2}]};
 const time = {term,week:'2026-09-27',weekEnd:'2026-10-01',weekNumber:5};
+
+test('monthly ring report shows only its students and amounts; teacher achievement remains a separate report',()=>{
+ const data={students:overview.students.map(s=>({...s,active:s.id!=='s2'})),reports:[{id:'m1',teacher_username:'a'},{id:'m2',teacher_username:'b'}],entries:[
+  {report_id:'m1',teacher_username:'a',student_id:'s1',memorization:{none:false,text:'<مقدار الحفظ>'},revision:{none:true,text:''}},
+  {report_id:'m1',teacher_username:'a',student_id:'s2',memorization:{none:false,text:''},revision:{none:false,text:''}},
+  {report_id:'m2',teacher_username:'b',student_id:'s3',memorization:{none:false,text:'مقدار حلقة أخرى'},revision:{none:true,text:''}}
+ ]};
+ const ring=buildMonthlyReport({term,label:'الشهر الأول',teachers,data,teacherUsername:'a'});
+ assert.match(ring,/أحمد/);assert.match(ring,/علي/);assert.match(ring,/&lt;مقدار الحفظ&gt;/);assert.match(ring,/لم يُسجّل/);
+ assert.doesNotMatch(ring,/يوسف|مقدار حلقة أخرى|إنجاز المعلمين|معلمون انتهوا|نسبة الاكتمال/);
+ const summary=buildMonthlyReport({term,label:'الشهر الأول',teachers,data});
+ assert.match(summary,/إنجاز المعلمين/);assert.match(summary,/المعلم الأول/);assert.match(summary,/المعلم الثاني/);
+ assert.doesNotMatch(summary,/مقدار حلقة أخرى/);
+});
 
 test('manually added nominee is displayed normally without an external-student label',()=>{
   const html=buildKhairkomReport({term,teachers,data:{students:[{id:'manual',full_name:'اسم جديد <مراجعة>',teacher_username:'a',source_class:'—',external:true}],rows:[{student_id:'manual',teacher_username:'a',identity_number:'000123456',test_parts:[5,6],external:true}]}});

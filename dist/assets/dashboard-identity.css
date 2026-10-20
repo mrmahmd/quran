@@ -10,7 +10,7 @@
   line-height:1.85;color:var(--ui-ink);font-synthesis:none;
   background:radial-gradient(ellipse at top right,#e3f4f7,transparent 45%),#f4f7fc;
  }
- .dashboard-shell[data-workspace=monthly],.dashboard-shell[data-workspace=monthlyReport]{--ui-accent:#087a70;--ui-soft:#eaf8f3}
+ .dashboard-shell[data-workspace=monthly],.dashboard-shell[data-workspace=monthlyReport],.dashboard-shell[data-workspace=monthlyProgress]{--ui-accent:#087a70;--ui-soft:#eaf8f3}
  .dashboard-shell[data-workspace=knight],.dashboard-shell[data-workspace=champions]{--ui-accent:#8a6115;--ui-soft:#fff5dc}
  .dashboard-shell[data-workspace=khairkom],.dashboard-shell[data-workspace=khairkomReport]{--ui-accent:#7250a2;--ui-soft:#f3edfc}
  .dashboard-shell[data-workspace=honors]{--ui-accent:#8b418c;--ui-soft:#f9edf7}
