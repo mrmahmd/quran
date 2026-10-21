@@ -27,6 +27,7 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
   let messageTimer, editingStudent = '', rosterDirty = false, monthlyCardsVisible = false, monthlyStudentFilter = 'pending';
   let nominationSaveReceipt = null, rosterRequests = [], requestFilter = 'pending', rosterPollTimer, rosterPolling=false, dashboardClosed=false;
   let progressFocus = 'weekly';
+  let weeklyStudentFilter = 'pending', weeklyEntered = new Set();
   let nominationFilters = {parts:[], mode:'all', teacher:'', className:''}, nominationReport = null;
   const nominationViewer = account.role === 'admin' || account.khairkom_viewer === true;
   const identityEditor = account.role === 'admin' || account.khairkom_identity_editor === true;
@@ -153,6 +154,8 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
       const row = stored ? Object.fromEntries(Object.keys(emptyScores(student.id)).map(key => [key, stored[key]])) : emptyScores(student.id);
       return [student.id, row];
     }));
+    weeklyEntered = new Set([...scores].filter(([,row]) => validateScores(row,true)).map(([id]) => id));
+    weeklyStudentFilter = review()?.status === 'submitted' ? 'all' : 'pending';
     chosenKnight = review()?.knight_student_id || '';
     selectedHonors = new Set(context.honors.map(row => row.student_id)); dirty = false; honorDirty = false; knightDirty = false;
   }
@@ -228,22 +231,36 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
   }
   function scoreCard(student) {
     const row = scores.get(student.id), total = scoreTotal(row);
-    return `<article class="student-score-card" data-student="${esc(student.id)}"><header><span class="student-avatar" aria-hidden="true">${esc(student.full_name.trim().slice(0, 1))}</span><div><h3>${esc(student.full_name)}</h3><small>${student.source_class ? `الفصل الأصلي: <bdi dir="ltr">${esc(student.source_class)}</bdi>` : student.student_code && !/^(DOC17-|TRANSFER-)/.test(student.student_code) ? `رقم الطالب: ${esc(student.student_code)}` : student.active ? 'طالب الحلقة' : 'طالب مؤرشف · تقييم محفوظ'}</small></div><span class="total-badge">${total === null ? '—' : total}<small>/ ١٢</small></span></header><div class="score-groups">${SCORE_FIELDS.map(field => `<div class="score-group"><span id="label-${esc(student.id)}-${field.key}">${field.label}<small>${field.max} نقاط</small></span><div role="group" aria-labelledby="label-${esc(student.id)}-${field.key}">${Array.from({ length: field.max + 1 }, (_, n) => `<button type="button" class="point-chip" data-score="${field.key}" data-point="${n}" aria-pressed="${row[field.key] === n}" aria-label="${field.label}: ${n} نقاط" ${readonly() ? 'disabled' : ''}>${n}</button>`).join('')}</div></div>`).join('')}</div><div class="bonus-row"><label><input type="checkbox" data-bonus="bonus_memorization" ${row.bonus_memorization ? 'checked' : ''} ${readonly() ? 'disabled' : ''}>تميز الحفظ <b>+١</b></label><label><input type="checkbox" data-bonus="bonus_revision" ${row.bonus_revision ? 'checked' : ''} ${readonly() ? 'disabled' : ''}>تميز المراجعة <b>+١</b></label></div></article>`;
+    if (!readonly() && weeklyEntered.has(student.id)) return `<article class="weekly-completed-card" data-student="${esc(student.id)}"><span class="weekly-done-icon" aria-hidden="true">✓</span><div><h3>${esc(student.full_name)}</h3><span>تم إدخال النقاط · بانتظار الحفظ الجماعي</span></div><strong>${total}<small> / ١٢</small></strong><button type="button" class="light-button" data-weekly-edit="${esc(student.id)}">تعديل النقاط</button></article>`;
+    return `<article class="student-score-card" data-student="${esc(student.id)}"><header><span class="student-avatar" aria-hidden="true">${esc(student.full_name.trim().slice(0, 1))}</span><div><h3>${esc(student.full_name)}</h3><small>${student.source_class ? `الفصل الأصلي: <bdi dir="ltr">${esc(student.source_class)}</bdi>` : student.student_code && !/^(DOC17-|TRANSFER-)/.test(student.student_code) ? `رقم الطالب: ${esc(student.student_code)}` : student.active ? 'طالب الحلقة' : 'طالب مؤرشف · تقييم محفوظ'}</small></div><span class="total-badge">${total === null ? '—' : total}<small>/ ١٢</small></span></header><div class="score-groups">${SCORE_FIELDS.map(field => `<div class="score-group"><span id="label-${esc(student.id)}-${field.key}">${field.label}<small>${field.max} نقاط</small></span><div role="group" aria-labelledby="label-${esc(student.id)}-${field.key}">${Array.from({ length: field.max + 1 }, (_, n) => `<button type="button" class="point-chip" data-score="${field.key}" data-point="${n}" aria-pressed="${row[field.key] === n}" aria-label="${field.label}: ${n} نقاط" ${readonly() ? 'disabled' : ''}>${n}</button>`).join('')}</div></div>`).join('')}</div><div class="bonus-row"><label><input type="checkbox" data-bonus="bonus_memorization" ${row.bonus_memorization ? 'checked' : ''} ${readonly() ? 'disabled' : ''}>تميز الحفظ <b>+١</b></label><label><input type="checkbox" data-bonus="bonus_revision" ${row.bonus_revision ? 'checked' : ''} ${readonly() ? 'disabled' : ''}>تميز المراجعة <b>+١</b></label></div>${readonly()?'':`<footer class="weekly-card-finish"><span>راجع النقاط والتميز، ثم انتقل للطالب التالي.</span><button type="button" class="teal-button" data-weekly-done="${esc(student.id)}" ${validateScores(row,true)?'':'disabled'}>✓ تم إدخال النقاط</button></footer>`}</article>`;
+  }
+  function renderWeeklyStudents(focusNext = false, editingId = '') {
+    const students = weekStudents(), editable = !readonly();
+    const done = students.filter(student => weeklyEntered.has(student.id)).length;
+    const filters = root.querySelector('#weekly-student-filters');
+    if (filters) filters.innerHTML = editable ? `<div class="weekly-filter-buttons" role="group" aria-label="عرض طلاب التقييم"><button type="button" data-weekly-filter="pending" aria-pressed="${weeklyStudentFilter==='pending'}">المتبقّون <b>${students.length-done}</b></button><button type="button" data-weekly-filter="done" aria-pressed="${weeklyStudentFilter==='done'}">تم إدخال نقاطهم <b>${done}</b></button><button type="button" data-weekly-filter="all" aria-pressed="${weeklyStudentFilter==='all'}">الجميع <b>${students.length}</b></button></div><p>زر «تم إدخال النقاط» يختصر البطاقة فقط؛ الحفظ لجميع الطلاب من الزر أسفل الصفحة.</p>` : '';
+    const visible = students.filter(student => !editable || weeklyStudentFilter==='all' || (weeklyStudentFilter==='done')===weeklyEntered.has(student.id));
+    const grid = root.querySelector('#students-grid');
+    grid.innerHTML = visible.length ? visible.map(scoreCard).join('') : `<div class="weekly-list-empty"><span aria-hidden="true">${weeklyStudentFilter==='pending'?'✓':'○'}</span><h3>${weeklyStudentFilter==='pending'?'انتهيت من إدخال نقاط جميع الطلاب':'لم تُنقل أي بطاقة للمكتملين بعد'}</h3><p>${weeklyStudentFilter==='pending'?'راجع المكتملين إذا احتجت، ثم اضغط «حفظ تقييم جميع الطلاب» لاعتماد النقاط.':'أكمل النقاط الأساسية، ثم اضغط «تم إدخال النقاط» في بطاقة الطالب.'}</p></div>`;
+    if (focusNext) {
+      const editingCard = editingId ? [...grid.querySelectorAll('[data-student]')].find(card=>card.dataset.student===editingId) : null;
+      (editingCard?.querySelector('[data-score]:not(:disabled)') || grid.querySelector('[data-score]:not(:disabled),[data-weekly-edit]') || root.querySelector('#submit-week'))?.focus({preventScroll:true});
+    }
   }
   function renderEvaluation() {
     const students = weekStudents();
-    content.innerHTML = `<div class="section-heading"><div><p class="section-kicker">التقييم الأسبوعي</p><h2>طلاب الحلقة.. في شاشة واحدة</h2><p>ضع النقاط لجميع الطلاب ثم احفظ التقييم مرة واحدة. الصفر تقييم صحيح، والدرجة الفارغة لم تُسجّل بعد.</p></div><span class="status-pill ${review()?.status === 'submitted' ? 'approved' : ''}">${review()?.status === 'submitted' ? '✓ أسبوع معتمد' : 'بانتظار التقييم'}</span></div>
+    content.innerHTML = `<div class="section-heading"><div><p class="section-kicker">التقييم الأسبوعي</p><h2>طالبًا بعد طالب.. بخطوات أوضح</h2><p>أدخل النقاط ثم اضغط «تم إدخال النقاط» لإخفاء البطاقة من المتبقّين. الصفر تقييم صحيح؛ احفظ الجميع مرة واحدة بعد الانتهاء.</p></div><span class="status-pill ${review()?.status === 'submitted' ? 'approved' : ''}">${review()?.status === 'submitted' ? '✓ أسبوع معتمد' : 'بانتظار الحفظ والاعتماد'}</span></div>
     <div class="evaluation-tools"><div id="rating-progress" class="progress-copy"></div><span class="help-pill">✓ الحفظ ٤ · المراجعة ٢ · التحسن ٢ · الالتزام ٢ · التميز ٢</span></div>
-    <div class="students-grid" id="students-grid">${students.map(scoreCard).join('')}</div>
+    <div id="weekly-student-filters" class="weekly-student-filters"></div><div class="students-grid" id="students-grid"></div>
     <div class="save-bar"><span id="save-state"></span><div>${readonly() ? (weekOpen(week) ? '<button class="gold-button" data-view="knight">اختيار فارس الأسبوع ★</button>' : '') + (admin && review()?.status === 'submitted' ? '<button class="light-button" id="reopen-week">إعادة فتح التقييم</button>' : '') : '<button class="solid-button" id="submit-week" ' + (week > today() || !students.length ? 'disabled title="الحفظ متاح بعد بداية الأسبوع"' : '') + '>✓ حفظ تقييم جميع الطلاب</button>'}</div></div>`;
-    updateProgress();
+    renderWeeklyStudents(); updateProgress();
   }
   function updateProgress() {
     const count = completeCount(), all = scores.size;
     const element = root.querySelector('#rating-progress');
-    if (element) element.innerHTML = `<strong>${count} <small>من ${all} طالبًا</small></strong><span>اكتمل تقييمهم</span><div class="progress-track"><i style="width:${all ? count / all * 100 : 0}%"></i></div>`;
+    if (element) element.innerHTML = `<strong>${count} <small>من ${all} طالبًا</small></strong><span>اكتمل إدخال نقاطهم · متبقٍ ${all-count}</span><div class="progress-track"><i style="width:${all ? count / all * 100 : 0}%"></i></div>`;
     const status = root.querySelector('#save-state');
-    if (status) status.textContent = !weekOpen(week) ? 'أغلقت الإدارة هذا الأسبوع؛ الحفظ متوقف.' : readonly() ? 'تم حفظ واعتماد تقييم الحلقة.' : dirty ? 'تغييرات لم تُحفظ؛ احفظ تقييم الحلقة بعد اكتمال جميع الطلاب.' : 'زر واحد لحفظ واعتماد نقاط جميع الطلاب.';
+    if (status) status.textContent = !weekOpen(week) ? 'أغلقت الإدارة هذا الأسبوع؛ الحفظ متوقف.' : readonly() ? 'تم حفظ واعتماد تقييم الحلقة.' : dirty ? '● النقاط لم تُحفظ بعد؛ احفظ تقييم جميع الطلاب بعد الانتهاء.' : 'زر واحد لحفظ واعتماد نقاط جميع الطلاب.';
   }
   function renderKnight() {
     const current = review();
@@ -796,12 +813,23 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
       else { view = nextView; render(); }
       return;
     }
+    const weeklyFilter = event.target.closest('[data-weekly-filter]');
+    if (weeklyFilter && view==='evaluation' && !busy) { weeklyStudentFilter=weeklyFilter.dataset.weeklyFilter; renderWeeklyStudents(); root.querySelector(`[data-weekly-filter="${weeklyStudentFilter}"]`)?.focus({preventScroll:true}); return; }
+    const weeklyDone = event.target.closest('[data-weekly-done]'), weeklyEdit = event.target.closest('[data-weekly-edit]');
+    if ((weeklyDone || weeklyEdit) && view==='evaluation' && !readonly() && !busy) {
+      const id = (weeklyDone || weeklyEdit).dataset[weeklyDone?'weeklyDone':'weeklyEdit'];
+      if (!scores.has(id)) return;
+      if (weeklyDone) { if (!validateScores(scores.get(id),true)) return; weeklyEntered.add(id); }
+      else { weeklyEntered.delete(id); weeklyStudentFilter='pending'; }
+      renderWeeklyStudents(true,weeklyEdit?id:''); updateProgress(); return;
+    }
     const chip = event.target.closest('[data-score]');
     if (chip && !readonly() && !busy) {
       const card = chip.closest('[data-student]'), row = scores.get(card.dataset.student);
       row[chip.dataset.score] = Number(chip.dataset.point); dirty = true;
       if (validateScores(row, true)) card.classList.remove('needs-attention');
       chip.parentElement.querySelectorAll('button').forEach(button => button.setAttribute('aria-pressed', button === chip ? 'true' : 'false'));
+      const finishButton=card.querySelector('[data-weekly-done]'); if(finishButton)finishButton.disabled=!validateScores(row,true);
       const total = scoreTotal(row); card.querySelector('.total-badge').innerHTML = `${total === null ? '—' : total}<small>/ ١٢</small>`; updateProgress(); return;
     }
     const report = event.target.closest('[data-teacher-report]');
@@ -814,6 +842,7 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
       root.querySelectorAll('.needs-attention').forEach(card => card.classList.remove('needs-attention'));
       if (!rows.length) { notify('لا يوجد طلاب لتقييمهم.', true); return; }
       if (missing.length) {
+        weeklyStudentFilter='pending'; missing.forEach(student=>weeklyEntered.delete(student.id)); renderWeeklyStudents();
         const details = missing.map(student => `${student.full_name} (${SCORE_FIELDS.filter(field => scores.get(student.id)[field.key] === null).map(field => field.label).join('، ')})`);
         missing.forEach(student => root.querySelector(`[data-student="${student.id}"]`)?.classList.add('needs-attention'));
         root.querySelector(`[data-student="${missing[0].id}"] button`)?.focus();
