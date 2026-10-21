@@ -1,0 +1,80 @@
+/* Read-only monthly quantities, shared by the dashboard and the ring's PDF. */
+.monthly-reading-wrap{border:1px solid #c5dbe4;border-radius:20px;background:#fff;overflow:hidden}
+.monthly-reading-table{width:100%;table-layout:fixed;border-collapse:separate;border-spacing:0;font-family:Alexandria,Tahoma,sans-serif;font-size:18px;line-height:1.85;color:#244663}
+.monthly-reading-table .reading-index{width:6%}.monthly-reading-table .reading-student{width:23%}.monthly-reading-table .reading-amount{width:27%}.monthly-reading-table .reading-note{width:17%}
+.monthly-reading-table :is(td,th){min-width:0;white-space:normal;overflow-wrap:break-word;word-break:normal;padding:17px 12px;vertical-align:top;text-align:right;border-bottom:1px solid #d9e7ed}
+.monthly-reading-table thead th{padding:17px 12px;background:#17657b;color:#fff;text-align:center;font-weight:800;font-size:19px}
+.monthly-reading-table tbody tr:last-child :is(td,th){border-bottom:0}.monthly-reading-table tbody tr:nth-child(even){background:#f5f9fc}
+.monthly-reading-table .monthly-reading-index{text-align:center;padding-inline:7px}
+.monthly-reading-index>span{display:inline-grid;place-items:center;width:32px;height:32px;border-radius:10px;background:#e9f2f8;color:#426580;font-weight:700;font-size:17px}
+.monthly-reading-student>strong{display:block;font-size:22px;line-height:1.85;color:#193f65;font-weight:800;overflow-wrap:break-word}
+.monthly-reading-class{display:block;font-size:16px;font-weight:600;color:#4b667e;margin:8px 0}
+.monthly-reading-status{display:inline-block;font-size:16px;line-height:1.8;font-weight:700;border:1px solid transparent;border-radius:10px;padding:5px 10px;margin-top:2px}
+.monthly-reading-status.status-complete{color:#11644f;background:#e3f5eb;border-color:#b7decb}
+.monthly-reading-status.status-missing{color:#865c17;background:#fff3d8;border-color:#e7d09f}
+.monthly-reading-status.status-absent{color:#53657a;background:#edf1f6;border-color:#d1dce5}
+.monthly-reading-archived{display:block;font-size:15px;line-height:1.8;font-weight:600;color:#5f6c7e;margin-top:9px}
+.monthly-amount-display{--amount-ink:#126b5a;--amount-line:#c2dfd3;--amount-bg:#edf8f1;min-width:0;padding:14px;border:1px solid var(--amount-line);border-radius:15px;background:var(--amount-bg);color:var(--amount-ink);text-align:right}
+.monthly-amount-display.amount-revision{--amount-ink:#70488c;--amount-line:#ded0eb;--amount-bg:#f5effa}
+.monthly-amount-title{display:inline-block;margin-bottom:10px;font-size:17px;line-height:1.7;font-weight:800;color:var(--amount-ink);border-bottom:2px solid var(--amount-line);padding-bottom:4px}
+.monthly-amount-endpoint{display:flex;align-items:baseline;gap:6px 8px;flex-wrap:wrap;font-size:18px;line-height:1.9;margin:5px 0}
+.monthly-range-word{font-size:17px;font-weight:600;color:var(--amount-ink)}
+.monthly-amount-endpoint>strong{font-size:19px;font-weight:800;color:var(--amount-ink)}
+.monthly-ayah-pill{display:inline-flex;gap:6px;align-items:baseline;padding:2px 8px;background:#ffffffd9;border:1px solid var(--amount-line);border-radius:9px;font-size:16px;font-weight:600;color:var(--amount-ink);white-space:nowrap}
+.monthly-ayah-pill bdi{font-size:18px;font-weight:800;font-variant-numeric:tabular-nums}
+.monthly-legacy-text,.monthly-amount-message{margin:0;font-size:18px;font-weight:600;line-height:1.95;white-space:pre-wrap;overflow-wrap:break-word;color:var(--amount-ink)}
+.monthly-amount-display.amount-missing{--amount-ink:#805b1e;--amount-line:#e8d9b6;--amount-bg:#fff9ed}
+.monthly-amount-display.amount-absent{--amount-ink:#586c7d;--amount-line:#d6e0e8;--amount-bg:#f3f6f9}
+.monthly-note-title{display:none}.monthly-reading-note p{margin:0;font-size:17px;font-weight:600;line-height:1.9;color:#52657a;white-space:pre-wrap;overflow-wrap:break-word}
+@media screen{
+ .dashboard-shell .monthly-reading-heading{display:flex;justify-content:space-between;align-items:center;gap:18px;border:1px solid #badbdc;border-inline-start:5px solid #187b79;background:linear-gradient(115deg,#eaf8f4,#f3f7ff);border-radius:20px;padding:22px 24px;margin:24px 0 18px;box-shadow:0 8px 26px #193e6407}
+ .monthly-reading-eyebrow{font-size:17px;line-height:1.8;font-weight:700;color:#246d72}
+ .dashboard-shell .monthly-reading-heading .monthly-detail-title{font-size:25px;font-weight:800;line-height:1.8;color:#214b70;margin:5px 0;background:transparent;padding:0;border-radius:0}
+ .monthly-reading-heading p{font-size:18px;font-weight:600;color:#456781;line-height:1.8;margin:0}
+ .monthly-reading-month{flex-shrink:0;padding:10px 16px;border-radius:13px;background:#fff;border:1px solid #bcd8e1;font-size:19px;font-weight:800;color:#176f73}
+ .dashboard-shell .monthly-reading-wrap{border-radius:20px;overflow:hidden}
+ .dashboard-shell .monthly-reading-table{font-size:18px;line-height:1.85;min-width:0}
+ .dashboard-shell .monthly-reading-table :is(td,th){min-width:0;padding:17px 12px;white-space:normal;overflow-wrap:break-word;word-break:normal;vertical-align:top}
+ .dashboard-shell .monthly-reading-table thead th{font-size:19px;font-weight:800;background:#17657b;text-align:center}
+ .dashboard-shell .monthly-reading-table tbody .monthly-reading-student>strong{font-size:calc(22px * var(--ui-scale));line-height:1.85;color:#193f65}
+ .dashboard-shell .monthly-reading-table .monthly-reading-class{font-size:var(--ui-small);font-weight:600;color:#4b667e}
+ .dashboard-shell .monthly-reading-table .monthly-reading-status{font-size:var(--ui-small);font-weight:700}
+ .dashboard-shell .monthly-reading-table .monthly-amount-endpoint>strong{font-size:calc(19px * var(--ui-scale));font-weight:800}
+ .dashboard-shell .monthly-reading-table :is(.monthly-legacy-text,.monthly-amount-message){font-size:var(--ui-body);font-weight:600}
+ .dashboard-shell .monthly-reading-table :is(.monthly-range-word,.monthly-amount-title,.monthly-reading-note p){font-size:var(--ui-small)}
+ .dashboard-shell .monthly-reading-table .monthly-amount-display{padding:13px}
+ @media(max-width:760px){
+  .dashboard-shell .monthly-reading-heading{padding:18px;align-items:flex-start;flex-wrap:wrap;gap:12px}.dashboard-shell .monthly-reading-heading .monthly-detail-title{font-size:23px}
+  .monthly-reading-month{font-size:18px;padding:8px 13px}
+  .dashboard-shell .monthly-reading-wrap{background:transparent;border:0;overflow:visible;border-radius:0}
+  .dashboard-shell .monthly-reading-table{display:block;width:100%;min-width:0;border:0;background:transparent}
+  .monthly-reading-table colgroup{display:none}.monthly-reading-table thead{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+  .monthly-reading-table tbody{display:block}
+  .dashboard-shell .monthly-reading-table tbody tr{display:grid;grid-template-columns:36px minmax(0,1fr);gap:14px 10px;margin-bottom:18px;padding:18px;background:#fff;border:1px solid #c8dce6;border-top:4px solid #258b89;border-radius:20px;box-shadow:0 8px 24px #193e6408}
+  .dashboard-shell .monthly-reading-table tbody :is(td,th){display:block;min-width:0;padding:0;border:0;background:transparent}
+  .monthly-reading-table .monthly-reading-index{grid-column:1;grid-row:1}
+  .monthly-reading-table .monthly-reading-student{grid-column:2;grid-row:1}
+  .monthly-reading-table :is(.monthly-reading-amount,.monthly-reading-note){grid-column:1/-1}
+  .dashboard-shell .monthly-reading-table tbody .monthly-reading-student>strong{font-size:calc(22px * var(--ui-scale));line-height:1.8}
+  .dashboard-shell .monthly-reading-table .monthly-amount-display{padding:15px}
+  .monthly-note-title{display:block;font-size:16px;font-weight:700;color:#567087;margin-bottom:5px}
+  .monthly-reading-note{border-top:1px solid #e1eaf0!important;padding-top:12px!important}
+  .dashboard-shell .monthly-reading-table .monthly-reading-note p{font-size:var(--ui-small)}
+ }
+}
+@media print{
+ .monthly-reading-wrap{border:1px solid #c5dbe4;border-radius:0;overflow:visible}
+ .monthly-reading-table{display:table;width:100%;min-width:0;table-layout:fixed;font-size:11pt;print-color-adjust:exact;-webkit-print-color-adjust:exact}
+ .monthly-reading-table thead{display:table-header-group;position:static;width:auto;height:auto;clip-path:none;overflow:visible}
+ .monthly-reading-table tbody{display:table-row-group}.monthly-reading-table tbody tr{display:table-row;break-inside:avoid;page-break-inside:avoid}
+ .monthly-reading-table :is(td,th){display:table-cell;min-width:0;padding:3mm 2mm;border-bottom:1px solid #d9e7ed;white-space:normal;vertical-align:top}
+ .monthly-reading-table thead th{font-size:11pt;padding:3mm 2mm}
+ .monthly-reading-table .monthly-reading-student>strong{font-size:12pt;line-height:1.8}.monthly-reading-class,.monthly-reading-status,.monthly-reading-archived{font-size:9pt}
+ .monthly-reading-status{padding:1mm 2mm;border-radius:2mm}.monthly-reading-index>span{width:7mm;height:7mm;font-size:10pt}
+ .monthly-amount-display{padding:2.5mm;border-radius:3mm}.monthly-amount-title{font-size:10pt;margin-bottom:1.5mm}
+ .monthly-amount-endpoint{gap:1mm 1.5mm;font-size:11pt;line-height:1.8;margin:1mm 0}
+ .monthly-amount-endpoint>strong{font-size:11pt}.monthly-range-word{font-size:10pt}
+ .monthly-ayah-pill{padding:.5mm 1.5mm;border-radius:2mm;font-size:9pt;gap:1mm}.monthly-ayah-pill bdi{font-size:10pt}
+ .monthly-legacy-text,.monthly-amount-message,.monthly-reading-note p{font-size:10.5pt;line-height:1.85}
+ .monthly-note-title{display:none}.monthly-reading-heading{display:none!important}
+}

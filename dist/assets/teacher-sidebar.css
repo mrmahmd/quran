@@ -1,0 +1,45 @@
+@media screen{
+ .teacher-dashboard .teacher-workspace{display:grid;grid-template-columns:264px minmax(0,1fr);gap:24px;align-items:start;margin-top:22px}
+ .teacher-workspace-content{min-width:0}
+ .teacher-dashboard .teacher-sidebar{position:sticky;top:16px;max-height:calc(100dvh - 32px);overflow-y:auto;overscroll-behavior:contain;border-radius:22px;background:linear-gradient(155deg,#173e70,#195c82 72%,#087e81);color:#fff;border:1px solid #174b74;box-shadow:0 14px 34px #193e6420;scrollbar-width:thin;scrollbar-color:#8cbacb #1b567c}
+ .teacher-sidebar-heading{position:sticky;top:0;z-index:1;background:#184b73;display:flex;align-items:center;gap:12px;padding:23px 18px;border-bottom:1px solid #ffffff2d}
+ .teacher-sidebar-heading>span{display:grid;place-items:center;width:42px;height:42px;background:#ffffff20;color:#ffe09a;font-size:27px;border-radius:13px;flex-shrink:0}
+ .teacher-sidebar-heading>div{min-width:0}.teacher-sidebar-heading strong{display:block;font-size:23px;font-weight:800;line-height:1.7;color:#fff}.teacher-sidebar-heading small{display:block;font-size:16px;font-weight:600;line-height:1.9;color:#e1f3ff}
+ .teacher-dashboard .teacher-sidebar .teacher-nav-heading{margin:12px 14px 6px;padding:0}
+ .teacher-dashboard .teacher-sidebar .teacher-nav-heading>span{display:none}
+ .teacher-dashboard .teacher-sidebar .teacher-nav-heading>strong{width:100%;font-size:16px;line-height:1.85;color:#f1f9ff;background:#ffffff13;padding:9px 11px;margin:0}
+ .teacher-dashboard .teacher-sidebar .dashboard-actions{display:grid;grid-template-columns:1fr!important;gap:7px;margin:0;padding:12px;background:transparent;border:0;border-radius:0}
+ .teacher-dashboard .teacher-sidebar .dashboard-actions .action-card{display:flex;align-items:center;gap:12px;min-height:56px;padding:12px 11px;border:1px solid transparent;border-radius:12px;background:transparent;color:#edf6ff;box-shadow:none;outline:0;text-align:right;grid-column:auto}
+ .teacher-dashboard .teacher-sidebar .dashboard-actions .action-card strong{font-size:max(17px,calc(17px * var(--teacher-scale)));font-weight:700;line-height:1.8;margin:0;color:inherit}
+ .teacher-dashboard .teacher-sidebar .dashboard-actions .action-card :is(small,.action-arrow){display:none}
+ .teacher-dashboard .teacher-sidebar .dashboard-actions .action-card .action-symbol{display:grid;width:33px;height:33px;border-radius:10px;font-size:21px;background:#ffffff18;color:#ffe1a0;flex-shrink:0}
+ .teacher-dashboard .teacher-sidebar .dashboard-actions .action-card.selected{background:#f2f8ff;color:#194c75;border-color:#dbeaf6;box-shadow:0 4px 12px #0d294b1c;outline:0}
+ .teacher-dashboard .teacher-sidebar .dashboard-actions .action-card.selected .action-symbol{background:#dceef8;color:#17678e}
+ .teacher-dashboard .teacher-sidebar .dashboard-actions .action-card:hover:not(:disabled){background:#ffffff16;transform:none;box-shadow:none}.teacher-dashboard .teacher-sidebar .dashboard-actions .action-card.selected:hover{background:#fff}
+ .teacher-sidebar-extra{border-top:1px solid #ffffff30;margin-top:4px;padding:12px}
+ .teacher-dashboard .teacher-sidebar-extra .admin-tabs{display:grid;grid-template-columns:1fr;gap:8px;margin:0 0 8px}
+ .teacher-dashboard .teacher-sidebar-extra .admin-tabs>span{font-size:15px;line-height:1.9;color:#e4f2ff;padding:6px}
+ .teacher-dashboard .teacher-sidebar-extra .admin-tabs button{font-size:max(16px,calc(16px * var(--teacher-scale)));font-weight:700;line-height:1.8;padding:10px 12px;text-align:right;min-height:48px;color:#214e70;background:#eff8ff;border-color:#d3e6f3;border-radius:11px;box-shadow:none}
+ .teacher-sidebar-settings{border-top:1px solid #ffffff30;padding:15px 16px}
+ .teacher-sidebar-settings>summary{font-size:17px;line-height:1.9;font-weight:700;color:#f0f8ff;cursor:pointer}
+ .teacher-dashboard .teacher-sidebar .teacher-appearance{margin:12px 0 0;padding:12px;border-radius:13px;gap:12px;background:#fff}
+ .teacher-dashboard .teacher-sidebar .teacher-appearance strong{font-size:18px}.teacher-dashboard .teacher-sidebar .teacher-appearance span,.teacher-dashboard .teacher-sidebar .teacher-preference-state{font-size:16px;line-height:1.85}
+ .teacher-dashboard .teacher-sidebar .teacher-text-options{width:100%;gap:3px;padding:3px;flex-wrap:nowrap}
+ .teacher-dashboard .teacher-sidebar .teacher-text-options button{font-size:16px;font-weight:700;min-width:0;min-height:44px;flex:1;padding:8px 3px}
+ .teacher-dashboard .teacher-sidebar button:focus-visible,.teacher-sidebar summary:focus-visible{outline:3px solid #ffdf87;outline-offset:2px}
+ .teacher-workspace-content>.dashboard-toolbar{margin-top:0}
+ .teacher-menu-toggle,.teacher-menu-close,.teacher-menu-backdrop{display:none}
+ @media(max-width:1300px){.teacher-workspace-content .monthly-grid,.teacher-workspace-content .teacher-home-grid{grid-template-columns:1fr}}
+ @media(max-width:1000px){
+  .teacher-dashboard .teacher-workspace{display:block;margin-top:14px}
+  .teacher-dashboard .teacher-sidebar{position:fixed;inset-block:0;inset-inline-start:0;width:min(340px,90vw);max-height:100dvh;border-radius:0;z-index:60;visibility:hidden;transform:translateX(105%);transition:transform .2s,visibility .2s;box-shadow:-12px 0 40px #102e5c30}
+  .teacher-dashboard .teacher-workspace[data-menu-open=true] .teacher-sidebar{visibility:visible;transform:translateX(0)}
+  .teacher-dashboard .teacher-menu-toggle{position:sticky;top:6px;z-index:7;display:flex;align-items:center;justify-content:center;gap:12px;margin-top:16px;width:100%;min-height:54px;border:1px solid #1c618a;border-radius:14px;padding:11px 16px;background:linear-gradient(110deg,#194877,#177d89);color:#fff;font-family:inherit;font-size:19px;font-weight:800;box-shadow:0 6px 20px #193e6420;cursor:pointer}
+  .teacher-menu-toggle>span{font-size:25px}.teacher-sidebar .teacher-menu-close{display:grid;place-items:center;width:40px;height:40px;min-width:40px;margin-inline-start:auto;border:1px solid #ffffff55;border-radius:11px;background:#ffffff18;color:white;font:inherit;font-size:27px;cursor:pointer}
+  .teacher-dashboard .teacher-workspace[data-menu-open=true] .teacher-menu-backdrop{display:block;position:fixed;inset:0;z-index:50;border:0;border-radius:0;background:#102b5966;backdrop-filter:blur(3px);cursor:pointer;transform:none}
+  .teacher-dashboard .teacher-workspace-return{top:74px}
+  html:has(.teacher-workspace[data-menu-open=true]){overflow:hidden}
+ }
+ @media(prefers-reduced-motion:reduce){.teacher-dashboard .teacher-sidebar{transition:none}}
+}
+@media print{.teacher-sidebar,.teacher-menu-toggle,.teacher-menu-backdrop{display:none!important}.teacher-workspace,.teacher-workspace-content{display:block!important;width:100%!important}}

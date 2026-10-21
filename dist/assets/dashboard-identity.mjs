@@ -17,7 +17,7 @@ export function mountDashboardIdentity(root) {
     content.querySelectorAll('.monthly-table-wrap').forEach(wrap => {
       wrap.setAttribute('tabindex', '0');
       wrap.setAttribute('role', 'region');
-      wrap.setAttribute('aria-label', 'جدول التقرير · يمكن التمرير أفقيًا لعرض جميع الأعمدة');
+      wrap.setAttribute('aria-label', wrap.classList.contains('monthly-reading-wrap')?'تقرير الحفظ والمراجعة للطلاب':'جدول التقرير · يمكن التمرير أفقيًا لعرض جميع الأعمدة');
     });
   }
   const observer = new MutationObserver(enhance);

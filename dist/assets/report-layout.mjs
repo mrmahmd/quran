@@ -1,6 +1,7 @@
 import { formatTestParts } from './khairkom-model.mjs?v=identity1';
 import {summarizeMonthlyTeachers} from './monthly-progress-model.mjs?v=monthly-admin1';
-import {monthlyProblem,monthlyAbsent,mergeMonthlyRoster} from './monthly-model.mjs?v=monthly-admin1';
+import {mergeMonthlyRoster} from './monthly-model.mjs?v=monthly-admin1';
+import {buildMonthlyReadingTable} from './monthly-report-view.mjs?v=monthly-reading5';
 
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, character => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' })[character]);
 const dateText = value => value ? new Intl.DateTimeFormat('ar-EG', {day:'numeric', month:'long', year:'numeric', timeZone:'UTC'}).format(new Date(`${value}T00:00:00Z`)) : '—';
@@ -60,8 +61,7 @@ export function buildMonthlyReport({term,label,teachers,data,teacherUsername}) {
  const summary=table(['م','المعلم','الحلقة','المكتمل / الطلاب','نسبة الاكتمال','حالة التقرير'],progress.rows.map((t,i)=>`<tr>${cell(i+1)}<th scope="row">${escapeHtml(t.full_name)}</th>${cell(t.ring_name||t.class_name)}${cell(`${t.completed} / ${t.total}`)}${cell(`${t.percent}%`,'report-total')}${cell(status[t.status],t.status==='complete'?'report-done':'report-wait')}</tr>`));
  let details='';
  if(teacherUsername){const report=data.reports.find(r=>r.teacher_username===teacherUsername),entries=data.entries.filter(e=>e.report_id===report?.id&&e.teacher_username===teacherUsername),students=data.students.filter(s=>s.teacher_username===teacherUsername),rows=mergeMonthlyRoster(students,entries);
-  const amount=v=>v.absent?'غائب — لم يحضر':v.none?'لا يوجد':v.text||'لم يُسجّل';
-  details='<section class="monthly-report-detail"><h2>مقدار الحفظ والمراجعة لكل طالب</h2>'+table(['م','اسم الطالب','الفصل','الحفظ','المراجعة','ملاحظة','الحالة'],students.filter(s=>rows.has(s.id)).map((student,i)=>{const row=rows.get(student.id);return `<tr>${cell(i+1)}<th scope="row">${escapeHtml(student.full_name)}</th>${cell(student.source_class||selected[0]?.class_name)}${cell(amount(row.memorization))}${cell(amount(row.revision))}${cell(row.note||'—')}${cell(monthlyAbsent(row)?'غائب':monthlyProblem(row)?'غير مكتمل':'مكتمل')}</tr>`;}))+'</section>';
+  details='<section class="monthly-report-detail"><h2>مقدار الحفظ والمراجعة لكل طالب</h2>'+buildMonthlyReadingTable({students,rows,className:selected[0]?.class_name})+'</section>';
  }
  const ring=progress.rows[0],stats=teacherUsername?[[ring?.total||0,'طلاب الحلقة','teal'],[ring?.completed||0,'بيانات مكتملة','gold'],[(ring?.total||0)-(ring?.completed||0),'بيانات تحتاج استكمالًا','purple']]:[[`${progress.percent}%`,'إنجاز المعلمين','teal'],[progress.completed,'معلمون انتهوا','gold'],[progress.remaining,'لم ينتهوا بعد','purple']];
  return shell({kind:'monthly',title:teacherUsername?'تقرير الحفظ والمراجعة الشهري':'إنجاز المعلمين · التقرير الشهري',subtitle:teacherUsername?`${selected[0]?.full_name||''} · ${selected[0]?.ring_name||selected[0]?.class_name||''}`:'متابعة تقارير جميع الحلقات حسب آخر بيانات محفوظة.',term:term?.name,period:label,stats,body:teacherUsername?details:summary,note:teacherUsername?'مقادير الحفظ والمراجعة كما حفظها المعلم. تظهر البيانات الناقصة بوضوح، وتبقى بيانات الطلاب المؤرشفين المسجّلة في التقرير محفوظة.':'يُعدّ التقرير منتهيًا بعد حفظ بيانات جميع طلاب الحلقة. الطالب الغائب لا يمنع الاكتمال. الحلقات بلا طلاب لا تدخل في نسبة الإنجاز.'});

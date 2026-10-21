@@ -156,6 +156,9 @@
  .dashboard-shell .week-toggle{min-height:50px;flex-shrink:0}
  .dashboard-shell .teacher-appearance :is(span,.teacher-preference-state){font-size:var(--ui-small);font-weight:600}
  .dashboard-shell .teacher-save-indicator{font-size:var(--ui-small);font-weight:700}
+ .teacher-workspace-return[hidden]{display:none!important}
+ .teacher-workspace-return{position:sticky;top:10px;z-index:5;display:flex;justify-content:flex-start;padding:10px 12px;margin:12px 0 18px;border:1px solid #b9d0e1;border-radius:15px;background:#fffffff5;box-shadow:0 5px 18px #193e6415}
+ .teacher-workspace-return button{display:flex;align-items:center;justify-content:center;gap:8px}
  .dashboard-shell :is(.teacher-task-card li div span,.teacher-task-note,.teacher-week-heading span,.teacher-week-badges span,.teacher-week-history summary small,.teacher-history-card span,.teacher-history-card small,.teacher-home-champion div>span,.teacher-home-champion p){font-size:var(--ui-small);font-weight:600;line-height:1.8}
  .dashboard-shell .teacher-task-card li strong{font-size:calc(19px * var(--ui-scale));font-weight:800}
  .dashboard-shell .teacher-task-card .light-button{font-size:var(--ui-small)}
@@ -217,6 +220,7 @@
   .dashboard-shell .teacher-week-badges{grid-template-columns:repeat(2,minmax(0,1fr))}.dashboard-shell .teacher-week-heading>div>span{display:block}
   .dashboard-shell .teacher-week-card{gap:8px 10px}.dashboard-shell .teacher-week-status{line-height:1.7}
   .dashboard-shell .teacher-history-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .teacher-workspace-return{top:6px;padding:8px}.teacher-workspace-return button{width:100%;font-size:17px!important;min-height:48px!important}
   :is(.confirm-dialog,.monthly-bulk-dialog,.nomination-add-dialog){padding:20px}
  }
  @media(max-width:420px){
@@ -227,4 +231,4 @@
  }
  @media(prefers-reduced-motion:reduce){.dashboard-shell *{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 }
-@media print{.dashboard-help{display:none!important}}
+@media print{.dashboard-help,.teacher-workspace-return{display:none!important}}
