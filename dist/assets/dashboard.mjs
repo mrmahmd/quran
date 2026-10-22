@@ -26,7 +26,7 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
   let scores = new Map(), dirty = false, honorDirty = false, knightDirty = false, busy = false, generation = 0, monthlyDirty = false, month = '', monthlyData = { report: null, entries: [] }, monthlyRows = new Map(), champions = [], chosenKnight = '', selectedHonors = new Set(), khairkomData = { sets: [], rows: [], students: [] }, nominatedStudents = new Map(), identityNumbers = new Map(), nominationDirty = false;
   let messageTimer, editingStudent = '', rosterDirty = false, monthlyCardsVisible = false, monthlyStudentFilter = 'pending';
   let nominationSaveReceipt = null, rosterRequests = [], requestFilter = 'pending', rosterPollTimer, rosterPolling=false, dashboardClosed=false;
-  let progressFocus = 'weekly';
+  let progressFocus = 'weekly', weeklyEditing = false;
   let nominationFilters = {parts:[], mode:'all', teacher:'', className:''}, nominationReport = null;
   const nominationViewer = account.role === 'admin' || account.khairkom_viewer === true;
   const identityEditor = account.role === 'admin' || account.khairkom_identity_editor === true;
@@ -44,7 +44,8 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
   const weekOpen = value => value >= (selectedTerm()?.starts_on || '') && weekStates.find(row => row.week_start === value)?.is_open !== false;
   const currentWeek = () => { const date = new Date(`${today()}T00:00:00Z`); date.setUTCDate(date.getUTCDate() - date.getUTCDay()); return date.toISOString().slice(0,10); };
   const khairkomOpen = () => weekOpen(currentWeek());
-  const readonly = () => admin || !selectedTerm()?.active || !weekOpen(week) || review()?.status === 'submitted';
+  const canEditSavedWeek = () => !admin && teacherId===account.username && selectedTerm()?.active && weekOpen(week) && week<=today() && review()?.status==='submitted';
+  const readonly = () => admin || teacherId!==account.username || !selectedTerm()?.active || !weekOpen(week) || review()?.status==='submitted' && !weeklyEditing;
   const weekStudents = () => context.students.filter(student => (review()?.status !== 'submitted' && student.active) || context.evaluations.some(row => row.review_id === review()?.id && row.student_id === student.id));
   const completeCount = () => [...scores.values()].filter(row => validateScores(row, true)).length;
   const adminProgress = () => summarizeTeacherProgress(teachers, overview?.reviews || [], champions, khairkomData.rows, week, weekNumber(selectedTerm(), termWeeks(selectedTerm()).indexOf(week)));
@@ -148,6 +149,7 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
     weekSelect.value = week; weekSelect.disabled = !weeks.length;
   }
   function loadScores() {
+    weeklyEditing = false;
     scores = new Map(weekStudents().map(student => {
       const stored = context.evaluations.find(row => row.student_id === student.id && row.review_id === review()?.id);
       const row = stored ? Object.fromEntries(Object.keys(emptyScores(student.id)).map(key => [key, stored[key]])) : emptyScores(student.id);
@@ -232,10 +234,10 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
   }
   function renderEvaluation() {
     const students = weekStudents();
-    content.innerHTML = `<div class="section-heading"><div><p class="section-kicker">التقييم الأسبوعي</p><h2>تقييم طلاب الحلقة</h2><p>ضع النقاط لجميع الطلاب، وأضف نقاط التميز إن أردت، ثم احفظ التقييم مرة واحدة. تظل جميع البطاقات ظاهرة للمراجعة والتعديل؛ الصفر تقييم صحيح.</p></div><span class="status-pill ${review()?.status === 'submitted' ? 'approved' : ''}">${review()?.status === 'submitted' ? '✓ أسبوع معتمد' : 'بانتظار الحفظ والاعتماد'}</span></div>
+    content.innerHTML = `<div class="section-heading"><div><p class="section-kicker">التقييم الأسبوعي</p><h2>تقييم طلاب الحلقة</h2><p>ضع النقاط لجميع الطلاب، وأضف نقاط التميز إن أردت، ثم احفظ التقييم مرة واحدة. تظل جميع البطاقات ظاهرة للمراجعة والتعديل؛ الصفر تقييم صحيح.</p></div><span class="status-pill ${review()?.status === 'submitted' ? 'approved' : ''}">${weeklyEditing?'✎ تعديل تقييم محفوظ':review()?.status === 'submitted' ? '✓ أسبوع معتمد' : 'بانتظار الحفظ والاعتماد'}</span></div>
     <div class="evaluation-tools"><div id="rating-progress" class="progress-copy"></div><span class="help-pill">✓ الحفظ ٤ · المراجعة ٢ · التحسن ٢ · الالتزام ٢ · التميز ٢</span></div>
     <div class="students-grid" id="students-grid">${students.map(scoreCard).join('')}</div>
-    <div class="save-bar"><span id="save-state"></span><div>${readonly() ? (weekOpen(week) ? '<button class="gold-button" data-view="knight">اختيار فارس الأسبوع ★</button>' : '') + (admin && review()?.status === 'submitted' ? '<button class="light-button" id="reopen-week">إعادة فتح التقييم</button>' : '') : '<button class="solid-button" id="submit-week" ' + (week > today() || !students.length ? 'disabled title="الحفظ متاح بعد بداية الأسبوع"' : '') + '>✓ حفظ تقييم جميع الطلاب</button>'}</div></div>`;
+    <div class="save-bar"><span id="save-state"></span><div>${readonly() ? (canEditSavedWeek()?'<button class="solid-button" id="edit-saved-week">✎ تعديل التقييم</button>':'') + (weekOpen(week) ? '<button class="gold-button" data-view="knight">اختيار فارس الأسبوع ★</button>' : '') + (admin && review()?.status === 'submitted' ? '<button class="light-button" id="reopen-week">إعادة فتح التقييم</button>' : '') : '<button class="solid-button" id="submit-week" ' + (week > today() || !students.length ? 'disabled title="الحفظ متاح بعد بداية الأسبوع"' : '') + '>'+(weeklyEditing?'✓ حفظ تعديلات التقييم':'✓ حفظ تقييم جميع الطلاب')+'</button>'+(weeklyEditing?'<button class="light-button" id="cancel-week-edit">إلغاء التعديل</button>':'')}</div></div>`;
     updateProgress();
   }
   function updateProgress() {
@@ -243,7 +245,7 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
     const element = root.querySelector('#rating-progress');
     if (element) element.innerHTML = `<strong>${count} <small>من ${all} طالبًا</small></strong><span>اكتمل إدخال نقاطهم · متبقٍ ${all-count}</span><div class="progress-track"><i style="width:${all ? count / all * 100 : 0}%"></i></div>`;
     const status = root.querySelector('#save-state');
-    if (status) status.textContent = !weekOpen(week) ? 'أغلقت الإدارة هذا الأسبوع؛ الحفظ متوقف.' : readonly() ? 'تم حفظ واعتماد تقييم الحلقة.' : dirty ? '● النقاط لم تُحفظ بعد؛ احفظ تقييم جميع الطلاب بعد الانتهاء.' : 'زر واحد لحفظ واعتماد نقاط جميع الطلاب.';
+    if (status) status.textContent = !weekOpen(week) ? 'أغلقت الإدارة هذا الأسبوع؛ الحفظ متوقف.' : readonly() ? 'تم حفظ واعتماد تقييم الحلقة.' : weeklyEditing ? (dirty?'● التعديلات لم تُحفظ بعد؛ التقييم السابق يظل معتمدًا حتى نجاح الحفظ.':'عدّل النقاط ثم احفظ التعديلات. يظل التقييم السابق معتمدًا حتى نجاح الحفظ.') : dirty ? '● النقاط لم تُحفظ بعد؛ احفظ تقييم جميع الطلاب بعد الانتهاء.' : 'زر واحد لحفظ واعتماد نقاط جميع الطلاب.';
   }
   function renderKnight() {
     const current = review();
@@ -787,6 +789,7 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
         chosenKnight = review()?.knight_student_id || ''; knightDirty = false;
       }
       const nextView = nav.dataset.view;
+      if(view==='evaluation' && nextView!=='evaluation') weeklyEditing=false;
       if (!admin && nextView === 'home' && teacherId !== account.username) { teacherId = account.username; view = nextView; updateSelectors(); await loadContext(); return; }
       if(!admin && ['monthlyReport','monthlyProgress'].includes(view) && !['monthlyReport','monthlyProgress','setup','champions','khairkomReport'].includes(nextView)){teacherId=account.username;view=nextView;updateSelectors();await loadContext();return;}
       if (nominationViewer && (nextView === 'khairkomReport' || admin && nextView === 'khairkom')) {
@@ -809,7 +812,9 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
     const id = event.target.closest('button')?.id;
     if (admin && ['submit-week','save-knight','save-honors'].includes(id)) return;
     if (id === 'cancel-student-edit' && canManageRoster()) { if(rosterDirty&&!await mayLeave())return; rosterDirty=false; editingStudent=''; renderSetup(); return; }
-    if (id === 'submit-week' && weekOpen(week)) {
+    if (id === 'edit-saved-week' && canEditSavedWeek() && !busy) { weeklyEditing=true; renderEvaluation(); updateTeacherSaveState(); return; }
+    if (id === 'cancel-week-edit' && weeklyEditing && !busy) { if(!await mayLeave())return; loadScores(); renderEvaluation(); updateTeacherSaveState(); return; }
+    if (id === 'submit-week' && !readonly() && !busy && weekOpen(week)) {
       const rows = [...scores.values()], missing = weekStudents().filter(student => !validateScores(scores.get(student.id), true));
       root.querySelectorAll('.needs-attention').forEach(card => card.classList.remove('needs-attention'));
       if (!rows.length) { notify('لا يوجد طلاب لتقييمهم.', true); return; }
@@ -819,8 +824,8 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
         root.querySelector(`[data-student="${missing[0].id}"] button`)?.focus();
         notify('لم يكتمل التقييم: ' + details.join('؛ '), true); return;
       }
-      if (!await confirm('حفظ تقييم الحلقة', 'سيُحفظ تقييم جميع الطلاب ويُعتمد الأسبوع، ثم يمكنك اختيار فارسه يدويًا. التعديل بعد الحفظ يحتاج إعادة فتح الأسبوع بواسطة الإدارة.')) return;
-      await action(async () => { await repo.saveWeek({ p_teacher: teacherId, p_term: termId, p_week: week, p_rows: rows, p_submit: true, p_version: review()?.version || 0 }); dirty = false; await loadContext(); }, 'تم حفظ تقييم جميع الطلاب. اختر فارس الأسبوع يدويًا.');
+      if (!await confirm(weeklyEditing?'حفظ تعديلات التقييم':'حفظ تقييم الحلقة', weeklyEditing?'ستُحدّث نقاط الطلاب مع الاحتفاظ بفارس الأسبوع وبقاء التقييم معتمدًا.':'سيُحفظ تقييم جميع الطلاب ويُعتمد الأسبوع. يمكنك تعديل النقاط لاحقًا ما دام الأسبوع مفتوحًا من الإدارة.')) return;
+      await action(async () => { await repo.saveWeek({ p_teacher: teacherId, p_term: termId, p_week: week, p_rows: rows, p_submit: true, p_version: review()?.version || 0 }); dirty = false; await loadContext(); }, weeklyEditing?'تم حفظ تعديلات التقييم مع الاحتفاظ بفارس الأسبوع.':'تم حفظ تقييم جميع الطلاب. يمكنك تعديل النقاط ما دام الأسبوع مفتوحًا.');
     }
     if (id === 'print-admin-report' && admin) { openReport('weekly', true); return; }
     if (id === 'save-knight' && weekOpen(week)) await action(async () => { await repo.knight({ p_teacher: teacherId, p_term: termId, p_week: week, p_student: chosenKnight, p_note: root.querySelector('#knight-note').value.trim(), p_version: review()?.version || 0 }); await loadContext(); }, 'تم حفظ فارس الأسبوع وإظهاره للإدارة.');
