@@ -29,3 +29,16 @@
 }
 @media(max-width:760px){.roster-request-grid{grid-template-columns:1fr}.roster-request-section,.roster-request-card{padding:18px}.roster-request-filters{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.roster-request-filters button{font-size:16px;padding:10px}.roster-decision-actions button{flex:1;min-width:125px}.roster-request-alert{font-size:17px}}
 @media print{.roster-request-alert,.roster-request-section,.roster-request-filters,[data-view=rosterRequests]{display:none!important}}
+.roster-bulk-toolbar{margin:18px 0;padding:20px;border:1px solid #b9d9df;border-radius:18px;background:linear-gradient(120deg,#eaf8f5,#f2f7fc)}
+.roster-bulk-selection,.roster-bulk-buttons{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.roster-bulk-selection{justify-content:space-between;margin-bottom:15px;color:#24556a}
+.roster-bulk-selection label,.roster-request-card .roster-request-select{display:flex;align-items:center;gap:9px;font-size:16px;font-weight:600;cursor:pointer;margin:0}
+.roster-bulk-selection input,.roster-request-select input{width:22px;height:22px;accent-color:#087e75;flex-shrink:0}
+.roster-bulk-buttons button{font:inherit;font-weight:600;padding:12px 16px;min-height:48px;border-radius:12px;cursor:pointer}
+.roster-bulk-buttons .roster-archive-button{color:#94394e;background:#fff1f4;border:1px solid #e2bfc9}
+.roster-bulk-toolbar p{font-size:14px;line-height:1.9;color:#47677b;margin:14px 0 0}
+.roster-bulk-buttons button:disabled{opacity:.5;cursor:not-allowed}
+.roster-request-card.request-selected{border-color:#149686;border-inline-start-color:#087e75;box-shadow:0 0 0 2px #14968620}
+.roster-bulk-result{white-space:pre-line;padding:16px 20px;margin:16px 0;border:1px solid #bbd9e9;border-radius:14px;background:#eff7fc;color:#254e6c;font-size:16px;line-height:1.9;overflow-wrap:anywhere}
+.roster-bulk-result[hidden]{display:none}
+@media(max-width:760px){.roster-bulk-toolbar{padding:16px}.roster-bulk-buttons{display:grid;grid-template-columns:1fr 1fr}.roster-bulk-buttons [data-roster-bulk=approve-all]{grid-column:1/-1}.roster-bulk-buttons button{font-size:15px;padding:12px 9px}}

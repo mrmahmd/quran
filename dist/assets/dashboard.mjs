@@ -1,3 +1,4 @@
+import {reviewRosterRequests} from './roster-request-bulk.mjs?v=bulk-requests1';
 import {mountTeacherAppearance} from './teacher-appearance.mjs?v=monthly-reading5';
 import {mountDashboardIdentity} from './dashboard-identity.mjs?v=monthly-reading5';
 import {buildMonthlyReadingTable,monthlyReadingHeading} from './monthly-report-view.mjs?v=monthly-reading5';
@@ -26,6 +27,8 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
   let scores = new Map(), dirty = false, honorDirty = false, knightDirty = false, busy = false, generation = 0, monthlyDirty = false, month = '', monthlyData = { report: null, entries: [] }, monthlyRows = new Map(), champions = [], chosenKnight = '', selectedHonors = new Set(), khairkomData = { sets: [], rows: [], students: [] }, nominatedStudents = new Map(), identityNumbers = new Map(), nominationDirty = false;
   let messageTimer, editingStudent = '', rosterDirty = false, monthlyCardsVisible = false, monthlyStudentFilter = 'pending';
   let nominationSaveReceipt = null, rosterRequests = [], requestFilter = 'pending', rosterPollTimer, rosterPolling=false, dashboardClosed=false;
+  const selectedRequestIds = new Set(), requestNotes = new Map();
+  let rosterBatchReport = '';
   let progressFocus = 'weekly', weeklyEditing = false;
   let nominationFilters = {parts:[], mode:'all', teacher:'', className:''}, nominationReport = null;
   const nominationViewer = account.role === 'admin' || account.khairkom_viewer === true;
@@ -418,17 +421,36 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
   function requestCard(req,decide=false){
     const owner=teachers.find(t=>t.username===req.teacher_username);
     const date=new Date(req.created_at),when=Number.isFinite(date.getTime())?new Intl.DateTimeFormat('ar-EG',{day:'numeric',month:'short',hour:'numeric',minute:'2-digit',timeZone:'Asia/Riyadh'}).format(date):'';
-    return `<article class="roster-request-card request-${esc(req.status)}" data-roster-request="${esc(req.id)}"><header><span class="roster-kind kind-${esc(req.kind)}">${requestKind[req.kind]||'طلب طالب'}</span><strong>${requestStatus[req.status]||''}</strong></header><h3>${esc(req.student_name)}</h3><p>${esc(owner?.full_name||req.teacher_username)} · <bdi dir="auto">${esc(req.source_class||owner?.class_name||'')}</bdi></p><small>أُرسل ${esc(when)}</small>${req.admin_note?`<p class="roster-admin-note">ملاحظة الإدارة: ${esc(req.admin_note)}</p>`:''}${decide&&req.status==='pending'?`<label>ملاحظة الإدارة (اختياري)<textarea data-roster-note maxlength="500" rows="2" placeholder="تظهر الملاحظة للمعلم"></textarea></label><div class="roster-decision-actions"><button type="button" class="teal-button" data-roster-decision="approve" data-request-id="${esc(req.id)}">✓ موافقة وتنفيذ</button><button type="button" class="roster-archive-button" data-roster-decision="reject" data-request-id="${esc(req.id)}">× رفض الطلب</button></div>`:''}</article>`;
+    return `<article class="roster-request-card request-${esc(req.status)}" data-roster-request="${esc(req.id)}"><header>${decide&&req.status==='pending'?`<label class="roster-request-select"><input type="checkbox" data-select-request="${esc(req.id)}" ${selectedRequestIds.has(req.id)?'checked':''} aria-label="تحديد طلب ${esc(req.student_name)}"> تحديد الطلب</label>`:''}<span class="roster-kind kind-${esc(req.kind)}">${requestKind[req.kind]||'طلب طالب'}</span><strong>${requestStatus[req.status]||''}</strong></header><h3>${esc(req.student_name)}</h3><p>${esc(owner?.full_name||req.teacher_username)} · <bdi dir="auto">${esc(req.source_class||owner?.class_name||'')}</bdi></p><small>أُرسل ${esc(when)}</small>${req.admin_note?`<p class="roster-admin-note">ملاحظة الإدارة: ${esc(req.admin_note)}</p>`:''}${decide&&req.status==='pending'?`<label>ملاحظة الإدارة (اختياري)<textarea data-roster-note maxlength="500" rows="2" placeholder="تظهر الملاحظة للمعلم">${esc(requestNotes.get(req.id)||'')}</textarea></label><div class="roster-decision-actions"><button type="button" class="teal-button" data-roster-decision="approve" data-request-id="${esc(req.id)}">✓ موافقة وتنفيذ</button><button type="button" class="roster-archive-button" data-roster-decision="reject" data-request-id="${esc(req.id)}">× رفض الطلب</button></div>`:''}</article>`;
   }
   function teacherRequestHistory(){
     const pending=rosterRequests.filter(r=>r.status==='pending'),history=rosterRequests.filter(r=>r.status!=='pending');
     return `<section class="roster-request-section"><h3>طلباتك لدى الإدارة <b>${pending.length} معلّق</b></h3><p>الإضافة والحذف والاستعادة لا تُنفّذ قبل الموافقة.</p><div class="roster-request-grid">${pending.map(r=>requestCard(r)).join('')||'<p>لا توجد طلبات معلّقة.</p>'}</div>${history.length?`<details class="roster-request-history"><summary>سجل الطلبات التي تمت مراجعتها (${history.length})</summary><div class="roster-request-grid">${history.map(r=>requestCard(r)).join('')}</div></details>`:''}</section>`;
   }
+  function captureRequestNotes(){
+    if(!admin)return;
+    root.querySelectorAll('[data-roster-note]').forEach(node=>requestNotes.set(node.closest('[data-roster-request]').dataset.rosterRequest,node.value));
+  }
+  function updateRosterBulkControls(){
+    const pending=rosterRequests.filter(r=>r.status==='pending'),visible=pending.filter(r=>requestFilter==='all'||requestFilter==='pending');
+    const selected=pending.filter(r=>selectedRequestIds.has(r.id)).length;
+    const count=root.querySelector('[data-selected-request-count]');if(count)count.textContent=`${selected} طلب محدد`;
+    root.querySelectorAll('[data-roster-bulk]').forEach(button=>button.disabled=busy||(button.dataset.rosterBulk==='approve-all'?!pending.length:!selected));
+    const all=root.querySelector('[data-select-visible-requests]');
+    if(all){const checked=visible.filter(r=>selectedRequestIds.has(r.id)).length;all.checked=visible.length>0&&checked===visible.length;all.indeterminate=checked>0&&checked<visible.length;all.disabled=busy||!visible.length;}
+    root.querySelectorAll('[data-select-request]').forEach(box=>{box.disabled=busy;box.checked=selectedRequestIds.has(box.dataset.selectRequest);box.closest('article').classList.toggle('request-selected',box.checked);});
+    root.querySelectorAll('[data-roster-note]').forEach(node=>node.disabled=busy);
+  }
   function renderRosterRequests(){
+    captureRequestNotes();
+    const pendingIds=new Set(rosterRequests.filter(r=>r.status==='pending').map(r=>r.id));
+    for(const id of selectedRequestIds)if(!pendingIds.has(id))selectedRequestIds.delete(id);
+    for(const id of requestNotes.keys())if(!pendingIds.has(id))requestNotes.delete(id);
     const counts={pending:0,approved:0,rejected:0};for(const req of rosterRequests)counts[req.status]++;
     const labels={pending:'بانتظار المراجعة',approved:'تمت الموافقة',rejected:'مرفوضة',all:'جميع الطلبات'};
     const rows=rosterRequests.filter(r=>requestFilter==='all'||r.status===requestFilter);
-    content.innerHTML=`<div class="section-heading"><div><p class="section-kicker">مراجعة الإدارة</p><h2>طلبات إضافة وحذف الطلاب</h2><p>راجع طلبات جميع المعلمين. الموافقة تنفّذ التغيير مباشرة، والرفض يحتفظ بالقائمة كما هي. تبقى التقييمات والتقارير محفوظة عند الحذف.</p></div><span class="status-pill">${counts.pending} طلبًا معلّقًا</span></div><div class="roster-request-filters" role="group" aria-label="حالة طلبات الطلاب">${Object.entries(labels).map(([key,label])=>`<button type="button" data-request-filter="${key}" aria-pressed="${requestFilter===key}">${label} <b>${key==='all'?rosterRequests.length:counts[key]}</b></button>`).join('')}</div><div class="roster-request-grid">${rows.map(r=>requestCard(r,true)).join('')||empty('لا توجد طلبات في هذه القائمة','تظهر طلبات المعلمين هنا عند إرسالها.')}</div>`;
+    content.innerHTML=`<div class="section-heading"><div><p class="section-kicker">مراجعة الإدارة</p><h2>طلبات إضافة وحذف الطلاب</h2><p>راجع طلبات جميع المعلمين. الموافقة تنفّذ التغيير مباشرة، والرفض يحتفظ بالقائمة كما هي. تبقى التقييمات والتقارير محفوظة عند الحذف.</p></div><span class="status-pill">${counts.pending} طلبًا معلّقًا</span></div><div class="roster-request-filters" role="group" aria-label="حالة طلبات الطلاب">${Object.entries(labels).map(([key,label])=>`<button type="button" data-request-filter="${key}" aria-pressed="${requestFilter===key}">${label} <b>${key==='all'?rosterRequests.length:counts[key]}</b></button>`).join('')}</div>${counts.pending?`<section class="roster-bulk-toolbar" aria-label="مراجعة الطلبات دفعة واحدة"><div class="roster-bulk-selection"><label><input type="checkbox" data-select-visible-requests> تحديد كل الطلبات المعروضة</label><strong data-selected-request-count>0 طلب محدد</strong></div><div class="roster-bulk-buttons"><button type="button" class="teal-button" data-roster-bulk="approve-selected" disabled>✓ الموافقة على المحدد</button><button type="button" class="roster-archive-button" data-roster-bulk="reject-selected" disabled>× رفض المحدد</button><button type="button" class="solid-button" data-roster-bulk="approve-all">✓ الموافقة على جميع الطلبات المعلّقة (${counts.pending})</button></div><p>القرار الجماعي يطبّق ملاحظة كل طلب كما كتبتها. زر الموافقة على الجميع يشمل كل الطلبات المعلّقة، ويظهر تأكيد بالعدد قبل التنفيذ.</p></section>`:''}<div class="roster-bulk-result" role="status" aria-live="polite" ${rosterBatchReport?'':'hidden'}>${esc(rosterBatchReport)}</div><div class="roster-request-grid">${rows.map(r=>requestCard(r,true)).join('')||empty('لا توجد طلبات في هذه القائمة','تظهر طلبات المعلمين هنا عند إرسالها.')}</div>`;
+    updateRosterBulkControls();
   }
   function updateRosterRequestBadges(){
     root.querySelectorAll('[data-roster-request-count],.roster-request-alert b').forEach(node=>node.textContent=rosterRequests.filter(r=>r.status==='pending').length);
@@ -508,7 +530,32 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
   }
   root.addEventListener('click', async event => {
     const requestFilterButton=event.target.closest('[data-request-filter]');
-    if(requestFilterButton&&admin&&!busy){if(rosterDirty&&!await mayLeave())return;rosterDirty=false;requestFilter=requestFilterButton.dataset.requestFilter;renderRosterRequests();return;}
+    if(requestFilterButton&&admin&&!busy){captureRequestNotes();requestFilter=requestFilterButton.dataset.requestFilter;renderRosterRequests();return;}
+    const bulkDecision=event.target.closest('[data-roster-bulk]');
+    if(bulkDecision&&admin&&!busy&&!dialog.open){
+      captureRequestNotes();
+      const all=bulkDecision.dataset.rosterBulk==='approve-all',approve=bulkDecision.dataset.rosterBulk!=='reject-selected';
+      const requests=rosterRequests.filter(r=>r.status==='pending'&&(all||selectedRequestIds.has(r.id))).map(r=>({...r,note:(requestNotes.get(r.id)||'').trim()}));
+      if(!requests.length)return;
+      const kinds=requests.reduce((counts,r)=>(counts[r.kind]=(counts[r.kind]||0)+1,counts),{});
+      const summary=Object.entries(kinds).map(([kind,count])=>`${requestKind[kind]}: ${count}`).join('، ');
+      if(!await confirm(approve?'الموافقة على الطلبات دفعة واحدة':'رفض الطلبات دفعة واحدة',`${approve?'ستتم الموافقة وتنفيذ':'سيتم رفض'} ${requests.length} طلبًا (${summary}). ${approve?'تُنفّذ الإضافة والحذف والاستعادة مع حفظ السجلات السابقة.':'لن تتغير قوائم الطلاب.'}`,approve?`الموافقة على ${requests.length} طلبًا`:`رفض ${requests.length} طلبًا`))return;
+      await action(async()=>{
+        updateRosterBulkControls();
+        const outcome=await reviewRosterRequests(requests,approve,(id,decision,note)=>repo.decideRosterRequest(id,decision,note),(done,total)=>{
+          const status=root.querySelector('.roster-bulk-result');if(status){status.hidden=false;status.textContent=`جارٍ مراجعة الطلبات: ${done} من ${total}…`;}
+        });
+        for(const id of outcome.succeeded){selectedRequestIds.delete(id);requestNotes.delete(id);}
+        rosterBatchReport=`${approve?'تمت الموافقة على':'تم رفض'} ${outcome.succeeded.length} طلبًا.`;
+        if(outcome.failed.length)rosterBatchReport+=` تعذّر تأكيد ${outcome.failed.length} طلب: `+outcome.failed.map(f=>`${f.name}: ${/[\u0600-\u06ff]/.test(f.error?.message||'')?f.error.message:errorText(f.error)}`).join('؛ ');
+        if(outcome.uncertain)rosterBatchReport+=' توقفت الدفعة؛ راجع أحدث حالة للطلبات قبل إعادة المحاولة.';
+        if(outcome.remaining.length)rosterBatchReport+=` لم تتم محاولة ${outcome.remaining.length} طلبًا متبقيًا.`;
+        await loadContext();
+        rosterDirty=[...requestNotes.values()].some(note=>note.trim());
+        notify(rosterBatchReport,outcome.failed.length>0);
+      });
+      updateRosterBulkControls();return;
+    }
     const requestDecision=event.target.closest('[data-roster-decision]');
     if(requestDecision&&admin&&!busy){
       const id=requestDecision.dataset.requestId,req=rosterRequests.find(r=>r.id===id),approve=requestDecision.dataset.rosterDecision==='approve';
@@ -843,6 +890,14 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
     }
   });
   root.addEventListener('change', async event => {
+    if(admin&&event.target.matches('[data-select-request],[data-select-visible-requests]')){
+      if(!busy){
+        if(event.target.hasAttribute('data-select-visible-requests')){
+          for(const req of rosterRequests.filter(r=>r.status==='pending'&&(requestFilter==='all'||requestFilter==='pending'))){if(event.target.checked)selectedRequestIds.add(req.id);else selectedRequestIds.delete(req.id);}
+        }else{const id=event.target.dataset.selectRequest;if(event.target.checked)selectedRequestIds.add(id);else selectedRequestIds.delete(id);}
+      }
+      updateRosterBulkControls();return;
+    }
     if(event.target.id==='monthly-report-teacher'&&monthlyReader&&!busy){teacherId=event.target.value;await action(refreshMonthlyRoster,'');return;}
     if (event.target.id === 'knight-student' && !admin && !busy && weekOpen(week)) { chosenKnight = event.target.value; knightDirty = true; root.querySelector('#save-knight').disabled = !chosenKnight || week > today() || !selectedTerm()?.active || !weekOpen(week); return; }
     if (event.target.hasAttribute('data-nomination-filter') && nominationViewer && !busy) {
@@ -899,6 +954,7 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
     monthlyDirty=true;root.querySelector('#monthly-save-state').textContent='تغييرات لم تُحفظ بعد';updateMonthlyProgress();
   }
   root.addEventListener('input', event => {
+    if(event.target.hasAttribute('data-roster-note'))captureRequestNotes();
     if(event.target.closest('#students-form,#student-edit-form')||event.target.hasAttribute('data-roster-note'))rosterDirty=true;
     if (event.target.hasAttribute('data-khairkom-identity') && !admin) {
       nominationSaveReceipt=null;content.querySelector('.khairkom-save-confirmation')?.remove();
