@@ -156,6 +156,8 @@ h1 em::after {
 form > label, .label-row label { display: block; color: #344258; font-size: 0.83rem; font-weight: 700; margin-bottom: 8px; }
 .label-row { display: flex; justify-content: space-between; align-items: center; margin-top: 17px; }
 .label-row a { color: var(--blue); font-size: 0.76rem; }
+.label-row .inline-link { font-size: .76rem; }
+#recovery-form > label { margin-top: 14px; }
 .input-box { min-height: 47px; display: flex; align-items: center; gap: 10px; border: 1px solid var(--line); border-radius: 11px; background: #fbfcfe; padding: 0 14px; transition: 160ms ease; }
 .input-box:focus-within { border-color: var(--cyan); background: white; box-shadow: 0 0 0 4px rgba(8, 168, 201, 0.09); }
 .input-box > svg { width: 19px; flex: 0 0 auto; fill: none; stroke: #8390a2; stroke-width: 1.7; stroke-linecap: round; }

@@ -83,15 +83,15 @@
               </div>
 
               <form id="login-form">
-                <label for="username">اسم المستخدم أو بريد الإدارة</label>
+                <label for="username">اسم المستخدم</label>
                 <div class="input-box">
                   <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm7 8a7 7 0 0 0-14 0" /></svg>
-                  <input id="username" type="text" placeholder="quran01 أو بريد الإدارة" autocomplete="username" autocapitalize="none" spellcheck="false" required />
+                  <input id="username" type="text" placeholder="اسم المستخدم" autocomplete="username" autocapitalize="none" spellcheck="false" required />
                 </div>
 
                 <div class="label-row">
                   <label for="password">كلمة المرور</label>
-                  <a href="password-reset.html">نسيت كلمة المرور؟</a>
+                  <button id="show-recovery" class="inline-link" type="button">نسيت كلمة المرور؟</button>
                 </div>
                 <div class="input-box">
                   <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M7 10V8a5 5 0 0 1 10 0v2m-11 0h12v10H6V10Z" /></svg>
@@ -104,6 +104,20 @@
                 <button class="submit-button" type="submit"><span>دخول لوحة التحكم</span></button>
                 <p class="form-note">أول مرة؟ <button id="show-activation" class="inline-link" type="button">فعّل حسابك برمز المدرسة</button></p>
                 <p class="form-error" id="login-error" role="alert"></p>
+              </form>
+              <form id="recovery-form" hidden>
+                <p class="form-intro">استعد حسابك باسم المستخدم ورمز المدرسة، ثم اختر كلمة مرور جديدة.</p>
+                <label for="recovery-username">اسم المستخدم</label>
+                <div class="input-box"><input id="recovery-username" type="text" placeholder="اسم المستخدم" autocomplete="username" autocapitalize="none" spellcheck="false" required /></div>
+                <label for="recovery-code">رمز المدرسة</label>
+                <div class="input-box"><input id="recovery-code" type="text" inputmode="numeric" autocomplete="off" maxlength="6" placeholder="٦ أرقام" required /></div>
+                <label for="recovery-password">كلمة المرور الجديدة (٦ أحرف على الأقل)</label>
+                <div class="input-box"><input id="recovery-password" type="password" autocomplete="new-password" minlength="6" maxlength="128" required /></div>
+                <label for="recovery-confirm">تأكيد كلمة المرور الجديدة</label>
+                <div class="input-box"><input id="recovery-confirm" type="password" autocomplete="new-password" minlength="6" maxlength="128" required /></div>
+                <button class="submit-button" type="submit">حفظ كلمة المرور الجديدة</button>
+                <p class="form-note"><button id="recovery-show-login" class="inline-link" type="button">العودة لتسجيل الدخول</button></p>
+                <p class="form-error" id="recovery-error" role="alert"></p>
               </form>
               <form id="activation-form" hidden>
                 <p class="form-intro">استخدم اسم المستخدم ورمز التفعيل الذي تسلمته من إدارة المدرسة، ثم اختر كلمة مرور خاصة بك.</p>
@@ -154,6 +168,6 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.1/dist/umd/supabase.min.js"></script>
     <script src="assets/supabase-config.js"></script>
     <div id="dashboard-root" hidden></div>
-    <script type="module" src="assets/app.js?v=khairkom-months1"></script>
+    <script type="module" src="assets/app.js?v=school-recovery1"></script>
   </body>
 </html>
