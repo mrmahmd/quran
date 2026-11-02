@@ -11,8 +11,8 @@ async function allRows(build) {
     if (data.length < 500) return rows;
   }
 }
-async function loadKhairkom(client, term) {
-  const sets = await allRows(() => client.from('khairkom_nomination_sets').select('*').eq('term_id', term).order('teacher_username'));
+async function loadKhairkom(client, term, period = 1) {
+  const sets = await allRows(() => client.from('khairkom_nomination_sets').select('*').eq('term_id', term).eq('period_no', period).order('teacher_username'));
   const rows = sets.length ? await allRows(() => client.from('khairkom_nominations').select('*').in('set_id', sets.map(row => row.id)).eq('nominated', true).order('teacher_username').order('student_id')) : [];
   const students = rows.length ? await allRows(() => client.from('students').select('id,full_name,teacher_username,source_class').in('id', rows.map(row => row.student_id)).order('full_name')) : [];
   return { sets, rows, students };
@@ -74,13 +74,13 @@ export function createDashboardRepository(client) {
       return {reports,students,entries};
     },
     saveMonthly: args => result(client.rpc('save_monthly_report', args)),
-    khairkom: term => loadKhairkom(client, term),
-    khairkomReport: term => result(client.rpc('khairkom_report_snapshot', {p_term:term})),
-    khairkomCandidates: term => result(client.rpc('khairkom_nomination_candidates', {p_term:term})),
-    addKhairkomNomination: args => result(client.rpc('add_khairkom_nomination', args)),
+    khairkom: (term,period=1) => loadKhairkom(client, term,period),
+    khairkomReport: (term,period=1) => result(client.rpc('khairkom_report_snapshot_period', {p_term:term,p_period:period})),
+    khairkomCandidates: (term,period=1) => result(client.rpc('khairkom_nomination_candidates_period', {p_term:term,p_period:period})),
+    addKhairkomNomination: args => result(client.rpc('add_khairkom_nomination_period', args)),
     updateKhairkomNominee: args => result(client.rpc('update_khairkom_nominee', args)),
     updateKhairkomIdentity: args => result(client.rpc('update_khairkom_identity', args)),
-    saveKhairkom: args => result(client.rpc('save_khairkom_nominations', args)),
+    saveKhairkom: args => result(client.rpc('save_khairkom_nominations_period', args)),
     champions: (term, week) => result(client.rpc('weekly_champions', {p_term:term,p_week:week})),
     knight: args => result(client.rpc('select_manual_weekly_knight', args)),
     honors: args => result(client.rpc('save_semester_honors', args)),
