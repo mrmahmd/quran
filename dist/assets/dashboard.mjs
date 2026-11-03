@@ -1,4 +1,5 @@
 import {reviewRosterRequests} from './roster-request-bulk.mjs?v=bulk-requests1';
+import {mountMyAccount} from './my-account.mjs?v=1';
 import {mountTeacherAppearance} from './teacher-appearance.mjs?v=monthly-reading5';
 import {mountDashboardIdentity} from './dashboard-identity.mjs?v=monthly-reading5';
 import {buildMonthlyReadingTable,monthlyReadingHeading} from './monthly-report-view.mjs?v=monthly-reading5';
@@ -21,7 +22,7 @@ function errorText(error) {
   return 'تعذر الاتصال بقاعدة البيانات. أعد المحاولة؛ لم نعتمد تغييراتك.';
 }
 
-export async function mountDashboard(root, { repository: repo, account, onLogout, preview = false }) {
+export async function mountDashboard(root, { repository: repo, account, onLogout, onChangePassword, preview = false }) {
   let terms = [], teachers = [], termId = '', teacherId = account.username || '', week = '', view = account.role === 'admin' ? 'reports' : 'home';
   let context = { students: [], reviews: [], evaluations: [], honors: [] }, overview = null, weekStates = [], monthStates = [], monthlyOverview = {reports:[],entries:[],students:[]};
   let scores = new Map(), dirty = false, honorDirty = false, knightDirty = false, busy = false, generation = 0, monthlyDirty = false, month = '', monthlyData = { report: null, entries: [] }, monthlyRows = new Map(), champions = [], chosenKnight = '', selectedHonors = new Set(), khairkomData = { sets: [], rows: [], students: [] }, nominatedStudents = new Map(), identityNumbers = new Map(), nominationDirty = false;
@@ -71,6 +72,7 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
     ${admin ? '</div></div>' : ''}</main><footer class="dashboard-footer">مدارس الأندلس الأهلية · نحتفي بالتقدم والتحسن والإتقان</footer>
     <dialog id="dashboard-confirm" class="confirm-dialog"><h2></h2><p></p><div><button class="light-button" data-answer="cancel">العودة</button><button class="solid-button" data-answer="confirm">تأكيد</button></div></dialog></div><section id="report-preview" class="report-preview" hidden aria-label="معاينة التقرير"><div class="report-preview-toolbar"><strong>معاينة التقرير</strong><span>اختر «حفظ PDF» من نافذة الطباعة للحصول على الملف.</span><div><button type="button" id="report-print">حفظ PDF / طباعة</button><button type="button" id="report-close">إغلاق المعاينة</button></div></div><div id="report-preview-body"></div></section>`;
 
+  if (onChangePassword) mountMyAccount(root, account, onChangePassword);
   const teacherAppearance = admin ? null : mountTeacherAppearance(root,repo);
   const content = root.querySelector('#dashboard-content');
   const dashboardIdentity = mountDashboardIdentity(root);

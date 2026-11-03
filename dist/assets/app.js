@@ -44,7 +44,7 @@ async function showAccount(user) {
     .maybeSingle();
   if (adminError) throw adminError;
   if (adminAccount?.active) {
-    await openDashboard({ role: 'admin', email: adminAccount.email });
+    await openDashboard({ role: 'admin', email: adminAccount.email }, user.id);
     return;
   }
   const { data, error } = await client.from('teacher_accounts')
@@ -62,12 +62,12 @@ async function showAccount(user) {
   if (managerError) throw managerError;
   const { data: nominationAccess, error: nominationError } = await client.rpc('khairkom_permissions');
   if (nominationError && nominationError.code !== 'PGRST202') throw nominationError;
-  await openDashboard({ ...data, role: 'teacher', roster_manager: managesRosters === true, khairkom_viewer: nominationAccess?.view === true, khairkom_identity_editor: nominationAccess?.edit_identity === true, khairkom_nomination_adder: nominationAccess?.add_nomination === true });
+  await openDashboard({ ...data, role: 'teacher', roster_manager: managesRosters === true, khairkom_viewer: nominationAccess?.view === true, khairkom_identity_editor: nominationAccess?.edit_identity === true, khairkom_nomination_adder: nominationAccess?.add_nomination === true }, user.id);
 }
 
-async function openDashboard(account) {
+async function openDashboard(account, userId) {
   const [{ mountDashboard }, { createDashboardRepository }] = await Promise.all([
-    import('./dashboard.mjs?v=khairkom-months1'), import('./dashboard-repository.mjs?v=khairkom-months1'),
+    import('./dashboard.mjs?v=my-account1'), import('./dashboard-repository.mjs?v=khairkom-months1'),
   ]);
   const previousRoot = document.querySelector('#dashboard-root');
   const root = previousRoot.cloneNode(false);
@@ -76,6 +76,13 @@ async function openDashboard(account) {
   root.hidden = false;
   await mountDashboard(root, {
     account, repository: createDashboardRepository(client),
+    onChangePassword: async password => {
+      const { data: sessionUser, error: sessionError } = await client.auth.getUser();
+      if (sessionError) throw sessionError;
+      if (sessionUser.user?.id !== userId) throw { code: 'session_not_found' };
+      const { error } = await client.auth.updateUser({ password });
+      if (error) throw error;
+    },
     onLogout: async () => {
       const { error } = await client.auth.signOut();
       if (error) throw error;
