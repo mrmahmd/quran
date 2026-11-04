@@ -67,7 +67,7 @@ async function showAccount(user) {
 
 async function openDashboard(account, userId) {
   const [{ mountDashboard }, { createDashboardRepository }] = await Promise.all([
-    import('./dashboard.mjs?v=khairkom-access1'), import('./dashboard-repository.mjs?v=khairkom-access1'),
+    import('./dashboard.mjs?v=khairkom-achievement1'), import('./dashboard-repository.mjs?v=khairkom-access1'),
   ]);
   const previousRoot = document.querySelector('#dashboard-root');
   const root = previousRoot.cloneNode(false);

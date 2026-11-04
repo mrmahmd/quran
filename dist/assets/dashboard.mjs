@@ -75,7 +75,7 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
     ${admin ? `<div class="admin-workspace"><aside class="admin-sidebar"><div class="admin-sidebar-title"><span>✦</span><div><strong>مركز الإدارة</strong><small>متابعة الحلقات والتقارير</small></div></div><nav aria-label="أقسام الإدارة"><button data-view="reports"><span>▦</span> نظرة عامة</button><button data-view="evaluation"><span>✓</span> تقييم الحلقة</button><button data-view="champions"><span>★</span> فرسان الأسبوع</button><button data-view="khairkom"><span>◆</span> ترشيحات خيركم</button><button data-view="monthly"><span>▤</span> تقارير الحفظ الشهرية</button><button data-view="monthlyProgress"><span>◔</span> إنجاز التقارير الشهرية</button><button data-view="honors"><span>✦</span> التكريم الفصلي</button><button data-view="rosterRequests"><span>◷</span> طلبات الطلاب <b data-roster-request-count>0</b></button><button data-view="setup"><span>♧</span> قوائم الطلاب</button></nav><div class="admin-sidebar-note">في النظرة العامة اختر الأسبوع فقط؛ ولعرض طلاب حلقة افتح «تقييم الحلقة» ثم اختر المعلم.</div></aside><div class="admin-workspace-content">${toolbar}` : `<nav class="dashboard-actions" aria-label="أقسام لوحة التحكم"><button class="action-card home-card" data-view="home"><span class="action-symbol">⌂</span><span><strong>الرئيسية</strong><small>إنجازك وما تبقّى عليك</small></span><span class="action-arrow">←</span></button><button class="action-card blue-card" data-view="evaluation"><span class="action-symbol">✓</span><span><strong>التقييم الأسبوعي</strong><small>نقاط واضحة من ١٢</small></span><span class="action-arrow">←</span></button><button class="action-card gold-card" data-view="knight"><span class="action-symbol">★</span><span><strong>فارس الأسبوع</strong><small>احتفِ بالاجتهاد والتحسن</small></span><span class="action-arrow">←</span></button><button class="action-card purple-card" data-view="honors"><span class="action-symbol">✦</span><span><strong>التكريم الفصلي</strong><small>ثمرة رحلة الفصل الدراسي</small></span><span class="action-arrow">←</span></button><button class="action-card teal-card" data-view="monthly"><span class="action-symbol">▤</span><span><strong>التقرير الشهري</strong><small>مقدار الحفظ والمراجعة</small></span><span class="action-arrow">←</span></button><button class="action-card khairkom-card" data-view="khairkom"><span class="action-symbol">◆</span><span><strong>ترشيحات جمعية خيركم</strong><small>رشّح طلاب حلقتك</small></span><span class="action-arrow">←</span></button>${!manager ? '<button class="action-card roster-card" data-view="setup"><span class="action-symbol">♧</span><span><strong>طلاب حلقتي</strong><small>طلبات إضافة وحذف · تعديل الاسم</small></span><span class="action-arrow">←</span></button>' : ''}</nav>${manager ? '<div class="admin-tabs"><span>مشرف الطلاب · تقييمات الحلقات الأخرى تخص معلميها</span><button class="gold-button" data-view="champions">★ فرسان الأسبوع</button><button class="light-button" data-view="setup">إدارة قوائم الطلاب</button></div>' : ''}`}
     ${!admin && monthlyReader ? '<div class="admin-tabs"><button class="solid-button" data-view="monthlyReport">▤ استعراض التقارير الشهرية لجميع الحلقات</button><button class="light-button" data-view="monthlyProgress">◔ إنجاز التقارير الشهرية</button></div>' : ''}${!admin && nominationViewer ? '<div class="admin-tabs"><button class="solid-button" data-view="khairkomReport">◆ استعراض ترشيحات جميع المعلمين</button></div>' : ''}${!admin?'<div class="teacher-workspace-return" hidden><button class="solid-button" type="button" data-view="home">⌂ العودة للصفحة الرئيسية</button></div>':''}<div id="week-workflow" class="week-workflow" aria-live="polite"></div><div id="dashboard-message" class="dashboard-message" role="status" hidden></div><section id="dashboard-content" aria-live="polite"></section>
     ${admin ? '</div></div>' : ''}</main><footer class="dashboard-footer">مدارس الأندلس الأهلية · نحتفي بالتقدم والتحسن والإتقان</footer>
-    <dialog id="dashboard-confirm" class="confirm-dialog"><h2></h2><p></p><div><button class="light-button" data-answer="cancel">العودة</button><button class="solid-button" data-answer="confirm">تأكيد</button></div></dialog></div><section id="report-preview" class="report-preview" hidden aria-label="معاينة التقرير"><div class="report-preview-toolbar"><strong>معاينة التقرير</strong><span>اختر «حفظ PDF» من نافذة الطباعة للحصول على الملف.</span><div><button type="button" id="report-print">حفظ PDF / طباعة</button><button type="button" id="report-close">إغلاق المعاينة</button></div></div><div id="report-preview-body"></div></section>`;
+    <dialog id="dashboard-confirm" class="confirm-dialog"><h2></h2><p></p><div><button class="light-button" data-answer="cancel">العودة</button><button class="solid-button" data-answer="confirm">تأكيد</button></div></dialog></div><section id="report-preview" class="report-preview" hidden aria-label="معاينة التقرير"><div class="report-preview-toolbar"><strong>معاينة التقرير</strong><span>اختر «حفظ PDF» من نافذة الطباعة للحصول على الملف.</span><div><a id="report-download-ready" class="achievement-download" hidden>تحميل تقرير الإنجاز PDF</a><button type="button" id="report-print">حفظ PDF / طباعة</button><button type="button" id="report-close">إغلاق المعاينة</button></div></div><div id="report-preview-body"></div></section>`;
 
   if (onChangePassword) mountMyAccount(root, account, onChangePassword);
   const teacherAppearance = admin ? null : mountTeacherAppearance(root,repo);
@@ -122,6 +122,7 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
     if (kind === 'monthly') markup = buildMonthlyReport({term:selectedTerm(),label:monthLabel(month),teachers,data:monthlyOverview,teacherUsername:oneTeacher?teacherId:undefined});
     if (kind === 'progress') markup = buildTeacherProgressReport({ ...common, progress: freshProgress || adminProgress() });
     if (!markup) return;
+    clearAchievementDownload();
     root.querySelector('#report-preview-body').innerHTML = markup;
     root.querySelector('#report-print').textContent = kind === 'champions' ? 'تحميل PDF · صفحة واحدة' : 'حفظ PDF / طباعة';
     root.querySelector('.report-preview-toolbar>span').textContent = kind === 'champions' ? 'ملف واحد بصفحة واحدة، بنفس التنسيق على الجوال والكمبيوتر.' : 'اختر «حفظ PDF» من نافذة الطباعة للحصول على الملف.';
@@ -130,7 +131,14 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
     reportPreview.scrollTop = 0;
     root.querySelector('#report-close').focus();
   }
+  function clearAchievementDownload() {
+    const link = root.querySelector('#report-download-ready');
+    if (link.hasAttribute('href')) URL.revokeObjectURL(link.href);
+    link.removeAttribute('href'); link.hidden = true;
+    root.querySelector('#report-print').hidden = false;
+  }
   function closeReport() {
+    clearAchievementDownload();
     reportPreview.hidden = true;
     root.querySelector('#report-preview-body').replaceChildren();
     document.body.classList.remove('report-is-open');
@@ -350,7 +358,7 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
       ${nominationPeriodControl()}${nominationAccessControl()}${nominationFilterControls(data,teachers)}
       <div class="admin-summary"><div><strong>${rows.length}</strong><span>طلاب مرشحون</span></div><div><strong>${nominatedTeachers.size}</strong><span>معلمون رشحوا طلابًا</span></div><div><strong>${teachers.length-reviewedCount}</strong><span>لم يراجعوا الترشيحات بعد</span></div></div>
       ${rows.length ? `<div class="monthly-table-wrap"><table class="monthly-report-table khairkom-table"><thead><tr><th>م</th><th>الطالب المرشح</th><th>الفصل</th><th>رقم الهوية</th><th>المعلم</th><th>أجزاء الاختبار</th></tr></thead><tbody>${rows.map((row,index)=>{const owner=teacherNames.get(row.teacher_username), student=studentNames.get(row.student_id);return `<tr><td>${index+1}</td><th scope="row">${esc(student?.full_name || 'طالب مؤرشف')}</th><td><bdi dir="ltr">${esc(student?.source_class || owner?.class_name || '—')}</bdi></td><td><bdi dir="ltr" class="khairkom-report-identity">${esc(row.identity_number || 'لم يُسجّل')}</bdi>${identityEditor && (nominationPeriod !== 2 || khairkomSecondMonthOpen) ? `<button class="light-button" data-edit-nomination="${esc(row.set_id)}" data-nomination-student="${esc(row.student_id)}">تعديل المرشح</button>` : ''}</td><td>${esc(owner?.full_name || row.teacher_username)}</td><td><span class="khairkom-report-parts">${esc(formatTestParts(row.test_parts))}</span></td></tr>`;}).join('')}</tbody></table></div>` : empty('لا توجد نتائج مطابقة', 'غيّر الأجزاء أو المعلم أو الفصل، أو اضغط إلغاء الفلاتر لعرض جميع المرشحين.', '◆')}
-      <div class="save-bar khairkom-report-bar"><span>التقرير مجمّع تلقائيًا من لوحات المعلمين.</span><div><button class="light-button" id="refresh-khairkom">↻ تحديث الترشيحات</button><button class="solid-button" id="print-khairkom">معاينة وحفظ PDF</button></div></div>`;
+      <div class="save-bar khairkom-report-bar"><span>التقرير مجمّع تلقائيًا من لوحات المعلمين.</span><div>${admin && nominationPeriod === 2 ? '<button class="teal-button" id="preview-khairkom-teachers">تقرير الإنجاز PDF</button>' : ''}<button class="light-button" id="refresh-khairkom">↻ تحديث الترشيحات</button><button class="solid-button" id="print-khairkom">معاينة وحفظ PDF</button></div></div>`;
       return;
     }
     const ownSet = khairkomData.sets.find(row => row.teacher_username === teacherId);
@@ -734,6 +742,28 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
       return;
     }
     if (event.target.closest('#preview-weekly-all') && admin) { openReport('weekly'); return; }
+    if (event.target.closest('#preview-khairkom-teachers') && admin && nominationPeriod === 2 && !busy) {
+      const reportTerm = selectedTerm();
+      await action(async () => {
+        const snapshot = await repo.khairkomReport(reportTerm.id,2);
+        const { prepareKhairkomTeachersReport, createKhairkomTeachersPdf } = await import('./khairkom-teachers-report.mjs?v=achievement1');
+        const pages = await prepareKhairkomTeachersReport({term:reportTerm,snapshot});
+        const blob = await createKhairkomTeachersPdf(pages);
+        clearAchievementDownload();
+        root.querySelector('#report-preview-body').replaceChildren(pages);
+        const link = root.querySelector('#report-download-ready');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'تقرير-إنجاز-المعلمين-الشهر-الثاني.pdf';
+        link.hidden = false;
+        root.querySelector('#report-print').hidden = true;
+        root.querySelector('.report-preview-toolbar>span').textContent = 'الشهر الثاني · تقرير الإنجاز · أنجزوا ولم ينجزوا';
+        reportPreview.hidden = false;
+        document.body.classList.add('report-is-open');
+        reportPreview.scrollTop = 0;
+        root.querySelector('#report-close').focus();
+      },'');
+      return;
+    }
     if (event.target.closest('#print-khairkom') && nominationViewer && !busy) { await action(async()=>{nominationReport = await repo.khairkomReport(termId,nominationPeriod); renderKhairkom(); openReport('khairkom');},''); return; }
     if (event.target.closest('#preview-champions, #download-champions') && manager && !busy && termId && week) {
       const reportTerm = termId, reportWeek = week;

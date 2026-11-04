@@ -15,12 +15,16 @@ export function pagePlacement(width, height) {
   return { width: width * ratio, height: height * ratio, x: (420 - width * ratio) / 2, y: (297 - height * ratio) / 2 };
 }
 
-export async function downloadChampionsPdf(source) {
+export async function preparePdfExport() {
   await Promise.all([
     library('html2canvas-1.4.1.min.js', () => !!window.html2canvas),
     library('jspdf-4.2.1.umd.min.js', () => !!window.jspdf?.jsPDF),
     document.fonts.ready,
   ]);
+}
+
+export async function downloadChampionsPdf(source) {
+  await preparePdfExport();
   const host = document.createElement('div');
   host.className = 'champions-export-host';
   const report = source.cloneNode(true);

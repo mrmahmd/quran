@@ -1,0 +1,24 @@
+@font-face{font-family:AlexandriaReport;src:url('./fonts/Alexandria-Variable.ttf') format('truetype');font-weight:100 900;font-display:block}
+.khairkom-teachers-pages{width:1000px;max-width:none;margin:0 auto;direction:rtl}
+.khairkom-teacher-sheet{position:relative;width:1000px;height:1414px;box-sizing:border-box;padding:42px 42px 90px;background:#fff;color:#173b59;font-family:AlexandriaReport,Alexandria,sans-serif;overflow:hidden;margin:0 0 28px;border-top:12px solid #137f84;box-shadow:0 12px 35px #123b8120}
+.nominee-export-host{position:fixed;left:-12000px;top:0;width:1000px;pointer-events:none;z-index:-1}
+.nominee-report-header{background:linear-gradient(120deg,#e4f6f1,#e9f1ff);border:1px solid #c5e5e2;border-radius:20px;padding:24px 28px}
+.nominee-school{display:flex;align-items:center;gap:18px}.nominee-school img{width:90px;height:90px;object-fit:contain;flex:none}
+.nominee-school strong{display:block;font-size:24px;font-weight:800;line-height:1.8}.nominee-school span{display:block;font-size:16px;color:#49667f;line-height:1.9}
+.nominee-report-title{margin-top:14px;border-top:1px solid #b9d9de;padding-top:16px}.nominee-report-title>span{color:#147d79;font-size:18px;font-weight:700}
+.nominee-report-title h1{font-size:34px;line-height:1.7;margin:5px 0;color:#143f6a;font-weight:800}.nominee-report-title p{font-size:17px;line-height:1.7;margin:0;color:#4f6479}
+.nominee-report-stats{display:flex;gap:16px;margin:22px 0}.nominee-report-stats>div{display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:14px;background:#e6f6f0;border:1px solid #c5e5d9;flex:1}
+.nominee-report-stats>div:nth-child(2){background:#fff0e5;border-color:#edcbae}.nominee-report-stats>div:nth-child(3){background:#eef0fc;border-color:#d3daf0}
+.nominee-report-stats b{font-size:32px;font-weight:800;color:#136e72}.nominee-report-stats>div:nth-child(2) b{color:#9b4c20}.nominee-report-stats span{font-size:16px;font-weight:600;line-height:1.8}
+.achievement-section{display:flex;justify-content:space-between;align-items:center;padding:15px 20px;background:#e6f6f0;border-right:7px solid #16816c;margin:0 0 18px;border-radius:10px}
+.achievement-section h2{font-size:24px;line-height:1.6;margin:0;color:#136b5b;font-weight:800}.achievement-section>span{font-size:18px;font-weight:700}
+.achievement-pending{border-top-color:#be712a}.achievement-pending .achievement-section{background:#fff1e3;border-right-color:#be712a}.achievement-pending .achievement-section h2{color:#96551f}
+.nominee-report-table{border-collapse:collapse;width:100%;table-layout:fixed;font-size:21px;line-height:1.65}
+.nominee-report-table thead th{background:#174c72;color:#fff;padding:13px 9px;text-align:center;font-weight:800;border:2px solid #174c72;font-size:18px}
+.nominee-report-table td,.nominee-report-table tbody th{border:2px solid #d4e1eb;padding:11px 12px;vertical-align:middle;overflow-wrap:break-word;text-align:right}
+.nominee-report-table tbody th{font-weight:700}.nominee-report-table tr:nth-child(even){background:#f3f7fb}
+.nominee-report-table .nominee-class{text-align:center;font-size:19px;font-weight:600;color:#316384}.nominee-report-table small{display:block;font-size:13px;line-height:1.9;margin-top:4px;color:#526a7f}
+.achievement-state{font-size:18px;color:#11765f}.achievement-pending .achievement-state{color:#a25320}.nominee-report-table .achievement-index,.nominee-report-table .achievement-count{text-align:center;font-weight:700}
+.achievement-note{font-size:15px;line-height:1.9;color:#526a7f;background:#f3f7fb;border-radius:10px;padding:13px 17px;margin:18px 0 0}.nominee-report-table .achievement-empty{text-align:center;padding:35px 15px;font-size:20px}
+.nominee-report-footer{position:absolute;bottom:28px;right:42px;left:42px;border-top:2px solid #dae6ed;padding-top:15px;display:flex;justify-content:space-between;gap:12px;font-size:14px;color:#526a7f;line-height:1.8}.nominee-page-number{color:#136e72;white-space:nowrap}
+.report-preview-toolbar .achievement-download{display:inline-flex;align-items:center;border-radius:10px;background:#137f84;color:white;padding:12px 18px;text-decoration:none;font:700 15px Alexandria,sans-serif}.report-preview-toolbar .achievement-download[hidden]{display:none}
