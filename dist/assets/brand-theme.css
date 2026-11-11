@@ -48,69 +48,91 @@
 .brand-copy strong, .brand-copy small { line-height: 1.65; }
 .brand-copy small { white-space: normal; }
 
-.page-shell { background: #f7f8f4; }
+.page-shell {
+  position: relative;
+  isolation: isolate;
+  background:
+    radial-gradient(ellipse 19rem 16rem at calc(50% + min(38vw, 470px)) 19rem, #7796a5, #3c5c70 52%, transparent 100%),
+    linear-gradient(145deg, #0d2133, #152e41 60%, #1d4050);
+}
+
+.page-shell::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  top: 29rem;
+  inset-inline-start: -19rem;
+  width: 35rem;
+  aspect-ratio: 1;
+  border: 1px solid #c6dbe51b;
+  border-radius: 4rem;
+  outline: 1px solid #c6dbe512;
+  outline-offset: 1.25rem;
+  transform: rotate(38deg);
+  pointer-events: none;
+}
+
 .page-shell .topbar {
   display: flex;
   justify-content: space-between;
   min-height: 94px;
   gap: 18px;
-  border-color: var(--line);
+  border-color: #d8ebf42b;
 }
 
+.topbar-logo-filters { position: absolute; }
+
+.page-shell .topbar .brand-marks {
+  --mark-size: 72px;
+  padding: 0;
+  background: transparent;
+  border: 0;
+}
+
+.page-shell .topbar .brand-platform-logo { filter: brightness(1.8); }
+.page-shell .topbar .brand-school-logo {
+  width: var(--mark-size, 54px) !important;
+  padding-inline-start: 0 !important;
+  border-inline-start: 0;
+  filter: url('#topbar-school-logo');
+}
+
+.page-shell .brand-copy strong { color: #f6f9fd; }
+.page-shell .brand-copy small { color: #c4d9e5; }
+.page-shell .top-login { color: #f6f9fd; border-color: #d8ebf452; }
+.page-shell .top-login:hover { background: #d8ebf41a; }
+
 .page-shell .hero {
-  grid-template-columns: minmax(0, 1.12fr) minmax(0, 1fr);
-  gap: 28px;
-  align-items: stretch;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  gap: clamp(28px, 5.1vw, 76px);
+  align-items: center;
   min-height: 0;
-  padding: 34px 0 30px;
+  padding: clamp(38px, 6vw, 84px) 0 clamp(38px, 5vw, 72px);
 }
 
 .page-shell .hero-copy {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  position: relative;
-  overflow: hidden;
-  isolation: isolate;
-  border-radius: 24px;
-  padding: clamp(28px, 3.7vw, 52px);
-  min-height: 412px;
-  background: radial-gradient(ellipse 55% 112% at 78% 48%, #e0d4bc, #acada0 32%, #4a6978 65%, transparent 100%),
-    linear-gradient(147deg, #263f54, #172f40 70%, #0b5365);
+  padding: 0;
   color: #fff;
-}
-
-.page-shell .hero-copy::after {
-  content: '';
-  position: absolute;
-  inset-inline-end: -115px;
-  bottom: -170px;
-  width: 325px;
-  height: 325px;
-  z-index: -1;
-  border: 1px solid #d7ab6e80;
-  outline: 1px solid #d7ab6e40;
-  outline-offset: 22px;
-  transform: rotate(35deg);
-  border-radius: 44px;
 }
 
 .hero-brand {
   display: grid;
-  grid-template-columns: minmax(138px, 0.78fr) minmax(0, 1.22fr);
+  grid-template-columns: minmax(130px, 0.78fr) minmax(0, 1.22fr);
   align-items: center;
-  gap: clamp(16px, 2.4vw, 32px);
+  gap: clamp(16px, 3vw, 40px);
 }
 
 .hero-emblem {
+  width: min(100%, 236px);
   aspect-ratio: 1;
+  justify-self: center;
   animation: emblem-enter 540ms ease-out both;
 }
 
 .hero-emblem img { width: 100%; height: 100%; display: block; object-fit: contain; }
 .hero-brand-text .hero-wordmark {
   position: relative;
-  width: min(100%, 278px);
+  width: min(100%, 322px);
   aspect-ratio: 658 / 320;
   margin: 0;
   overflow: hidden;
@@ -127,6 +149,19 @@
   top: -10.6%;
   display: block;
   filter: brightness(2.35) saturate(.83);
+}
+
+/* The three areas cover the original dot, shadda, and pair of dots.
+   The emblem mask keeps the original shapes and their transparent edges. */
+.hero-wordmark::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(#fff, #fff) 36.5% 20% / 9.5% 18.5% no-repeat,
+    linear-gradient(#fff, #fff) 76.3% 11.1% / 16.6% 27% no-repeat,
+    linear-gradient(#fff, #fff) 99% 99.7% / 16.8% 18.4% no-repeat;
+  mask: url('./yassarnahu-1448.png') 44.8% 3.63% / 190.6% auto no-repeat;
 }
 
 .hero-brand-text p {
@@ -148,13 +183,21 @@
 }
 .page-shell .login-wrap { padding: 0; scroll-margin-top: 14px; }
 .page-shell .login-wrap::before { display: none; }
-.page-shell .login-card { height: 100%; border: 1px solid var(--line); border-top: 3px solid var(--brand-gold); box-shadow: var(--shadow); background: #fff; }
+.page-shell .login-card { border: 1px solid #e6edf1; border-top: 3px solid var(--brand-gold); box-shadow: 0 24px 52px #08182760; background: #fff; }
 .page-shell .login-icon { background: #edf6f6; color: var(--blue); }
 .page-shell .input-box { border-color: var(--line); }
 .page-shell .input-box:focus-within { border-color: var(--blue); }
 .page-shell .submit-button { background: linear-gradient(120deg, var(--navy-dark), #275469); }
-.page-shell .feature-strip { background: #fff; border-color: var(--line); }
-.page-shell footer { color: var(--muted); }
+.page-shell .feature-strip {
+  margin-bottom: 12px;
+  background: #ffffff0a;
+  border-color: #d8ebf42b;
+  box-shadow: none;
+}
+.page-shell .feature-strip article + article { border-color: #d8ebf42b; }
+.page-shell .feature-strip strong { color: #f6f9fd; }
+.page-shell .feature-strip p, .page-shell footer { color: #c4d9e5; }
+.page-shell .feature-icon { background: #d4ebf51a; color: #b8dcf2; }
 
 .dashboard-shell { --ui-ink: var(--ink); --ui-muted: var(--muted); background: #f4f7f6; }
 .dashboard-topbar { border-bottom-color: var(--line); }
@@ -187,22 +230,40 @@
 .khairkom-teacher-sheet { border-top-color: var(--navy); }
 .achievement-pending { border-top-color: var(--brand-gold); }
 
+@media (max-width: 900px) {
+  .page-shell {
+    background:
+      radial-gradient(ellipse 17rem 14rem at calc(50% + 9rem) 12rem, #7796a5, #3c5c70 52%, transparent 100%),
+      linear-gradient(145deg, #0d2133, #152e41 60%, #1d4050);
+  }
+  .page-shell .hero { grid-template-columns: minmax(0,1fr); gap: 32px; padding-block: 34px; }
+  .page-shell .hero-copy { width: min(100%, 490px); margin-inline: auto; text-align: start; }
+  .hero-brand-text p { margin-top: 12px; }
+}
+
 @media (max-width: 760px) {
   .brand, .report-identity, .progress-report-identity { --mark-size: 42px; }
-  .page-shell .hero { grid-template-columns: minmax(0,1fr); gap: 15px; padding-top: 18px; }
-  .page-shell .hero-copy { min-height: 0; padding: 27px 24px; }
-  .hero-brand { grid-template-columns: minmax(96px, 112px) minmax(0,1fr); gap: 16px; }
-  .hero-brand-text p { margin-top: 10px; font-size: .92rem; line-height: 1.8; }
-  .page-shell .login-card { padding: 24px 21px; }
-  .page-shell .topbar { min-height: 79px; }
-  .page-shell .top-login { display: none; }
   .brand-copy strong { font-size: .84rem; }
   .brand-copy small { font-size: .67rem; }
 }
 
-@media (max-width: 365px) {
-  .page-shell .hero-copy { padding-inline: 16px; }
-  .hero-brand { grid-template-columns: 90px minmax(0,1fr); gap: 13px; }
+@media (max-width: 560px) {
+  .page-shell {
+    background:
+      radial-gradient(ellipse 10rem 8rem at 50% 9rem, #7898a9, #3c5c70 53%, transparent 100%),
+      linear-gradient(145deg, #0d2133, #152e41 60%, #1d4050);
+  }
+  .page-shell::before { opacity: .65; }
+  .page-shell .hero { gap: 25px; padding-block: 20px 30px; }
+  .page-shell .hero-copy { text-align: center; }
+  .hero-brand { grid-template-columns: minmax(0,1fr); justify-items: center; gap: 7px; }
+  .hero-emblem { width: 104px; }
+  .hero-brand-text .hero-wordmark { width: min(100%, 197px); margin-inline: auto; }
+  .hero-brand-text p { margin: 8px auto 0; font-size: .91rem; line-height: 1.75; }
+  .page-shell .login-card { padding: 24px 21px; }
+  .page-shell .topbar { min-height: 79px; }
+  .page-shell .topbar .brand-marks { --mark-size: 56px; }
+  .page-shell .top-login { display: none; }
 }
 
 @media print {

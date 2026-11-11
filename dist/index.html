@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#293f52" />
+    <meta name="theme-color" content="#0d2133" />
     <meta name="description" content="يسرناه، منصة مدارس الأندلس الأهلية لمتابعة حفظ القرآن ومراجعته وتقييم تقدّم الطلاب." />
     <title>يسرناه | مدارس الأندلس الأهلية</title>
     <link rel="stylesheet" href="assets/styles.css" />
@@ -16,10 +16,23 @@
     <link rel="stylesheet" href="assets/monthly-reading.css?v=monthly-compact1" />
     <link rel="stylesheet" href="assets/teacher-sidebar.css?v=monthly-reading5" />
     <link rel="icon" type="image/png" href="assets/yassarnahu-1448.png" />
-    <link rel="stylesheet" href="assets/brand-theme.css?v=yassarnahu3" />
+    <link rel="stylesheet" href="assets/brand-theme.css?v=yassarnahu6" />
   </head>
   <body>
     <div class="page-shell">
+      <svg class="topbar-logo-filters" width="0" height="0" aria-hidden="true" focusable="false">
+        <defs>
+          <filter id="topbar-school-logo" color-interpolation-filters="sRGB">
+            <!-- Remove the white matte and lighten the logo for the navy header. -->
+            <feColorMatrix type="matrix" values="
+              .6 0 0 0 .4
+              0 .6 0 0 .4
+              0 0 .6 0 .4
+              -1.5 -1.5 -1.5 0 4.3" />
+            <feComposite in2="SourceAlpha" operator="in" />
+          </filter>
+        </defs>
+      </svg>
       <header class="topbar">
         <a class="brand" href="#" aria-label="الصفحة الرئيسية لمنصة يسرناه">
           <span class="brand-marks"><img class="brand-platform-logo" src="assets/yassarnahu-1448.png" alt="شعار يسرناه 1448" /><img class="brand-school-logo" src="assets/alandalus-logo.png" alt="شعار مدارس الأندلس الأهلية" /></span>
