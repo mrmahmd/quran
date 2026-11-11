@@ -32,7 +32,7 @@ function showForm(form) {
   const heading = {
     activation: ['تفعيل الحساب', 'أنشئ كلمة مرورك لأول مرة'],
     recovery: ['استعادة كلمة المرور', 'اسم المستخدم ورمز المدرسة'],
-  }[form] || ['مرحبًا بعودتك', 'ادخل باسم المستخدم وكلمة المرور'];
+  }[form] || ['تسجيل الدخول', 'ادخل باسم المستخدم وكلمة المرور'];
   document.querySelector('#login-title').textContent = heading[0];
   document.querySelector('.card-heading p').textContent = heading[1];
 }
@@ -67,7 +67,7 @@ async function showAccount(user) {
 
 async function openDashboard(account, userId) {
   const [{ mountDashboard }, { createDashboardRepository }] = await Promise.all([
-    import('./dashboard.mjs?v=khairkom-achievement1'), import('./dashboard-repository.mjs?v=khairkom-access1'),
+    import('./dashboard.mjs?v=yassarnahu1'), import('./dashboard-repository.mjs?v=khairkom-access1'),
   ]);
   const previousRoot = document.querySelector('#dashboard-root');
   const root = previousRoot.cloneNode(false);

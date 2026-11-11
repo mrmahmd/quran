@@ -1,3 +1,4 @@
+import { platformName, schoolName } from './brand.mjs';
 const library = (file, ready) => {
   if (ready()) return Promise.resolve();
   return new Promise((resolve, reject) => {
@@ -39,7 +40,7 @@ export async function downloadChampionsPdf(source) {
     const pdf = new window.jspdf.jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a3', compress: true });
     const box = pagePlacement(canvas.width, canvas.height);
     pdf.addImage(canvas.toDataURL('image/jpeg', 0.96), 'JPEG', box.x, box.y, box.width, box.height);
-    pdf.setProperties({title:'فرسان الأسبوع - المدرسة القرآنية',author:'مدارس الأندلس الأهلية'});
+    pdf.setProperties({title:`فرسان الأسبوع · ${platformName}`,author:schoolName});
     const name = `فرسان-الأسبوع-${new Date().toISOString().slice(0,10)}.pdf`;
     await pdf.save(name, { returnPromise: true });
     canvas.width = canvas.height = 0;

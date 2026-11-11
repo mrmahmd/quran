@@ -1,0 +1,212 @@
+@font-face {
+  font-family: Alexandria;
+  src: url('./fonts/Alexandria-Variable.ttf') format('truetype');
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+:root {
+  --navy: #293f52;
+  --navy-dark: #182e40;
+  --blue: #00718a;
+  --cyan: #0092ac;
+  --ink: #243b4c;
+  --muted: #506673;
+  --line: #dce5e7;
+  --soft: #f2f7f8;
+  --brand-gold: #bc8d51;
+  --brand-paper: #faf8f2;
+  --shadow: 0 20px 55px #233e5020;
+}
+
+.brand-marks {
+  display: inline-flex !important;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 7px;
+  background: #fff;
+  border: 1px solid #dce5e7;
+  border-radius: 12px;
+}
+
+.brand-marks img {
+  display: block;
+  width: var(--mark-size, 54px) !important;
+  height: var(--mark-size, 54px) !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  object-fit: contain;
+}
+
+.brand-marks .brand-school-logo {
+  padding-inline-start: 8px !important;
+  width: calc(var(--mark-size, 54px) + 8px) !important;
+  border-inline-start: 1px solid #dce5e7;
+}
+
+.brand-copy strong, .brand-copy small { line-height: 1.65; }
+.brand-copy small { white-space: normal; }
+
+.page-shell { background: #f7f8f4; }
+.page-shell .topbar {
+  display: flex;
+  justify-content: space-between;
+  min-height: 94px;
+  gap: 18px;
+  border-color: var(--line);
+}
+
+.page-shell .hero {
+  grid-template-columns: minmax(0, 1.12fr) minmax(0, 1fr);
+  gap: 28px;
+  align-items: stretch;
+  min-height: 0;
+  padding: 34px 0 30px;
+}
+
+.page-shell .hero-copy {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  border-radius: 24px;
+  padding: clamp(28px, 3.7vw, 52px);
+  min-height: 412px;
+  background: radial-gradient(ellipse 55% 112% at 78% 48%, #e0d4bc, #acada0 32%, #4a6978 65%, transparent 100%),
+    linear-gradient(147deg, #263f54, #172f40 70%, #0b5365);
+  color: #fff;
+}
+
+.page-shell .hero-copy::after {
+  content: '';
+  position: absolute;
+  inset-inline-end: -115px;
+  bottom: -170px;
+  width: 325px;
+  height: 325px;
+  z-index: -1;
+  border: 1px solid #d7ab6e80;
+  outline: 1px solid #d7ab6e40;
+  outline-offset: 22px;
+  transform: rotate(35deg);
+  border-radius: 44px;
+}
+
+.hero-brand {
+  display: grid;
+  grid-template-columns: minmax(138px, 0.78fr) minmax(0, 1.22fr);
+  align-items: center;
+  gap: clamp(16px, 2.4vw, 32px);
+}
+
+.hero-emblem {
+  aspect-ratio: 1;
+  animation: emblem-enter 540ms ease-out both;
+}
+
+.hero-emblem img { width: 100%; height: 100%; display: block; object-fit: contain; }
+.hero-brand-text .hero-wordmark {
+  position: relative;
+  width: min(100%, 278px);
+  aspect-ratio: 658 / 320;
+  margin: 0;
+  overflow: hidden;
+  clip-path: polygon(4% 0, 100% 0, 100% 100%, 0 100%, 0 46%, 4% 39%);
+}
+
+/* Frame the calligraphy from the full emblem, including its gold accents. */
+.hero-wordmark img {
+  position: absolute;
+  width: 190.6%;
+  max-width: none;
+  height: auto;
+  left: -40.6%;
+  top: -10.6%;
+  display: block;
+  filter: brightness(2.35) saturate(.83);
+}
+
+.hero-brand-text p {
+  color: #e1ebef;
+  margin: 16px 0 0;
+  max-width: 29ch;
+  font-size: clamp(1.03rem, 1.5vw, 1.19rem);
+  font-weight: 600;
+  line-height: 1.85;
+}
+
+@keyframes emblem-enter {
+  from { opacity: .65; transform: translateY(9px) scale(.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-emblem { animation: none; }
+}
+.page-shell .login-wrap { padding: 0; scroll-margin-top: 14px; }
+.page-shell .login-wrap::before { display: none; }
+.page-shell .login-card { height: 100%; border: 1px solid var(--line); border-top: 3px solid var(--brand-gold); box-shadow: var(--shadow); background: #fff; }
+.page-shell .login-icon { background: #edf6f6; color: var(--blue); }
+.page-shell .input-box { border-color: var(--line); }
+.page-shell .input-box:focus-within { border-color: var(--blue); }
+.page-shell .submit-button { background: linear-gradient(120deg, var(--navy-dark), #275469); }
+.page-shell .feature-strip { background: #fff; border-color: var(--line); }
+.page-shell footer { color: var(--muted); }
+
+.dashboard-shell { --ui-ink: var(--ink); --ui-muted: var(--muted); background: #f4f7f6; }
+.dashboard-topbar { border-bottom-color: var(--line); }
+.dashboard-shell .welcome-banner { background: linear-gradient(110deg, #e4f3f3, #f8f1e5); }
+.dashboard-shell .welcome-banner .eyebrow { color: var(--blue); }
+.dashboard-shell .solid-button, .report-preview-toolbar #report-print { background: linear-gradient(120deg, var(--navy-dark), #275469); }
+.dashboard-shell .teal-button, .report-preview-toolbar .achievement-download { background: #006d79; }
+.dashboard-shell .gold-button { color: #4a3216; background: #ebcb98; }
+.dashboard-shell .admin-sidebar-title > span { background: #e7f4f4; color: #006d79; }
+
+.report-identity, .progress-report-identity { --mark-size: 57px; }
+.report-hero, .progress-report-hero, .report-champions .report-hero {
+  background: linear-gradient(145deg, #f5f6ef, #e3eff1) !important;
+  color: var(--ink) !important;
+  border-bottom: 3px solid var(--brand-gold);
+}
+.report-hero h1, .report-hero p, .report-hero .brand-copy strong,
+.report-hero .brand-copy small, .progress-report-hero .brand-copy strong,
+.progress-report-hero .brand-copy small, .progress-report-title h1,
+.progress-report-title p, .progress-report-score { color: var(--ink) !important; }
+.report-hero .report-label, .report-hero .report-meta span { background: #fff; border-color: var(--line); color: var(--navy); }
+.progress-report-title > span { background: #fff; color: var(--navy); }
+.report-document .report-table thead th, .khairkom-teacher-sheet .nominee-report-table thead th {
+  background: var(--navy);
+  border-color: var(--navy);
+  color: #fff;
+}
+.nominee-school { --mark-size: 76px; }
+.nominee-report-header { background: linear-gradient(145deg, #f5f6ef, #e3eff1); border-color: var(--line); }
+.khairkom-teacher-sheet { border-top-color: var(--navy); }
+.achievement-pending { border-top-color: var(--brand-gold); }
+
+@media (max-width: 760px) {
+  .brand, .report-identity, .progress-report-identity { --mark-size: 42px; }
+  .page-shell .hero { grid-template-columns: minmax(0,1fr); gap: 15px; padding-top: 18px; }
+  .page-shell .hero-copy { min-height: 0; padding: 27px 24px; }
+  .hero-brand { grid-template-columns: minmax(96px, 112px) minmax(0,1fr); gap: 16px; }
+  .hero-brand-text p { margin-top: 10px; font-size: .92rem; line-height: 1.8; }
+  .page-shell .login-card { padding: 24px 21px; }
+  .page-shell .topbar { min-height: 79px; }
+  .page-shell .top-login { display: none; }
+  .brand-copy strong { font-size: .84rem; }
+  .brand-copy small { font-size: .67rem; }
+}
+
+@media (max-width: 365px) {
+  .page-shell .hero-copy { padding-inline: 16px; }
+  .hero-brand { grid-template-columns: 90px minmax(0,1fr); gap: 13px; }
+}
+
+@media print {
+  .report-identity, .progress-report-identity { --mark-size: 13mm; }
+  .report-champions .report-identity { --mark-size: 18mm; }
+  .report-hero, .progress-report-hero { print-color-adjust: exact; }
+}
