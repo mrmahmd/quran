@@ -20,7 +20,7 @@ begin
  if original<>(select to_jsonb(n)::text from public.khairkom_nominations n where set_id=(first_set->>'id')::uuid) then raise exception 'Month two changed month one';end if;
  rejected:=false;begin perform public.save_khairkom_nominations_period(2,other_name,t,payload,0); exception when insufficient_privilege then rejected:=true;end;
  if not rejected then raise exception 'Cross teacher write accepted';end if;
- rejected:=false;begin perform public.save_khairkom_nominations_period(3,owner_name,t,payload,0); exception when check_violation then rejected:=true;end;
+ rejected:=false;begin perform public.save_khairkom_nominations_period(4,owner_name,t,payload,0); exception when check_violation then rejected:=true;end;
  if not rejected then raise exception 'Invalid month accepted';end if;
  rejected:=false;begin perform public.save_khairkom_nominations_period(2,owner_name,t,payload,1); exception when others then rejected:=true;end;
  if not rejected then raise exception 'Stale version accepted';end if;

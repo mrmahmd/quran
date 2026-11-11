@@ -28,6 +28,11 @@ export function createDashboardRepository(client) {
     terms: () => result(client.from('school_terms').select('*').order('starts_on', { ascending: false })),
     khairkomSecondMonthState: term => result(client.from('school_terms').select('khairkom_second_month_open').eq('id',term).single()).then(row => row.khairkom_second_month_open === true),
     setKhairkomSecondMonthOpen: (term, open) => result(client.rpc('set_khairkom_second_month_open', {p_term:term,p_open:open})),
+    khairkomRoundState: term => result(client.from('school_terms').select('*').eq('id',term).single()).then(row => ({
+      2: row.khairkom_second_month_open === true,
+      3: row.khairkom_third_round_open,
+    })),
+    setKhairkomThirdRoundOpen: (term, open) => result(client.rpc('set_khairkom_third_round_open', {p_term:term,p_open:open})),
     teachers: () => result(client.from('teacher_accounts').select('username, full_name, class_name, ring_name, active').eq('active', true).order('username')),
     weekStates: term => result(client.from('weekly_workflow_access').select('week_start,is_open,updated_at').eq('term_id', term).order('week_start')),
     setWeekOpen: (term, week, open) => result(client.rpc('set_week_workflow_open', {p_term:term,p_week:week,p_open:open})),

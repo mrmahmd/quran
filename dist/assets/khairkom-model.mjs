@@ -1,5 +1,21 @@
 const arabicNumber = value => new Intl.NumberFormat('ar-EG').format(value);
 
+export const nominationRoundLabels = { 1: 'الترشيح الأول', 2: 'الترشيح الثاني', 3: 'الترشيح الثالث' };
+
+export function nominationType(period, parts) {
+  return period === 3 && Array.isArray(parts) && parts.length === 0 ? 'recitation' : 'memorization';
+}
+
+export function nominationGroups(rows, period) {
+  const sections = [{ title: 'الحفظ', type: 'memorization', rows: [] }];
+  if (period === 3) sections.push({ title: 'تحسين التلاوة', type: 'recitation', rows: [] });
+  for (const row of rows) {
+    const type = nominationType(period, row.test_parts);
+    sections[type === 'recitation' ? 1 : 0].rows.push(row);
+  }
+  return sections;
+}
+
 // The RPC commits the entire batch in one transaction and returns its saved set.
 // Keep the acknowledged rows visible without reloading unrelated dashboard data.
 export function applySavedNominations(data, saved, teacher, term, rows) {

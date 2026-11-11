@@ -1,4 +1,5 @@
 import { brandLockup, platformName, schoolName } from './brand.mjs';
+import { nominationRoundLabels } from './khairkom-model.mjs?v=round3';
 import { preparePdfExport } from './champions-pdf.mjs?v=grouped-khairkom1';
 
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, character => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' })[character]);
@@ -24,21 +25,21 @@ export function khairkomAchievement(snapshot) {
   return {done,pending,total:teachers.length,percent:teachers.length?Math.round(done.length*100/teachers.length):0};
 }
 
-export function khairkomTeacherPage({rows,summary,section,termName,issuedAt}) {
+export function khairkomTeacherPage({rows,summary,section,termName,issuedAt,roundLabel = nominationRoundLabels[2]}) {
   const complete = section === 'done';
   return `<article class="khairkom-teacher-sheet ${complete?'achievement-done':'achievement-pending'}" dir="rtl">
-    <header class="nominee-report-header"><div class="nominee-school">${brandLockup()}</div><div class="nominee-report-title"><span>جمعية خيركم · الشهر الثاني</span><h1>تقرير إنجاز المعلمين</h1><p>${escapeHtml(termName || 'الفصل الدراسي')}</p></div></header>
+    <header class="nominee-report-header"><div class="nominee-school">${brandLockup()}</div><div class="nominee-report-title"><span>جمعية خيركم · ${escapeHtml(roundLabel)}</span><h1>تقرير إنجاز المعلمين</h1><p>${escapeHtml(termName || 'الفصل الدراسي')}</p></div></header>
     <section class="nominee-report-stats"><div><b>${arabicNumber(summary.done.length)}</b><span>معلمون أنجزوا</span></div><div><b>${arabicNumber(summary.pending.length)}</b><span>معلمون لم ينجزوا</span></div><div><b>${arabicNumber(summary.percent)}٪</b><span>نسبة الإنجاز</span></div></section>
     <section class="achievement-section"><h2>${complete?'المعلمون الذين أنجزوا':'المعلمون الذين لم ينجزوا'}</h2><span>${arabicNumber(complete?summary.done.length:summary.pending.length)} معلمًا</span></section>
     <table class="nominee-report-table"><colgroup><col style="width:7%"><col style="width:35%"><col style="width:20%"><col style="width:26%"><col style="width:12%"></colgroup><thead><tr><th>م</th><th>اسم المعلم</th><th>الفصل / الحلقة</th><th>حالة الإنجاز</th><th>المرشحون</th></tr></thead><tbody>${rows.map(row=>`<tr><td class="achievement-index">${arabicNumber(row.index)}</td><th scope="row">${escapeHtml(row.name)}</th><td class="nominee-class"><bdi dir="auto">${escapeHtml(row.className)}</bdi></td><td><strong class="achievement-state">${row.done?'أنجز':'لم ينجز'}</strong><small>${row.done?(row.count?'حفظ الترشيحات':'راجع بلا مرشحين'):'لم يحفظ المراجعة بعد'}</small></td><td class="achievement-count">${arabicNumber(row.count)}</td></tr>`).join('') || `<tr><td colspan="5" class="achievement-empty">${complete?'لم يُنجز أي معلم المراجعة حتى الآن.':'أنجز جميع المعلمين مراجعة الترشيحات.'}</td></tr>`}</tbody></table>
-    <p class="achievement-note">يُحتسب الإنجاز عند حفظ الترشيحات أو تأكيد المراجعة بلا مرشحين. إجمالي المعلمين: ${arabicNumber(summary.total)}. البيانات تخص الشهر الثاني فقط.</p>
+    <p class="achievement-note">يُحتسب الإنجاز عند حفظ الترشيحات أو تأكيد المراجعة بلا مرشحين. إجمالي المعلمين: ${arabicNumber(summary.total)}. الدورة: ${escapeHtml(roundLabel)}.</p>
     <footer class="nominee-report-footer"><span>${platformName} · ${schoolName} · جمعية خيركم</span><span>${escapeHtml(issuedAt)}</span><b class="nominee-page-number"></b></footer>
   </article>`;
 }
 
-export async function prepareKhairkomTeachersReport({term,snapshot}) {
+export async function prepareKhairkomTeachersReport({term,snapshot,roundLabel}) {
   const summary = khairkomAchievement(snapshot);
-  const details = {summary,termName:term?.name,issuedAt:new Intl.DateTimeFormat('ar-EG',{dateStyle:'medium',timeZone:'Asia/Riyadh'}).format(new Date())};
+  const details = {summary,roundLabel,termName:term?.name,issuedAt:new Intl.DateTimeFormat('ar-EG',{dateStyle:'medium',timeZone:'Asia/Riyadh'}).format(new Date())};
   await Promise.all([document.fonts.load('500 22px AlexandriaReport'),document.fonts.load('800 26px AlexandriaReport')]);
   const host = document.createElement('div');
   host.className = 'nominee-export-host';

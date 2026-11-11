@@ -165,3 +165,16 @@
 .khairkom-month-control select{font:inherit;padding:12px;border:1px solid #a5c9d3;border-radius:12px;background:#fff;color:#195e73;min-height:48px}
 .khairkom-month-control p{font-size:15px;line-height:1.9;color:#43677a;margin:0;flex:1;min-width:200px}
 @media(max-width:600px){.khairkom-month-control{padding:16px}.khairkom-month-control label{width:100%;min-width:0}}
+.khairkom-student-parts { display: grid; gap: 12px; }
+.khairkom-student-parts > label { display: grid; gap: 9px; color: #1a6c60; font-weight: 700; }
+.khairkom-part-panel [data-khairkom-type] {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid #bddbd3;
+  border-radius: 12px;
+  background: #fff;
+  color: #164b46;
+  font: inherit;
+}
+.khairkom-report-group { margin-block: 16px; }
+.khairkom-report-group h3 { margin-block: 0 10px; }

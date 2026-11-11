@@ -23,3 +23,17 @@ test('printed report identifies the selected month',()=>{
  const html=buildKhairkomReport({term:{name:'Term'},teachers:[],data:{students:[],rows:[]},filterLabel:'الشهر الثاني · جميع المرشحين'});
  assert.ok(html.includes('الشهر الثاني'));assert.ok(!html.includes('الشهر الأول'));
 });
+test('third-round report separates recitation from memorization and prints parts only for memorization',()=>{
+ const teachers=[{username:'teacher',full_name:'معلم تجريبي'}];
+ const students=[{id:'m',full_name:'طالب الحفظ'},{id:'r',full_name:'طالب التلاوة'}];
+ const rows=[{student_id:'m',teacher_username:'teacher',test_parts:[10],identity_number:'000001'},
+   {student_id:'r',teacher_username:'teacher',test_parts:[],identity_number:'000002'}];
+ const html=buildKhairkomReport({period:3,teachers,data:{students,rows},filterLabel:'الترشيح الثالث'});
+ const [memorization,recitation]=html.split('<h2>تحسين التلاوة</h2>');
+ assert.match(memorization, /<h2>الحفظ<\/h2>.*طالب الحفظ.*الجزء ١٠/s);
+ assert.match(recitation, /طالب التلاوة.*000002/s);
+ assert.doesNotMatch(recitation, /أجزاء الاختبار|لم تُحدَّد أجزاء/);
+ const legacy=buildKhairkomReport({period:1,teachers,data:{students,rows:[rows[1]]}});
+ assert.doesNotMatch(legacy, /تحسين التلاوة/);
+ assert.match(legacy, /لم تُحدَّد أجزاء الاختبار بعد/);
+});
