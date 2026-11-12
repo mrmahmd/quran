@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { emptyMonthly, monthlyProblem, termMonths, monthlyLabel, SURAHS, validMonthlyRange, monthlyRangeText, monthlyProgress, applyMonthlyAmounts, copyMonthlyAmounts, copyMemorizationToRevision, monthlyAbsent, setMonthlyAbsent, mergeMonthlyRoster } from '../dist/assets/monthly-model.mjs';
+import { emptyMonthly, monthlyProblem, monthlyDraftProblem, termMonths, monthlyLabel, SURAHS, validMonthlyRange, monthlyRangeText, monthlyProgress, applyMonthlyAmounts, copyMonthlyAmounts, copyMemorizationToRevision, monthlyAbsent, setMonthlyAbsent, mergeMonthlyRoster } from '../dist/assets/monthly-model.mjs';
 test('monthly periods include the partial first and last months', () => {
   assert.deepEqual(termMonths({starts_on:'2026-09-27',ends_on:'2026-12-17'}), ['2026-09-01','2026-10-01','2026-11-01','2026-12-01']);
 });
@@ -8,6 +8,22 @@ test('empty amounts fail; explicit no memorization and no revision is valid', ()
   const row=emptyMonthly('student'); assert.equal(monthlyProblem(row),'الحفظ');
   row.memorization={none:true,text:''}; assert.equal(monthlyProblem(row),'المراجعة');
   row.revision={none:true,text:''}; assert.equal(monthlyProblem(row),'');
+});
+test('drafts distinguish missing fields from entries the save RPC would reject', () => {
+ const row=emptyMonthly('student');
+ assert.equal(monthlyProblem(row),'الحفظ');
+ assert.equal(monthlyDraftProblem(row),'');
+ row.memorization.range={from_surah:114,from_ayah:7};
+ assert.equal(monthlyDraftProblem(row),'الحفظ');
+ row.memorization.range.from_ayah=5;
+ assert.equal(monthlyDraftProblem(row),'');
+ Object.assign(row.memorization.range,{to_surah:114,to_ayah:4});
+ assert.equal(monthlyDraftProblem(row),'الحفظ');
+ row.memorization.range.to_ayah=6;
+ row.memorization.text=monthlyRangeText(row.memorization.range);
+ row.revision={none:true,text:''};
+ assert.equal(monthlyDraftProblem(row),'');
+ assert.equal(monthlyProblem(row),'');
 });
 test('teacher-written amounts cannot be empty or hidden behind none', () => {
   const row=emptyMonthly('student');

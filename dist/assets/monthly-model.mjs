@@ -1,12 +1,33 @@
 import {SURAHS} from './quran-surahs.mjs';
 export {SURAHS};
 export const emptyMonthly = student_id => ({ student_id, memorization: { none: false, text: '', range: {from_surah:null,from_ayah:null,to_surah:null,to_ayah:null} }, revision: { none: false, text: '', range: {from_surah:null,from_ayah:null,to_surah:null,to_ayah:null} }, note: '' });
+const monthlyAmounts = [['memorization', 'الحفظ'], ['revision', 'المراجعة']];
 export function monthlyProblem(row) {
-  for (const [key, label] of [['memorization', 'الحفظ'], ['revision', 'المراجعة']]) {
+  for (const [key, label] of monthlyAmounts) {
     const value = row?.[key];
     if (typeof value?.none !== 'boolean' || typeof value.text !== 'string' || value.text.length > 1000) return label;
     if (value.none ? value.text !== '' : !value.text.trim()) return label;
     if (!value.none && value.range && !validMonthlyRange(value.range)) return label;
+  }
+  return typeof row.note !== 'string' || row.note.length > 500 ? 'الملاحظة' : '';
+}
+export function monthlyDraftProblem(row) {
+  for (const [key, label] of monthlyAmounts) {
+    const value = row[key];
+    if (typeof value?.none !== 'boolean' || typeof value.text !== 'string' || value.text.length > 1000) return label;
+    if (value.none) {
+      if (value.text) return label;
+      continue;
+    }
+    if (!Object.hasOwn(value, 'range')) continue;
+    const range = value.range;
+    if (!range || typeof range !== 'object' || Array.isArray(range)) return label;
+    for (const side of ['from', 'to']) {
+      const surah = range[`${side}_surah`], ayah = range[`${side}_ayah`];
+      if (surah != null && (!Number.isInteger(surah) || surah < 1 || surah > SURAHS.length)) return label;
+      if (ayah != null && (!Number.isInteger(ayah) || ayah < 1 || ayah > (SURAHS[surah - 1]?.verses ?? 286))) return label;
+    }
+    if (range.from_surah != null && range.from_surah === range.to_surah && range.to_ayah != null && range.from_ayah > range.to_ayah) return label;
   }
   return typeof row.note !== 'string' || row.note.length > 500 ? 'الملاحظة' : '';
 }

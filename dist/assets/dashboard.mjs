@@ -8,7 +8,7 @@ import {buildMonthlyReadingTable,monthlyReadingHeading} from './monthly-report-v
 import {teacherWeeks} from './teacher-week-model.mjs?v=monthly-reading5';
 import { summarizeMonthlyTeachers } from './monthly-progress-model.mjs?v=monthly-admin1';
 import { createMonthlyComparison } from './monthly-comparison-view.mjs?v=1';
-import { emptyMonthly, monthlyProblem, termMonths, monthlyLabel, SURAHS, monthlyRangeText, monthlyProgress, applyMonthlyAmounts, copyMonthlyAmounts, copyMemorizationToRevision, monthlyAbsent, setMonthlyAbsent, mergeMonthlyRoster, monthlySavedComplete, monthlyStudentPayload, monthlyHasChanges } from './monthly-model.mjs?v=monthly-finish1';
+import { emptyMonthly, monthlyProblem, monthlyDraftProblem, termMonths, monthlyLabel, SURAHS, monthlyRangeText, monthlyProgress, applyMonthlyAmounts, copyMonthlyAmounts, copyMemorizationToRevision, monthlyAbsent, setMonthlyAbsent, mergeMonthlyRoster, monthlySavedComplete, monthlyStudentPayload, monthlyHasChanges } from './monthly-model.mjs?v=monthly-save2';
 import { SCORE_FIELDS, emptyScores, scoreTotal, validateScores, termWeeks, semesterSummary, weekNumber, weekEnd } from './evaluation-model.mjs?v=rosters2';
 import { applyEditedNominee, applySavedNominations, filterNominations, nominationGroups, nominationRoundLabels, nominationType, nominationFilterLabel, formatTestParts, testPartLabel, testPartOptions, normalizeIdentityNumber, validIdentityNumber, validTestParts } from './khairkom-model.mjs?v=nas-duha';
 import { buildWeeklyReport, buildKhairkomReport, buildChampionsReport, buildTeacherProgressReport, buildMonthlyReport } from './report-layout.mjs?v=nas-duha';
@@ -389,7 +389,7 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
   const monthlyFilteredStudents = () => monthlyStudents().filter(s=>monthlyStudentFilter==='all'||monthlyFinished(s.id)===(monthlyStudentFilter==='complete'));
   function monthlyStudentFilters(){
     const total=monthlyStudents().length,done=monthlyStudents().filter(s=>monthlyFinished(s.id)).length;
-    return `<div class="monthly-student-filters" role="group" aria-label="عرض طلاب التقرير"><button type="button" data-monthly-filter="pending" aria-pressed="${monthlyStudentFilter==='pending'}">المتبقون <b>${total-done}</b></button><button type="button" data-monthly-filter="complete" aria-pressed="${monthlyStudentFilter==='complete'}">المكتملون <b>${done}</b></button><button type="button" data-monthly-filter="all" aria-pressed="${monthlyStudentFilter==='all'}">جميع الطلاب <b>${total}</b></button></div><p class="monthly-finish-hint">اضغط «تم الانتهاء من الطالب» لحفظ بياناته ونقله إلى المكتملين. البيانات غير المحفوظة تبقى ضمن المتبقين.</p>`;
+    return `<div class="monthly-student-filters" role="group" aria-label="عرض طلاب التقرير"><button type="button" data-monthly-filter="pending" aria-pressed="${monthlyStudentFilter==='pending'}">بانتظار الاستكمال أو الحفظ <b>${total-done}</b></button><button type="button" data-monthly-filter="complete" aria-pressed="${monthlyStudentFilter==='complete'}">مكتمل ومحفوظ <b>${done}</b></button><button type="button" data-monthly-filter="all" aria-pressed="${monthlyStudentFilter==='all'}">جميع الطلاب <b>${total}</b></button></div><p class="monthly-finish-hint">احفظ بيانات طالب واحد من بطاقته، أو اضغط زر حفظ التقرير لحفظ كل المدخلات دفعة واحدة.</p>`;
   }
   function renderMonthly() {
     if (loadedMonthlyScope !== monthlyScope()) { renderMonthlyLoadError(); return; }
@@ -398,7 +398,9 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
   }
   function monthlyProgressCard(){
     const p=savedMonthlyProgress();
-    return `<section class="monthly-progress" id="monthly-progress" aria-live="polite"><div><strong>اكتمال ${monthLabel(month)}</strong><b>${p.percent}%</b></div><progress max="100" value="${p.percent}" aria-label="نسبة اكتمال البيانات المحفوظة"></progress><p>${p.completed} من ${p.total} طالبًا مكتملًا ومحفوظًا · ${p.remaining} متبقي${monthlyDirty?' · تغييرات لم تُحفظ بعد':''}</p>${monthlyData.report?.status==='draft'?'<p>مسودة محفوظة غير منتهية — يمكنك العودة لاحقًا لاستكمال التقرير.</p>':''}</section>`;
+    const entered=monthlyProgress(monthlyRows.values());
+    const ready=monthlyStudents().filter(student=>!monthlyProblem(monthlyRows.get(student.id))&&!monthlyFinished(student.id)).length;
+    return `<section class="monthly-progress" id="monthly-progress" aria-live="polite"><div><strong>البيانات المكتملة والمحفوظة · ${monthLabel(month)}</strong><b>${p.percent}%</b></div><progress max="100" value="${p.percent}" aria-label="نسبة اكتمال البيانات المحفوظة"></progress><p>${p.completed} من ${p.total} طالبًا مكتملًا ومحفوظًا</p>${monthlyReadonly()?'':`<p>${entered.remaining} طالبًا يحتاج استكمال البيانات · ${ready} طالبًا جاهزًا للحفظ</p>${ready?'<p>اضغط زر حفظ التقرير لحفظ البيانات التي أدخلتها.</p>':''}`}</section>`;
   }
   function updateMonthlyProgress(){
     const old=root.querySelector('#monthly-progress');if(old)old.outerHTML=monthlyProgressCard();
@@ -919,21 +921,45 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
     }
     if (event.target.closest('#save-monthly') && !busy && !monthlyReadonly()) {
       let refreshed=false;await action(async()=>{refreshed=await refreshMonthlyRoster();});if(!refreshed)return;if(monthlyReadonly()){notify('هذا الشهر مغلق من الإدارة؛ لا يمكن حفظ التقرير حتى إعادة فتحه.',true);return;}
-      const missing = monthlyStudents().filter(student => monthlyProblem(monthlyRows.get(student.id)));
+      const students = monthlyStudents();
+      const focusMonthlyStudent = student => {
+        monthlyStudentFilter = 'pending';
+        renderMonthly();
+        const card = root.querySelector(`[data-monthly-student="${student.id}"]`);
+        card?.classList.add('needs-attention');
+        card?.scrollIntoView({block:'center'});
+      };
+      const invalid = students.find(student => monthlyDraftProblem(monthlyRows.get(student.id)));
+      if (invalid) {
+        focusMonthlyStudent(invalid);
+        const field = monthlyDraftProblem(monthlyRows.get(invalid.id));
+        notify(`راجع خانة ${field} للطالب ${invalid.full_name} قبل الحفظ.`, true);
+        return;
+      }
+      const missing = students.filter(student => monthlyProblem(monthlyRows.get(student.id)));
       root.querySelectorAll('.needs-attention').forEach(card => card.classList.remove('needs-attention'));
       if (dialog.open) return;
-      if (missing.length && !await confirm('التقرير غير مكتمل', 'هل تريد حفظ التقرير والعودة لاحقًا لاستكماله؟', 'نعم، حفظ التقرير')) return;
+      if (missing.length) {
+        const first = missing[0];
+        const field = monthlyProblem(monthlyRows.get(first.id));
+        const message = `باقي ${missing.length} من الطلاب. أول طالب يحتاج استكمال خانة ${field} هو ${first.full_name}. يمكنك حفظ المدخلات الآن كمسودة.`;
+        if (!await confirm('بعض الطلاب يحتاجون استكمال البيانات', message, 'حفظ مسودة')) {
+          focusMonthlyStudent(first);
+          return;
+        }
+      }
       const saveButton=root.querySelector('#save-monthly'),saveStatus=root.querySelector('#monthly-save-state'),originalLabel=saveButton.textContent;
       saveButton.disabled=true;saveButton.textContent='جارٍ حفظ التقرير…';saveStatus.classList.remove('save-error');saveStatus.textContent='جارٍ الحفظ؛ انتظر رسالة التأكيد.';
       await action(async () => {
         try {
           const saved=await repo.saveMonthly({p_teacher:teacherId,p_term:termId,p_month:month,p_rows:[...monthlyRows.values()],p_version:monthlyData.report?.version || 0});
-          if(!saved?.id)throw new Error('لم يصل تأكيد الحفظ. حاول مرة أخرى؛ البيانات المدخلة ما زالت موجودة.');
           monthlyData={report:saved,entries:structuredClone([...monthlyRows.values()])};monthlyDirty=false;renderMonthly();
-          root.querySelector('#monthly-save-state').textContent=missing.length?'تم الحفظ. يمكنك العودة لاحقًا لاستكمال التقرير غير المكتمل.':'تم حفظ التقرير مكتملًا.';
+          const message = saved.status==='complete' ? 'تم حفظ التقرير الشهري مكتملًا وتحديثه عند الإدارة.' : 'تم حفظ التقرير كمسودة. يمكنك العودة لاحقًا لاستكماله.';
+          root.querySelector('#monthly-save-state').textContent=message;
+          notify(message);
         } catch(error) {saveStatus.textContent=errorText(error)+' البيانات المدخلة ما زالت موجودة.';saveStatus.classList.add('save-error');throw error;}
         finally {if(saveButton.isConnected){saveButton.disabled=false;saveButton.textContent=originalLabel;}}
-      }, missing.length ? 'تم حفظ التقرير كمسودة غير مكتملة. يمكنك العودة لاحقًا لاستكمال التقرير.' : 'تم حفظ التقرير الشهري مكتملًا وتحديثه عند الإدارة.'); return;
+      }); return;
     }
     const edit = event.target.closest('[data-edit-student]');
     if (edit && canManageRoster() && !busy) { if(rosterDirty&&!await mayLeave())return; rosterDirty=false; editingStudent=edit.dataset.editStudent; renderSetup(); root.querySelector('#student-edit-form input').focus(); return; }
