@@ -1,6 +1,4 @@
 import { completedJuz, recordedAyahRanges } from './quran-juz.mjs';
-import { monthlyAbsent } from './monthly-model.mjs?v=monthly-save2';
-import { hasSavedMonthlyAmounts } from './monthly-comparison-record.mjs';
 
 export const juzCategories = {
   one: 'جزء واحد بالضبط',
@@ -29,13 +27,15 @@ function studentIdentities(students) {
 }
 
 function describePeriod(entries) {
-  const recorded = entries.filter(entry => !monthlyAbsent(entry));
-  const ranges = recorded.map(entry => hasSavedMonthlyAmounts(entry) ? recordedAyahRanges(entry.memorization) : null);
+  const recorded = entries.map(entry => entry.memorization).filter(value => value && !value.absent);
+  const started = recorded.filter(value => value.none === true || (typeof value.text === 'string' && value.text.trim())
+    || Object.values(value.range ?? {}).some(part => part != null && part !== ''));
+  const ranges = started.map(recordedAyahRanges);
   return {
     ranges: ranges.flatMap(value => value || []),
     numeric: ranges.some(value => value !== null),
     unresolved: ranges.some(value => value === null),
-    absent: entries.length > 0 && recorded.length === 0,
+    absent: entries.some(entry => entry.memorization?.absent === true) && !recorded.length,
   };
 }
 
@@ -89,7 +89,7 @@ export function buildJuzReport(students, firstEntries, secondEntries) {
     const numeric = monthly.some(data => data.numeric);
     add(2, student, entries.flat(), {
       ranges: monthly.flatMap(data => data.ranges), numeric,
-      unresolved: monthly.some((data, index) => data.unresolved || (numeric && student.active && !entries[index].length)),
+      unresolved: monthly.some(data => data.unresolved || (numeric && student.active && !data.numeric && !data.absent)),
       absent: monthly.some(data => data.absent),
     });
   }

@@ -86,19 +86,25 @@ test('quantity comparison sums ayat for the same students and handles a zero bas
   assert.equal(summarizeMonthlyComparison([], [], [], []).average, null);
 });
 
-test('only students with both saved amounts contribute to monthly totals or a paired change', () => {
-  const students = ['1', 'draft', 'absent', 'never-saved'].map(id => ({ id, active: true }));
+test('saved amounts contribute independently to monthly totals and matching pairs', () => {
+  const students = ['1', 'draft', 'absent', 'never-saved', 'revision-only'].map(id => ({ id, active: true }));
   const absent = { ...none, absent: true };
+  const incomplete = { none: false, text: '', range: { from_surah: 2, from_ayah: 1 } };
   const first = [entry(range(2, 1, 2, 10), none),
-    { ...entry(range(2, 1, 2, 90)), student_id: 'draft', is_complete: false },
+    { ...entry(range(2, 1, 2, 90), incomplete), student_id: 'draft', is_complete: false },
+    { ...entry(incomplete, range(2, 1, 2, 8)), student_id: 'revision-only', is_complete: false },
     { ...entry(absent, absent), student_id: 'absent' }];
   const second = [entry(range(2, 1, 2, 20), none),
     { ...entry(range(2, 1, 2, 30), none), student_id: 'draft' },
+    { ...entry(incomplete, range(2, 1, 2, 12)), student_id: 'revision-only', is_complete: false },
+    { ...entry(incomplete, incomplete), student_id: 'never-saved', is_complete: false },
     { ...entry(absent, absent), student_id: 'absent' }];
   const rows = buildMonthlyComparison(students, first, second);
   const { changes, monthlyTotals } = summarizeMonthlyComparison(students, first, second, rows);
-  assert.deepEqual(rows.map(row => row.id), ['1', 'draft']);
-  assert.equal(rows[1].memorization.first.incomplete, true);
-  assert.deepEqual(monthlyTotals.memorization, [{ ayat: 10, students: 1 }, { ayat: 50, students: 2 }]);
-  assert.deepEqual(changes.memorization, { compared: 1, total: 1, first: 10, second: 20, difference: 10, rate: 1 });
+  assert.deepEqual(rows.map(row => row.id), ['1', 'draft', 'revision-only']);
+  assert.equal(rows[1].revision.first.count, null);
+  assert.deepEqual(monthlyTotals.memorization, [{ ayat: 100, students: 2 }, { ayat: 50, students: 2 }]);
+  assert.deepEqual(changes.memorization, { compared: 2, total: 2, first: 100, second: 50, difference: -50, rate: -0.5 });
+  assert.deepEqual(monthlyTotals.revision, [{ ayat: 8, students: 2 }, { ayat: 12, students: 3 }]);
+  assert.deepEqual(changes.revision, { compared: 2, total: 2, first: 8, second: 12, difference: 4, rate: 0.5 });
 });

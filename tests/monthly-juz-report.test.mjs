@@ -59,12 +59,14 @@ test('text, no amount, and absence contribute different evidence to the report',
   assert.equal(combined.buckets.zero[0].name, 'absent');
 });
 
-test('the school excludes a saved memorization range until the review entry is complete', () => {
+test('the school counts a saved memorization range even when review is incomplete', () => {
   const students = [{ id: '1', full_name: 'طالب', active: true }];
   const saved = entry('1', amount(78, 1, 114, 6));
-  const [first, second, combined] = buildJuzReport(students, [{ ...saved, is_complete: false }], [saved]);
-  assert.equal(first.measurable, 0);
-  assert.equal(first.buckets.unresolved.length, 1);
+  const [first, second, combined] = buildJuzReport(students,
+    [{ ...saved, revision: { none: false, text: '' }, is_complete: false }], [saved]);
+  assert.equal(first.measurable, 1);
+  assert.deepEqual(first.buckets.one[0].juz, [30]);
   assert.deepEqual(second.buckets.one[0].juz, [30]);
-  assert.equal(combined.measurable, 0);
+  assert.equal(combined.measurable, 1);
+  assert.deepEqual(combined.buckets.one[0].juz, [30]);
 });
