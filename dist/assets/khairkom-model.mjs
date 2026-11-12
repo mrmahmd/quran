@@ -1,6 +1,15 @@
 const arabicNumber = value => new Intl.NumberFormat('ar-EG').format(value);
 
 export const nominationRoundLabels = { 1: 'الترشيح الأول', 2: 'الترشيح الثاني', 3: 'الترشيح الثالث' };
+const fromNasToDuha = 31;
+
+export function testPartOptions(period) {
+  return Array.from({length:period === 3 ? fromNasToDuha : 30}, (_, index) => index + 1);
+}
+
+export function testPartLabel(part) {
+  return part === fromNasToDuha ? 'من الناس للضحى' : `الجزء ${arabicNumber(part)}`;
+}
 
 export function nominationType(period, parts) {
   return period === 3 && Array.isArray(parts) && parts.length === 0 ? 'recitation' : 'memorization';
@@ -40,30 +49,32 @@ export function validIdentityNumber(value) {
   return /^[0-9]{6,20}$/.test(normalizeIdentityNumber(value));
 }
 
-export function validTestParts(parts) {
-  return Array.isArray(parts) && parts.length > 0 && parts.length <= 30
-    && parts.every(part => Number.isInteger(part) && part >= 1 && part <= 30)
+export function validTestParts(parts, period = 1) {
+  const max = period === 3 ? fromNasToDuha : 30;
+  return Array.isArray(parts) && parts.length > 0 && parts.length <= max
+    && parts.every(part => Number.isInteger(part) && part >= 1 && part <= max)
     && new Set(parts).size === parts.length;
 }
 
-export function formatTestParts(parts) {
-  if (!validTestParts(parts)) return 'لم تُحدَّد أجزاء الاختبار بعد';
+export function formatTestParts(parts, period = 1) {
+  if (!validTestParts(parts, period)) return 'لم تُحدَّد أجزاء الاختبار بعد';
   const ordered = [...parts].sort((a, b) => a - b);
   const ranges = [];
   for (const part of ordered) {
     const last = ranges.at(-1);
-    if (last && part === last[1] + 1) last[1] = part;
+    if (part !== fromNasToDuha && last && part === last[1] + 1) last[1] = part;
     else ranges.push([part, part]);
   }
   return ranges.map(([start, end]) => start === end
-    ? `الجزء ${arabicNumber(start)}`
+    ? testPartLabel(start)
     : `من الجزء ${arabicNumber(start)} إلى ${arabicNumber(end)}`).join('، ');
 }
 
-export function filterNominations(data, teachers, filters = {}) {
+export function filterNominations(data, teachers, filters = {}, period = 1) {
   const students = new Map((data.students || []).map(s => [s.id, s]));
   const owners = new Map(teachers.map(t => [t.username, t]));
-  const parts = [...new Set((filters.parts || []).map(Number))].filter(p => Number.isInteger(p) && p >= 1 && p <= 30);
+  const allowed = testPartOptions(period);
+  const parts = [...new Set((filters.parts || []).map(Number))].filter(part => allowed.includes(part));
   return (data.rows || []).filter(row => {
     if (filters.teacher && row.teacher_username !== filters.teacher) return false;
     const className = students.get(row.student_id)?.source_class || owners.get(row.teacher_username)?.class_name || '';
@@ -74,11 +85,11 @@ export function filterNominations(data, teachers, filters = {}) {
   }).sort((a,b) => (a.teacher_username || '').localeCompare(b.teacher_username || '') || (students.get(a.student_id)?.full_name || '').localeCompare(students.get(b.student_id)?.full_name || '', 'ar'));
 }
 
-export function nominationFilterLabel(filters, teachers) {
+export function nominationFilterLabel(filters, teachers, period = 1) {
   const labels = [];
   if (filters.teacher) labels.push('المعلم: ' + (teachers.find(t=>t.username===filters.teacher)?.full_name || filters.teacher));
   if (filters.className) labels.push('الفصل: ' + filters.className);
-  if (filters.parts?.length) labels.push((filters.mode === 'any' ? 'أي جزء من: ' : 'جميع الأجزاء معًا: ') + formatTestParts(filters.parts));
+  if (filters.parts?.length) labels.push((filters.mode === 'any' ? 'أي جزء من: ' : 'جميع الأجزاء معًا: ') + formatTestParts(filters.parts, period));
   return labels.length ? labels.join(' · ') : 'جميع المرشحين · دون فلترة';
 }
 

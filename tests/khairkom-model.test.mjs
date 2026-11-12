@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { applyEditedNominee, applySavedNominations, validTestParts, formatTestParts, normalizeIdentityNumber, validIdentityNumber } from '../dist/assets/khairkom-model.mjs';
+import { applyEditedNominee, applySavedNominations, validTestParts, formatTestParts, normalizeIdentityNumber, validIdentityNumber, testPartOptions, filterNominations, nominationFilterLabel } from '../dist/assets/khairkom-model.mjs';
 
 test('acknowledged save replaces only the teacher batch, preserves external nominees, and advances version',()=>{
   const data={sets:[{id:'old',teacher_username:'a',version:1},{id:'external',teacher_username:'a',version:1},{id:'other',teacher_username:'b',version:1}],rows:[{set_id:'old',student_id:'old',teacher_username:'a'},{set_id:'external',student_id:'manual',teacher_username:'a',external:true},{set_id:'other',student_id:'other',teacher_username:'b'}],students:[]};
@@ -38,13 +38,21 @@ test('nomination parts are unique integers between 1 and 30', () => {
   }
 });
 
+test('Nas to Duha is a separate third-round choice in reports and filters', () => {
+  assert.deepEqual(testPartOptions(3).slice(-2), [30, 31]);
+  assert.equal(testPartOptions(2).at(-1), 30);
+  assert.equal(validTestParts([31], 2), false);
+  assert.equal(formatTestParts([31, 30, 29], 3), 'من الجزء ٢٩ إلى ٣٠، من الناس للضحى');
+  const data = {rows:[{test_parts:[30]}, {test_parts:[31]}, {test_parts:[]}]};
+  assert.deepEqual(filterNominations(data, [], {parts:[31]}, 3), [data.rows[1]]);
+});
+
 test('report compresses only consecutive parts and preserves gaps', () => {
   assert.equal(formatTestParts([5, 2, 3, 1]), 'من الجزء ١ إلى ٣، الجزء ٥');
   assert.equal(formatTestParts([30]), 'الجزء ٣٠');
   assert.equal(formatTestParts([]), 'لم تُحدَّد أجزاء الاختبار بعد');
 });
 
-import { filterNominations, nominationFilterLabel } from '../dist/assets/khairkom-model.mjs';
 test('nomination filters intersect teacher and class and match all or any selected parts',()=>{
  const data={students:[{id:'a',full_name:'أ',source_class:'1/A'},{id:'b',full_name:'ب',source_class:'2/A'}],rows:[{student_id:'a',teacher_username:'t1',test_parts:[1,2,3]},{student_id:'b',teacher_username:'t2',test_parts:[2,5]}]};
  const owners=[{username:'t1',full_name:'معلم أول'},{username:'t2',full_name:'معلم ثان'}];

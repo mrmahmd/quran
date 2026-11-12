@@ -1,5 +1,5 @@
 import { brandLockup, platformName, schoolName } from './brand.mjs';
-import { formatTestParts, nominationGroups } from './khairkom-model.mjs?v=round3';
+import { formatTestParts, nominationGroups } from './khairkom-model.mjs?v=nas-duha';
 import {summarizeMonthlyTeachers} from './monthly-progress-model.mjs?v=monthly-admin1';
 import {mergeMonthlyRoster} from './monthly-model.mjs?v=monthly-admin1';
 import {buildMonthlyReadingTable} from './monthly-report-view.mjs?v=monthly-reading5';
@@ -46,7 +46,7 @@ export function buildKhairkomReport({term, teachers, data, filterLabel, period =
     if (memorization) headers.push('أجزاء الاختبار');
     const entries = group.rows.map((row,index)=>{
       const student=names.get(row.student_id), teacher=owners.get(row.teacher_username);
-      return `<tr><td class="report-index">${index+1}</td><th scope="row">${escapeHtml(student?.full_name || 'طالب مؤرشف')}</th>${cell(student?.source_class || teacher?.class_name)}<td dir="ltr" class="report-id">${escapeHtml(row.identity_number || 'لم يُسجّل')}</td>${cell(teacher?.full_name || row.teacher_username)}${memorization?cell(formatTestParts(row.test_parts),'report-parts'):''}</tr>`;
+      return `<tr><td class="report-index">${index+1}</td><th scope="row">${escapeHtml(student?.full_name || 'طالب مؤرشف')}</th>${cell(student?.source_class || teacher?.class_name)}<td dir="ltr" class="report-id">${escapeHtml(row.identity_number || 'لم يُسجّل')}</td>${cell(teacher?.full_name || row.teacher_username)}${memorization?cell(formatTestParts(row.test_parts,period),'report-parts'):''}</tr>`;
     });
     return `<section class="report-section"><div class="report-section-head"><div><span class="report-class">${group.rows.length} طالبًا</span><h2>${title}</h2></div></div>${entries.length?table(headers,entries):empty('لا توجد ترشيحات محفوظة في هذا القسم.')}</section>`;
   }).join('');
