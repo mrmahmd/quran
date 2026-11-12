@@ -1,7 +1,7 @@
 import { brandLockup } from './brand.mjs';
 import { termMonths } from './monthly-model.mjs?v=monthly-finish1';
-import { buildMonthlyComparison, comparisonKinds, summarizeMonthlyComparison } from './monthly-comparison-model.mjs?v=3';
-import { buildJuzReport, juzCategories } from './monthly-juz-report.mjs';
+import { buildMonthlyComparison, comparisonKinds, summarizeMonthlyComparison } from './monthly-comparison-model.mjs?v=4';
+import { buildJuzReport, juzCategories } from './monthly-juz-report.mjs?v=2';
 
 const escape = value => String(value ?? '').replace(/[&<>"']/g, char => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
@@ -14,8 +14,13 @@ const date = new Intl.DateTimeFormat('ar-SA-u-ca-gregory', { month: 'long', year
 const periods = ['الشهر الأول', 'الشهر الثاني'];
 const juzPeriods = [...periods, 'إجمالي الشهرين'];
 const statuses = { up: 'زاد المقدار', down: 'قلّ المقدار', same: 'دون تغيير', new: 'بدأ التسجيل', unavailable: 'بلا نسبة تغيّر' };
-const explanation = 'تُحسب نسبة التغيّر عند توفر عدد الآيات للشهرين. تظهر المقادير النصية كما حُفظت، ويمكن مراجعتها جنبًا إلى جنب. عند بدء التسجيل من صفر يظهر فرق الآيات.';
 const monthName = month => date.format(new Date(month + 'T00:00:00Z'));
+const calculationRules = `<section class="mc-panel mc-rules"><h3>قواعد الحساب</h3><ul>
+  <li>العدّ يعتمد على عدد آيات كل سورة من السور الـ١١٤، ويشمل آيتي البداية والنهاية.</li>
+  <li>عند الرجوع نحو أول المصحف، يُحسب باقي سورة البداية، ثم كل السور الواقعة بينهما، ثم الآيات من أول سورة الوصول حتى آية النهاية. داخل كل سورة يبقى العدّ بترتيب الآيات.</li>
+  <li>يدخل في حساب إجمالي الشهر من حُفظ له الحفظ والمراجعة. يُحسب خيار «لا يوجد» صفرًا. الغياب والسجل الناقص والمقدار المكتوب كنص يُستبعدون من حساب الآيات.</li>
+  <li>تُحسب نسبة التغيّر للطلاب أنفسهم ممن أمكن عدّ مقدارهم في الشهرين. إذا كان إجمالي الشهر الأول صفرًا، يظهر فرق الآيات.</li>
+</ul></section>`;
 
 function delta(result) {
   const label = result.percent === null
@@ -34,7 +39,7 @@ function chart(rows, kind, interactive) {
   }
   const stats = Object.entries(statuses).map(([state, label]) =>
     '<div class="mc-stat mc-' + state + '"><strong>' + number.format(totals[state]) + '</strong><span>' + label + '</span></div>').join('');
-  const bar = (amount, index) => amount.legacy
+  const bar = (amount, index) => amount.legacy || amount.incomplete
     ? `<div class="mc-bar mc-bar-text mc-period-${index}"><b>${periods[index]}</b> <span>${escape(amount.label)}</span></div>`
     : `<div class="mc-bar mc-period-${index}" aria-label="${periods[index]}">
     <span class="mc-track" aria-hidden="true">${amount.count > 0 ? '<i style="--mc-size:' + (amount.count * 100 / maximum) + '%"></i>' : ''}</span>
@@ -55,7 +60,7 @@ function chart(rows, kind, interactive) {
 
 function amountCell(value) {
   return `<td>${value.count === null ? '' : '<strong>' + number.format(value.count) + ' آية</strong>'}
-    <span>${escape(value.label)}</span>${value.legacy ? '<small>مقدار نصي</small>' : ''}</td>`;
+    <span>${escape(value.label)}</span>${value.legacy ? '<small>مقدار نصي</small>' : ''}${value.incomplete ? '<small>سجل الحفظ والمراجعة غير مكتمل</small>' : ''}</td>`;
 }
 
 function table(rows, kind) {
@@ -96,7 +101,7 @@ function teacherSummary({ months, average, changes, monthlyTotals }) {
       <td><bdi>${value.rate === null ? '—' : percent.format(value.rate)}</bdi>${value.compared && value.rate === null ? '<small>بدأ من صفر</small>' : ''}</td>
       <td>${number.format(value.compared)} من ${number.format(value.total)}${value.compared ? `<small>${number.format(value.first)} ← ${number.format(value.second)} آية</small>` : ''}</td>
     </tr>`).join('')}</tbody></table></div>
-    <p class="mc-method">إجمالي كل شهر يشمل كل المقادير القابلة للعد فيه. الفرق والنسبة يُحسبان للطلاب أنفسهم ممن لديهم مقدار قابل للعد في الشهرين.</p></section>`;
+    <p class="mc-method">عمود الطلاب المشتركون يوضح عدد من أمكن عدّ مقدارهم من بين الطلاب الذين لديهم سجل حفظ ومراجعة مكتمل في الشهرين.</p></section>`;
 }
 
 function juzSummary(juz, interactive) {
@@ -131,6 +136,7 @@ function printSchoolReport({ term, juz, teacherNames }) {
   return `<article class="report-document mc-document" lang="ar" dir="rtl">
     <header class="mc-print-header"><div class="mc-print-brand">${brandLockup()}</div>
     <div><h1>تقرير الأجزاء المكتملة على مستوى المدرسة</h1><p>${escape(term.name)}</p></div></header>
+    ${calculationRules}
     ${juzSummary(juz, false)}
     ${juz.map((period, index) => {
       const rows = Object.values(period.buckets).flat().filter(row => row.juz.length);
@@ -143,11 +149,11 @@ function printReport({ teacher, months, term, data, rows, summary, juz, kind }) 
   return `<article class="report-document mc-document" lang="ar" dir="rtl">
     <header class="mc-print-header"><div class="mc-print-brand">${brandLockup()}</div>
       <div><h1>مقارنة الحفظ والمراجعة الشهرية</h1><p>${escape(term.name)}</p></div></header>
+    ${calculationRules}
     ${metadata(teacher, months, data)}
     ${teacherSummary(summary)}
     ${juzSummary(juz, false)}
     ${chart(rows, kind, false)}
-    <p class="mc-method">${explanation}</p>
     <section class="mc-panel mc-print-details"><h2>التقرير المفصّل للطلاب</h2>
       ${Object.keys(comparisonKinds).map(key => table(rows, key)).join('')}</section>
   </article>`;
@@ -168,7 +174,7 @@ export function createMonthlyComparison({ repo, openPdf, openMonthlyReport }) {
           <option value="">المدرسة كلها</option>${options.map(teacher => `<option value="${escape(teacher.username)}">
             ${escape([teacher.full_name, teacher.ring_name || teacher.class_name].filter(Boolean).join(' · '))}</option>`).join('')}
         </select></label><button type="button" data-mc-refresh class="light-button" disabled>تحديث</button></div>
-      </header><p class="mc-status" role="status"></p><div class="mc-result"></div>
+      </header>${calculationRules}<p class="mc-status" role="status"></p><div class="mc-result"></div>
       <dialog class="confirm-dialog mc-dialog" aria-labelledby="mc-student-name"><div class="mc-student-data"></div>
         <footer><button class="light-button" type="button" data-mc-close>إغلاق التفاصيل</button></footer></dialog>
     </section>`;
@@ -204,11 +210,11 @@ export function createMonthlyComparison({ repo, openPdf, openMonthlyReport }) {
         const summary = summarizeMonthlyComparison(data.students, data.first.entries, data.second.entries, rows);
         const juz = buildJuzReport(data.students, data.first.entries, data.second.entries);
         snapshot = { teacher, months, term, data, rows, summary, juz };
-        status.textContent = rows.length ? '' : 'لا توجد قائمة طلاب أو سجلات محفوظة لهذه الحلقة في الشهرين.';
+        status.textContent = rows.length ? '' : 'لا توجد سجلات حفظ ومراجعة مكتملة لهذه الحلقة في الشهرين.';
         result.innerHTML = metadata(teacher, months, data, true);
-        if (!rows.length) return;
         result.insertAdjacentHTML('beforeend', teacherSummary(summary));
         result.insertAdjacentHTML('beforeend', juzSummary(juz, true));
+        if (!rows.length) return;
         result.insertAdjacentHTML('beforeend', `<div class="mc-actions">
           <div role="group" aria-label="نوع المقارنة">${Object.entries(comparisonKinds).map(([key, label]) =>
             `<button type="button" data-mc-kind="${key}" aria-pressed="${kind === key}">${label}</button>`).join('')}</div>
@@ -216,7 +222,7 @@ export function createMonthlyComparison({ repo, openPdf, openMonthlyReport }) {
           <div class="mc-chart-area">${chart(rows, kind, true)}</div>
           <section class="mc-panel"><h3>التقرير المفصّل للطلاب</h3>
             ${Object.keys(comparisonKinds).map(key => table(rows, key)).join('')}
-          </section><p class="mc-method">${explanation}</p>`);
+          </section>`);
       } catch {
         if (ticket === request && workspace.isConnected) status.textContent = 'تعذّر تحميل المقارنة. اضغط تحديث للمحاولة مرة أخرى.';
       } finally {

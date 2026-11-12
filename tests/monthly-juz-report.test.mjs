@@ -8,7 +8,9 @@ const amount = (from_surah, from_ayah, to_surah, to_ayah) => {
   const range = { from_surah, from_ayah, to_surah, to_ayah };
   return { none: false, range, text: monthlyRangeText(range) };
 };
-const entry = (student_id, memorization, teacher_username) => ({ student_id, memorization, teacher_username });
+const entry = (student_id, memorization, teacher_username) => ({
+  student_id, memorization, teacher_username, note: '', revision: { none: true, text: '', ...(memorization.absent ? { absent: true } : {}) },
+});
 
 test('only complete numbered juz are counted, including coverage combined across records', () => {
   const first = recordedAyahRanges(amount(67, 1, 77, 50));
@@ -55,4 +57,14 @@ test('text, no amount, and absence contribute different evidence to the report',
   assert.equal(combined.buckets.one.length, 0);
   assert.deepEqual(combined.buckets.unresolved.find(row => row.name === 'text').juz, [30]);
   assert.equal(combined.buckets.zero[0].name, 'absent');
+});
+
+test('the school excludes a saved memorization range until the review entry is complete', () => {
+  const students = [{ id: '1', full_name: 'طالب', active: true }];
+  const saved = entry('1', amount(78, 1, 114, 6));
+  const [first, second, combined] = buildJuzReport(students, [{ ...saved, is_complete: false }], [saved]);
+  assert.equal(first.measurable, 0);
+  assert.equal(first.buckets.unresolved.length, 1);
+  assert.deepEqual(second.buckets.one[0].juz, [30]);
+  assert.equal(combined.measurable, 0);
 });

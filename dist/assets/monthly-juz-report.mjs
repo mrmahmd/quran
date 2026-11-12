@@ -1,4 +1,6 @@
 import { completedJuz, recordedAyahRanges } from './quran-juz.mjs';
+import { monthlyAbsent } from './monthly-model.mjs?v=monthly-save2';
+import { hasSavedMonthlyAmounts } from './monthly-comparison-record.mjs';
 
 export const juzCategories = {
   one: 'جزء واحد بالضبط',
@@ -27,8 +29,8 @@ function studentIdentities(students) {
 }
 
 function describePeriod(entries) {
-  const recorded = entries.filter(entry => entry.memorization?.absent !== true);
-  const ranges = recorded.map(entry => recordedAyahRanges(entry.memorization));
+  const recorded = entries.filter(entry => !monthlyAbsent(entry));
+  const ranges = recorded.map(entry => hasSavedMonthlyAmounts(entry) ? recordedAyahRanges(entry.memorization) : null);
   return {
     ranges: ranges.flatMap(value => value || []),
     numeric: ranges.some(value => value !== null),

@@ -24,6 +24,9 @@
 .mc-workspace .mc-actions button[data-mc-kind]:hover:not([aria-pressed="true"]){background:#d9e8ee}
 .mc-panel{min-width:0;background:#fff;border:1px solid var(--mc-line);border-radius:16px;padding:clamp(12px,2vw,22px)}
 .mc-panel :is(h2,h3){font-size:1.07rem;margin:0 0 13px;color:var(--mc-ink)}
+.mc-rules{margin-top:14px;background:#f7fafb}
+.mc-rules ul{margin:0;padding-inline-start:1.35em;font-size:.83rem;line-height:1.8;color:var(--mc-muted)}
+.mc-rules li+li{margin-top:4px}
 .mc-summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr));gap:8px}
 .mc-summary-grid>div{display:grid;gap:4px;align-content:start;background:#f2f7fa;border:1px solid var(--mc-line);border-radius:10px;padding:10px 12px;font-size:.83rem}
 .mc-summary-grid strong{font-size:1.28rem;color:var(--mc-second)}
@@ -123,6 +126,7 @@
   .mc-document .mc-metadata>div{padding:7px 10px;gap:3px}
   .mc-document .mc-panel{padding:7px;border-radius:0}
   .mc-document .mc-summary{break-inside:avoid}
+  .mc-document .mc-rules{break-inside:avoid}
   .mc-document .mc-stats{margin-bottom:8px}
   .mc-document .mc-stat{padding:5px}
   .mc-document .mc-chart .mc-bars{gap:2px}

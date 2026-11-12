@@ -20,34 +20,43 @@ test('counts inclusive ayat in each kind and compares against the first month', 
 });
 
 test('counts cross-surah ranges in either order and includes both endpoints', () => {
-  const row = compare(entry(range(112, 4, 114, 2)), entry(range(114, 6, 112, 2)));
+  const row = compare(entry(range(112, 4, 114, 2), none), entry(range(114, 6, 112, 2), none));
   assert.equal(row.memorization.first.count, 8);
   assert.equal(row.memorization.second.count, 8);
   assert.equal(row.memorization.percent, 0);
 });
 
+test('counts descending monthly ranges across adjacent surahs and across a complete middle surah', () => {
+  const row = compare(entry(range(39, 1, 38, 42), range(39, 70, 37, 10)),
+    entry(range(38, 43, 37, 37), range(39, 70, 37, 11)));
+  assert.deepEqual([row.memorization.first.count, row.memorization.second.count, row.memorization.change], [117, 83, -34]);
+  assert.deepEqual([row.revision.first.count, row.revision.second.count, row.revision.change], [104, 105, 1]);
+});
+
 test('separates zero, new records, absent students and legacy text', () => {
-  const row = compare(entry(none, { ...none, absent: true }), entry(range(1, 1, 1, 7), none));
+  const row = compare(entry(none, none), entry(range(1, 1, 1, 7), none));
   assert.deepEqual([row.memorization.state, row.memorization.change, row.memorization.percent], ['new', 7, null]);
-  assert.deepEqual([row.revision.first.label, row.revision.second.count, row.revision.state], ['غائب', 0, 'unavailable']);
+  const absent = { ...none, absent: true };
+  const attended = compare(entry(absent, absent), entry(range(1, 1, 1, 7), none));
+  assert.deepEqual([attended.revision.first.label, attended.revision.second.count, attended.revision.state], ['غائب', 0, 'unavailable']);
   const legacy = compare(entry(none, { none: false, text: 'سورة الملك' }), entry(none, range(67, 1, 67, 30)));
   assert.equal(legacy.memorization.percent, 0);
   assert.deepEqual(legacy.revision.first, { label: 'سورة الملك', count: null, legacy: true });
-  const mismatch = compare(entry({ ...range(1, 1, 1, 7), text: 'مقدار قديم' }), entry(none));
+  const mismatch = compare(entry({ ...range(1, 1, 1, 7), text: 'مقدار قديم' }, none), entry(none, none));
   assert.deepEqual(mismatch.memorization.first, { label: 'مقدار قديم', count: null, legacy: true });
 });
 
 test('shows historical students with entries and leaves incomplete or missing amounts unscored', () => {
   const students = [...roster, { id: '2', full_name: 'اسم منقول' }, { id: '3', full_name: 'طالب مؤرشف بلا تقرير' }];
   const rows = buildMonthlyComparison(students, [
-    entry(range(1, 1, 1, 8)),
-    { student_id: '2', memorization: range(1, 1, 1, 7) },
-  ], []);
+    entry(range(1, 1, 1, 8), none),
+    { ...entry(range(1, 1, 1, 7), none), student_id: '2' },
+  ], [entry(none, none)]);
   const current = rows.find(row => row.id === '1');
   assert.equal(rows.length, 2);
   assert.equal(rows.find(row => row.id === '2').name, 'اسم منقول');
   assert.equal(current.memorization.first.label, 'مقدار غير مكتمل');
-  assert.equal(current.memorization.second.label, 'غير مسجّل');
+  assert.equal(rows.find(row => row.id === '2').memorization.second.label, 'غير مسجّل');
   assert.equal(current.memorization.percent, null);
 });
 
@@ -60,7 +69,7 @@ test('teacher achievement counts completed text entries and averages the monthly
   const result = summarizeMonthlyComparison(students, first, second, rows);
   assert.deepEqual(result.months, [{ total: 2, completed: 1, rate: 0.5 }, { total: 1, completed: 1, rate: 1 }]);
   assert.equal(result.average, 0.75);
-  assert.deepEqual(result.changes.memorization, { compared: 0, total: 2, first: 0, second: 0, difference: 0, rate: null });
+  assert.deepEqual(result.changes.memorization, { compared: 0, total: 1, first: 0, second: 0, difference: 0, rate: null });
 });
 
 test('quantity comparison sums ayat for the same students and handles a zero baseline', () => {
@@ -70,9 +79,26 @@ test('quantity comparison sums ayat for the same students and handles a zero bas
     { ...entry(range(2, 1, 2, 40), none), student_id: '3' }];
   const rows = buildMonthlyComparison(students, first, second);
   const result = summarizeMonthlyComparison(students, first, second, rows);
-  assert.deepEqual(result.changes.memorization, { compared: 2, total: 3, first: 40, second: 40, difference: 0, rate: 0 });
-  assert.deepEqual(result.changes.revision, { compared: 2, total: 3, first: 0, second: 10, difference: 10, rate: null });
+  assert.deepEqual(result.changes.memorization, { compared: 2, total: 2, first: 40, second: 40, difference: 0, rate: 0 });
+  assert.deepEqual(result.changes.revision, { compared: 2, total: 2, first: 0, second: 10, difference: 10, rate: null });
   const missing = summarizeMonthlyComparison(students, first, [], buildMonthlyComparison(students, first, []));
   assert.equal(missing.months[1].rate, 0);
   assert.equal(summarizeMonthlyComparison([], [], [], []).average, null);
+});
+
+test('only students with both saved amounts contribute to monthly totals or a paired change', () => {
+  const students = ['1', 'draft', 'absent', 'never-saved'].map(id => ({ id, active: true }));
+  const absent = { ...none, absent: true };
+  const first = [entry(range(2, 1, 2, 10), none),
+    { ...entry(range(2, 1, 2, 90)), student_id: 'draft', is_complete: false },
+    { ...entry(absent, absent), student_id: 'absent' }];
+  const second = [entry(range(2, 1, 2, 20), none),
+    { ...entry(range(2, 1, 2, 30), none), student_id: 'draft' },
+    { ...entry(absent, absent), student_id: 'absent' }];
+  const rows = buildMonthlyComparison(students, first, second);
+  const { changes, monthlyTotals } = summarizeMonthlyComparison(students, first, second, rows);
+  assert.deepEqual(rows.map(row => row.id), ['1', 'draft']);
+  assert.equal(rows[1].memorization.first.incomplete, true);
+  assert.deepEqual(monthlyTotals.memorization, [{ ayat: 10, students: 1 }, { ayat: 50, students: 2 }]);
+  assert.deepEqual(changes.memorization, { compared: 1, total: 1, first: 10, second: 20, difference: 10, rate: 1 });
 });
