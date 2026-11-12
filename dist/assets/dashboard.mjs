@@ -371,10 +371,60 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
     render();return true;
   }
   const monthLabel = value => monthlyLabel(selectedTerm(),value);
+  function monthlyRangeFields(range, fieldAttribute) {
+    const fields = [['from','البداية'],['to','النهاية']].map(([side,title]) => {
+      const surah = range[`${side}_surah`], ayah = range[`${side}_ayah`];
+      const options = SURAHS.map(s=>`<option value="${s.number}" ${surah===s.number?'selected':''}>${s.number}. ${esc(s.name)}</option>`).join('');
+      return `<div class="monthly-range-end"><b>${title}</b><label>السورة<select ${fieldAttribute}="${side}_surah" aria-label="سورة ${title}"><option value="">اختر السورة…</option>${options}</select></label><label>الآية<input type="number" inputmode="numeric" min="1" max="${SURAHS[surah-1]?.verses||286}" ${fieldAttribute}="${side}_ayah" value="${esc(ayah??'')}" placeholder="رقم الآية" aria-label="آية ${title}"></label></div>`;
+    });
+    return `<div class="monthly-range-grid">${fields.join('')}</div>`;
+  }
   function monthlySection(student, kind, label) {
-    const row=monthlyRows.get(student.id)[kind], r=row.range||{}, disabled=monthlyReadonly()?'disabled':'';
-    const fields=(side,title)=>`<div class="monthly-range-end"><b>${title}</b><label>السورة<select data-monthly-range="${side}_surah" aria-label="سورة ${title}"><option value="">اختر السورة…</option>${SURAHS.map(s=>`<option value="${s.number}" ${r[side+'_surah']===s.number?'selected':''}>${s.number}. ${esc(s.name)}</option>`).join('')}</select></label><label>الآية<input type="number" inputmode="numeric" min="1" max="${SURAHS.find(s=>s.number===r[side+'_surah'])?.verses||286}" data-monthly-range="${side}_ayah" value="${r[side+'_ayah']||''}" placeholder="رقم الآية" aria-label="آية ${title}"></label></div>`;
-    return `<section class="monthly-section ${kind}" data-monthly-section="${kind}"><h4>مقدار ${label}</h4><label class="none-choice"><input type="checkbox" data-monthly-none="${kind}" ${row.none?'checked':''} ${disabled}>لا يوجد ${label} خلال الشهر</label>${row.none?'<p class="zero-report">لا يوجد مقدار مسجّل لهذا الشهر.</p>':!row.range && row.text ? `<label>مقدار مسجّل سابقًا<textarea data-monthly-kind="${kind}" maxlength="1000" rows="3">${esc(row.text)}</textarea></label><p>يمكنك تعديل النص السابق دون فقد بياناته.</p>` : `<div class="monthly-range-grid">${fields('from','البداية')}${fields('to','النهاية')}</div><p class="monthly-range-summary" aria-live="polite">${esc(row.text||'اختر السور وأدخل أرقام الآيات؛ من ١ إلى عدد آيات السورة.')}</p>`}</section>`;
+    const row=monthlyRows.get(student.id)[kind];
+    let amount;
+    if (row.none) amount='<p class="zero-report">لا يوجد مقدار مسجّل لهذا الشهر.</p>';
+    else if (!row.range && row.text) amount=`<label>مقدار مسجّل سابقًا<textarea data-monthly-kind="${kind}" maxlength="1000" rows="3">${esc(row.text)}</textarea></label><button type="button" class="monthly-copy-button" data-monthly-convert="${kind}">تحديد السور والآيات</button>`;
+    else amount=`${monthlyRangeFields(row.range||{},'data-monthly-range')}<p class="monthly-range-summary" aria-live="polite">${esc(row.text||'اختر السور وأدخل أرقام الآيات؛ من ١ إلى عدد آيات السورة.')}</p>`;
+    return `<section class="monthly-section ${kind}" data-monthly-section="${kind}"><h4>مقدار ${label}</h4><label class="none-choice"><input type="checkbox" data-monthly-none="${kind}" ${row.none?'checked':''}>لا يوجد ${label} خلال الشهر</label>${amount}</section>`;
+  }
+  function openMonthlyRangeEditor(student, kind) {
+    const scope=monthlyScope(), current=monthlyRows.get(student.id)[kind];
+    const label=kind==='memorization'?'الحفظ':'المراجعة';
+    const modal=document.createElement('dialog');
+    modal.className='monthly-bulk-dialog';
+    modal.setAttribute('aria-label',`تحديد آيات ${label}`);
+    modal.innerHTML=`<form novalidate><header><h2>تحديد آيات ${label}</h2><p>${esc(student.full_name)}</p></header>
+      <div class="monthly-copy-summary"><h3>المقدار المسجّل</h3><p>${esc(current.text)}</p></div>
+      ${monthlyRangeFields({},'data-convert-range')}<p class="bulk-error" role="alert"></p>
+      <footer><button type="button" class="light-button" data-convert-cancel>إلغاء</button><button type="submit" class="teal-button">تطبيق المقدار</button></footer>
+      <p class="bulk-footnote">بعد التطبيق، اضغط «حفظ التعديلات» لحفظ المقدار الجديد.</p></form>`;
+    modal.addEventListener('close',()=>modal.remove(),{once:true});
+    modal.querySelector('[data-convert-cancel]').addEventListener('click',()=>modal.close());
+    const fields=[...modal.querySelectorAll('[data-convert-range]')];
+    modal.addEventListener('change',event=>{
+      const field=event.target.dataset.convertRange;
+      if (!field?.endsWith('_surah')) return;
+      const ayah=fields.find(input=>input.dataset.convertRange===field.replace('_surah','_ayah'));
+      ayah.max=SURAHS[Number(event.target.value)-1]?.verses||286;
+    });
+    modal.querySelector('form').addEventListener('submit',event=>{
+      event.preventDefault();
+      if (busy || scope!==monthlyScope() || monthlyReadonly()) {modal.close();return;}
+      const range=Object.fromEntries(fields.map(field=>[field.dataset.convertRange,field.value?Number(field.value):null]));
+      const text=monthlyRangeText(range);
+      if (!text) {
+        modal.querySelector('.bulk-error').textContent='اختر سورتي البداية والنهاية وأدخل رقم آية صحيحًا لكل منهما.';
+        return;
+      }
+      const row=monthlyRows.get(student.id);
+      monthlyRows.set(student.id,{...row,[kind]:{none:false,text,range}});
+      monthlyDirty=true;
+      if (monthlyStudentFilter==='complete') monthlyStudentFilter='pending';
+      modal.close();renderMonthly();
+      root.querySelector(`[data-monthly-student="${student.id}"] [data-monthly-section="${kind}"] select`)?.focus();
+    });
+    document.body.append(modal);
+    modal.showModal();
   }
   function monthlyReaderPicker() {
     return `<label class="monthly-reader-select">المعلم / الحلقة<select id="monthly-report-teacher">${teachers.map(t=>`<option value="${esc(t.username)}" ${t.username===teacherId?'selected':''}>${esc(t.full_name)} · ${esc(t.ring_name||t.class_name)}</option>`).join('')}</select></label>`;
@@ -708,6 +758,13 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
     if(monthlyTeacher&&monthlyReader&&!busy){teacherId=monthlyTeacher.dataset.monthlyTeacher;view=admin?'monthly':'monthlyReport';updateSelectors();await action(refreshMonthlyRoster,'');root.querySelector('.monthly-detail-title')?.scrollIntoView({block:'start',behavior:'smooth'});return;}
     if(event.target.closest('#print-monthly-overview')&&monthlyReader&&!busy){await action(async()=>{await refreshMonthlyRoster();openReport('monthly');},'');return;}
     if(event.target.closest('#refresh-monthly-roster')&&!busy){await action(refreshMonthlyRoster,'تم تحديث قائمة الطلاب مع الاحتفاظ بالبيانات المدخلة.');return;}
+    const convertMonthly=event.target.closest('[data-monthly-convert]');
+    if (convertMonthly && !busy && !monthlyReadonly()) {
+      const id=convertMonthly.closest('[data-monthly-student]').dataset.monthlyStudent;
+      const student=monthlyStudents().find(item=>item.id===id);
+      if (student) openMonthlyRangeEditor(student,convertMonthly.dataset.monthlyConvert);
+      return;
+    }
     const copyRevision=event.target.closest('[data-copy-revision]');
     if(copyRevision&&!busy&&!monthlyReadonly()){
       const id=copyRevision.dataset.copyRevision,row=monthlyRows.get(id);let next;
