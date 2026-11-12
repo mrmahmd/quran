@@ -1,4 +1,5 @@
-import { monthlyProblem, monthlyRangeText, SURAHS } from './monthly-model.mjs?v=monthly-save2';
+import { monthlyProblem, monthlyRangeText } from './monthly-model.mjs?v=monthly-save2';
+import { recordedAyahRanges } from './quran-juz.mjs';
 
 export const comparisonKinds = { memorization: 'الحفظ', revision: 'المراجعة' };
 
@@ -8,15 +9,8 @@ function amount(value) {
   if (value?.none === true && !text) return { count: 0, label: 'لا يوجد' };
   const range = value?.range;
   const label = monthlyRangeText(range);
-  if (value?.none === false && label && text === label) {
-    const { from_surah: from, to_surah: to, from_ayah: first, to_ayah: last } = range;
-    if (from === to) return { count: last - first + 1, label };
-    // Surahs can be selected in either order. Ayat within each surah are read forward.
-    const between = SURAHS.slice(Math.min(from, to), Math.max(from, to) - 1);
-    const count = SURAHS[from - 1].verses - first + 1 + last
-      + between.reduce((total, surah) => total + surah.verses, 0);
-    return { count, label };
-  }
+  const intervals = recordedAyahRanges(value);
+  if (intervals) return { count: intervals.reduce((sum, [start, end]) => sum + end - start + 1, 0), label };
   if (text && (!range || label)) return { count: null, label: text, legacy: true };
   const started = text || Object.values(range ?? {}).some(part => part != null && part !== '');
   return { count: null, label: started ? 'مقدار غير مكتمل' : 'غير مسجّل' };
@@ -67,5 +61,11 @@ export function summarizeMonthlyComparison(students, firstEntries, secondEntries
     const rate = first ? difference / first : pairs.length && second === 0 ? 0 : null;
     return [kind, { compared: pairs.length, total: rows.length, first, second, difference, rate }];
   }));
-  return { months, average, changes };
+  const monthlyTotals = Object.fromEntries(Object.keys(comparisonKinds).map(kind => [kind,
+    ['first', 'second'].map(month => {
+      const counted = rows.map(row => row[kind][month].count).filter(count => count !== null);
+      return { ayat: counted.reduce((sum, count) => sum + count, 0), students: counted.length };
+    }),
+  ]));
+  return { months, average, changes, monthlyTotals };
 }

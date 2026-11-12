@@ -65,6 +65,11 @@
 .mc-table td:nth-child(2),.mc-table td:nth-child(3){width:26%}
 .mc-table :is(td,th)>:is(small,strong,span:not(.mc-delta)){display:block;overflow-wrap:anywhere}
 .mc-table small,.mc-table td>span:not(.mc-delta){color:var(--mc-muted)}
+.mc-juz-table th,.mc-juz-table td,.mc-totals-table th,.mc-totals-table td{width:auto}
+.mc-juz-table tfoot{background:#eaf3f7;font-weight:700}
+.mc-count{background:none;border:0;padding:4px 8px;color:#1b527a;text-align:start;font:inherit;font-weight:700;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.mc-count small{margin-inline-start:4px}
+.mc-actions>h3{margin:0;color:var(--mc-ink)}
 .mc-method{margin:0;color:var(--mc-muted);font-size:.75rem;line-height:1.75}
 .mc-dialog{width:min(900px,calc(100% - 22px));max-width:none}
 .mc-dialog.confirm-dialog>.mc-student-data{display:block;margin:0}

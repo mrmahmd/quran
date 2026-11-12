@@ -11,6 +11,15 @@ async function allRows(build) {
     if (data.length < 500) return rows;
   }
 }
+async function monthlyEntries(client, reports) {
+  const entries = [];
+  for (let start = 0; start < reports.length; start += 100) {
+    const ids = reports.slice(start, start + 100).map(report => report.id);
+    entries.push(...await allRows(() => client.from('monthly_entries').select('*')
+      .in('report_id', ids).order('report_id').order('student_id')));
+  }
+  return entries;
+}
 async function loadKhairkom(client, term, period = 1) {
   const sets = await allRows(() => client.from('khairkom_nomination_sets').select('*').eq('term_id', term).eq('period_no', period).order('teacher_username'));
   const rows = sets.length ? await allRows(() => client.from('khairkom_nominations').select('*').in('set_id', sets.map(row => row.id)).eq('nominated', true).order('teacher_username').order('student_id')) : [];
@@ -86,7 +95,7 @@ export function createDashboardRepository(client) {
       const [first, second, roster] = await Promise.all([
         this.monthly(teacher, term, firstMonth),
         this.monthly(teacher, term, secondMonth),
-        allRows(() => client.from('students').select('id,full_name,source_class,active')
+        allRows(() => client.from('students').select('id,full_name,source_class,teacher_username,student_code,active')
           .eq('teacher_username', teacher).order('id')),
       ]);
       const rosterIds = new Set(roster.map(student => student.id));
@@ -94,10 +103,20 @@ export function createDashboardRepository(client) {
         .map(entry => entry.student_id).filter(id => !rosterIds.has(id)))];
       const historical = [];
       for (let start = 0; start < historicalIds.length; start += 100) {
-        historical.push(...await result(client.from('students').select('id,full_name,source_class')
+        historical.push(...await result(client.from('students').select('id,full_name,source_class,teacher_username,student_code')
           .in('id', historicalIds.slice(start, start + 100))));
       }
       return { first, second, students: [...roster, ...historical] };
+    },
+    async monthlySchoolComparison(term, months) {
+      const [reports, students] = await Promise.all([
+        allRows(() => client.from('monthly_reports').select('id,month_start')
+          .eq('term_id', term).in('month_start', months).order('id')),
+        allRows(() => client.from('students').select('id,full_name,source_class,teacher_username,student_code,active').order('id')),
+      ]);
+      const periodByReport = new Map(reports.map(report => [report.id, report.month_start]));
+      const entries = await monthlyEntries(client, reports);
+      return { students, entries: months.map(month => entries.filter(entry => periodByReport.get(entry.report_id) === month)) };
     },
     monthStates: term => result(client.from('monthly_workflow_access').select('month_start,is_open,updated_at').eq('term_id',term).order('month_start')),
     setMonthOpen: (term,month,open) => result(client.rpc('set_month_workflow_open',{p_term:term,p_month:month,p_open:open})),
@@ -106,7 +125,7 @@ export function createDashboardRepository(client) {
         allRows(()=>client.from('monthly_reports').select('*').eq('term_id',term).eq('month_start',month).order('teacher_username')),
         allRows(()=>client.from('students').select('id,full_name,source_class,teacher_username,active').order('id')),
       ]);
-      const entries=reports.length?await allRows(()=>client.from('monthly_entries').select('*').in('report_id',reports.map(r=>r.id)).order('report_id').order('student_id')):[];
+      const entries=await monthlyEntries(client, reports);
       return {reports,students,entries};
     },
     async saveMonthly(args) {
