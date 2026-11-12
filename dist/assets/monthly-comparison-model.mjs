@@ -1,4 +1,4 @@
-import { monthlyRangeText, SURAHS } from './monthly-model.mjs?v=monthly-finish1';
+import { monthlyProblem, monthlyRangeText, SURAHS } from './monthly-model.mjs?v=monthly-save2';
 
 export const comparisonKinds = { memorization: 'الحفظ', revision: 'المراجعة' };
 
@@ -46,4 +46,26 @@ export function buildMonthlyComparison(students, firstEntries, secondEntries) {
     memorization: compare(first.get(id)?.memorization, second.get(id)?.memorization),
     revision: compare(first.get(id)?.revision, second.get(id)?.revision),
   })).sort((a, b) => a.name.localeCompare(b.name, 'ar', { numeric: true }));
+}
+
+export function summarizeMonthlyComparison(students, firstEntries, secondEntries, rows) {
+  const active = students.filter(student => student.active).map(student => student.id);
+  const months = [firstEntries, secondEntries].map(entries => {
+    const total = new Set([...active, ...entries.map(entry => entry.student_id)]).size;
+    const completed = entries.filter(entry => entry.is_complete ?? !monthlyProblem(entry)).length;
+    return { total, completed, rate: total ? completed / total : null };
+  });
+  const average = months.every(month => month.rate !== null)
+    ? (months[0].rate + months[1].rate) / 2
+    : null;
+
+  const changes = Object.fromEntries(Object.keys(comparisonKinds).map(kind => {
+    const pairs = rows.map(row => row[kind]).filter(row => row.first.count !== null && row.second.count !== null);
+    const first = pairs.reduce((sum, pair) => sum + pair.first.count, 0);
+    const second = pairs.reduce((sum, pair) => sum + pair.second.count, 0);
+    const difference = second - first;
+    const rate = first ? difference / first : pairs.length && second === 0 ? 0 : null;
+    return [kind, { compared: pairs.length, total: rows.length, first, second, difference, rate }];
+  }));
+  return { months, average, changes };
 }

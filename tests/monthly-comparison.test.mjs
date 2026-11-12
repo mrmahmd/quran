@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { buildMonthlyComparison } from '../dist/assets/monthly-comparison-model.mjs';
+import { buildMonthlyComparison, summarizeMonthlyComparison } from '../dist/assets/monthly-comparison-model.mjs';
 import { monthlyRangeText } from '../dist/assets/monthly-model.mjs';
 
 const range = (from_surah, from_ayah, to_surah, to_ayah) => {
@@ -8,7 +8,7 @@ const range = (from_surah, from_ayah, to_surah, to_ayah) => {
   return { none: false, text: monthlyRangeText(range), range };
 };
 const none = { none: true, text: '' };
-const entry = (memorization, revision) => ({ student_id: '1', memorization, revision });
+const entry = (memorization, revision) => ({ student_id: '1', memorization, revision, note: '' });
 const roster = [{ id: '1', full_name: 'طالب', active: true }];
 const compare = (first, second) => buildMonthlyComparison(roster, [first], [second])[0];
 
@@ -49,4 +49,30 @@ test('shows historical students with entries and leaves incomplete or missing am
   assert.equal(current.memorization.first.label, 'مقدار غير مكتمل');
   assert.equal(current.memorization.second.label, 'غير مسجّل');
   assert.equal(current.memorization.percent, null);
+});
+
+test('teacher achievement counts completed text entries and averages the monthly rates equally', () => {
+  const students = [...roster, { id: '2', active: false }];
+  const text = { none: false, text: 'البروج حتى النازعات' };
+  const first = [entry(range(2, 1, 2, 20), none), { ...entry(none, none), student_id: '2', is_complete: false }];
+  const second = [entry(text, none)];
+  const rows = buildMonthlyComparison(students, first, second);
+  const result = summarizeMonthlyComparison(students, first, second, rows);
+  assert.deepEqual(result.months, [{ total: 2, completed: 1, rate: 0.5 }, { total: 1, completed: 1, rate: 1 }]);
+  assert.equal(result.average, 0.75);
+  assert.deepEqual(result.changes.memorization, { compared: 0, total: 2, first: 0, second: 0, difference: 0, rate: null });
+});
+
+test('quantity comparison sums ayat for the same students and handles a zero baseline', () => {
+  const students = [...roster, { id: '2', active: true }, { id: '3', active: true }];
+  const first = [entry(range(2, 1, 2, 10), none), { ...entry(range(2, 1, 2, 30), none), student_id: '2' }];
+  const second = [entry(range(2, 1, 2, 20), range(2, 1, 2, 10)), { ...entry(range(2, 1, 2, 20), none), student_id: '2' },
+    { ...entry(range(2, 1, 2, 40), none), student_id: '3' }];
+  const rows = buildMonthlyComparison(students, first, second);
+  const result = summarizeMonthlyComparison(students, first, second, rows);
+  assert.deepEqual(result.changes.memorization, { compared: 2, total: 3, first: 40, second: 40, difference: 0, rate: 0 });
+  assert.deepEqual(result.changes.revision, { compared: 2, total: 3, first: 0, second: 10, difference: 10, rate: null });
+  const missing = summarizeMonthlyComparison(students, first, [], buildMonthlyComparison(students, first, []));
+  assert.equal(missing.months[1].rate, 0);
+  assert.equal(summarizeMonthlyComparison([], [], [], []).average, null);
 });

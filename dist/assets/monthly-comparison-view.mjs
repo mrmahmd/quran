@@ -1,6 +1,6 @@
 import { brandLockup } from './brand.mjs';
 import { termMonths } from './monthly-model.mjs?v=monthly-finish1';
-import { buildMonthlyComparison, comparisonKinds } from './monthly-comparison-model.mjs?v=1';
+import { buildMonthlyComparison, comparisonKinds, summarizeMonthlyComparison } from './monthly-comparison-model.mjs?v=2';
 
 const escape = value => String(value ?? '').replace(/[&<>"']/g, char => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
@@ -8,6 +8,7 @@ const escape = value => String(value ?? '').replace(/[&<>"']/g, char => ({
 const number = new Intl.NumberFormat('ar-EG');
 const signed = new Intl.NumberFormat('ar-EG', { signDisplay: 'exceptZero' });
 const percent = new Intl.NumberFormat('ar-EG', { style: 'percent', signDisplay: 'exceptZero', maximumFractionDigits: 1 });
+const achievementPercent = new Intl.NumberFormat('ar-EG', { style: 'percent', maximumFractionDigits: 1 });
 const date = new Intl.DateTimeFormat('ar-SA-u-ca-gregory', { month: 'long', year: 'numeric', timeZone: 'UTC' });
 const periods = ['الشهر الأول', 'الشهر الثاني'];
 const statuses = { up: 'زاد المقدار', down: 'قلّ المقدار', same: 'دون تغيير', new: 'بدأ التسجيل', unavailable: 'بلا نسبة تغيّر' };
@@ -76,11 +77,28 @@ function metadata(teacher, months, data, interactive = false) {
       ${interactive && value.report ? `<button type="button" class="light-button" data-mc-report="${i}">فتح تقرير ${periods[i]}</button>` : ''}</div>`).join('')}</div>`;
 }
 
-function printReport({ teacher, months, term, data, rows, kind }) {
+function teacherSummary({ months, average, changes }) {
+  const rate = value => value === null ? '—' : achievementPercent.format(value);
+  return `<section class="mc-panel mc-summary"><h3>إنجاز المعلم خلال الشهرين</h3>
+    <div class="mc-summary-grid"><div class="mc-summary-average"><span>متوسط الشهرين</span><strong>${rate(average)}</strong></div>
+    ${months.map((month, i) => `<div><span>${periods[i]}</span><strong>${rate(month.rate)}</strong>
+      <small>${number.format(month.completed)} من ${number.format(month.total)} طالبًا مكتملًا ومحفوظًا</small></div>`).join('')}</div>
+    <p class="mc-method">نسبة كل شهر هي عدد الطلاب الذين حُفظ لهم الحفظ والمراجعة من إجمالي طلاب التقرير. المتوسط يعطي الشهرين الوزن نفسه.</p>
+    <h3>التغيّر في إجمالي عدد الآيات</h3>
+    <div class="mc-summary-grid mc-change-grid">${Object.entries(changes).map(([kind, value]) => `<div>
+      <span>${comparisonKinds[kind]}</span><strong>${value.rate === null ? '—' : percent.format(value.rate)}</strong>
+      <small>${number.format(value.compared)} من ${number.format(value.total)} طالبًا قابلًا للمقارنة</small>
+      ${value.compared ? `<small>${periods[0]}: ${number.format(value.first)} آية · ${periods[1]}: ${number.format(value.second)} آية</small>` : ''}
+      ${value.compared && value.rate === null ? `<small>بدأ من صفر · فرق الآيات ${signed.format(value.difference)}</small>` : ''}</div>`).join('')}</div>
+    <p class="mc-method">تدخل في حساب تغيّر عدد الآيات المقادير القابلة للعد في الشهرين للطلاب أنفسهم.</p></section>`;
+}
+
+function printReport({ teacher, months, term, data, rows, summary, kind }) {
   return `<article class="report-document mc-document" lang="ar" dir="rtl">
     <header class="mc-print-header"><div class="mc-print-brand">${brandLockup()}</div>
       <div><h1>مقارنة الحفظ والمراجعة الشهرية</h1><p>${escape(term.name)}</p></div></header>
     ${metadata(teacher, months, data)}
+    ${teacherSummary(summary)}
     ${chart(rows, kind, false)}
     <p class="mc-method">${explanation}</p>
     <section class="mc-panel mc-print-details"><h2>التقرير المفصّل للطلاب</h2>
@@ -130,10 +148,12 @@ export function createMonthlyComparison({ repo, openPdf, openMonthlyReport }) {
         const data = await repo.monthlyComparison(teacher.username, term.id, months);
         if (ticket !== request || !workspace.isConnected) return;
         const rows = buildMonthlyComparison(data.students, data.first.entries, data.second.entries);
-        snapshot = { teacher, months, term, data, rows };
+        const summary = summarizeMonthlyComparison(data.students, data.first.entries, data.second.entries, rows);
+        snapshot = { teacher, months, term, data, rows, summary };
         status.textContent = rows.length ? '' : 'لا توجد قائمة طلاب أو سجلات محفوظة لهذه الحلقة في الشهرين.';
         result.innerHTML = metadata(teacher, months, data, true);
         if (!rows.length) return;
+        result.insertAdjacentHTML('beforeend', teacherSummary(summary));
         result.insertAdjacentHTML('beforeend', `<div class="mc-actions">
           <div role="group" aria-label="نوع المقارنة">${Object.entries(comparisonKinds).map(([key, label]) =>
             `<button type="button" data-mc-kind="${key}" aria-pressed="${kind === key}">${label}</button>`).join('')}</div>
