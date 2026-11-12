@@ -79,6 +79,23 @@ export function createDashboardRepository(client) {
       const entries = report ? await allRows(() => client.from('monthly_entries').select('*').eq('report_id', report.id).order('student_id')) : [];
       return { report, entries };
     },
+    async monthlyComparison(teacher, term, [firstMonth, secondMonth]) {
+      const [first, second, roster] = await Promise.all([
+        this.monthly(teacher, term, firstMonth),
+        this.monthly(teacher, term, secondMonth),
+        allRows(() => client.from('students').select('id,full_name,source_class,active')
+          .eq('teacher_username', teacher).order('id')),
+      ]);
+      const rosterIds = new Set(roster.map(student => student.id));
+      const historicalIds = [...new Set([...first.entries, ...second.entries]
+        .map(entry => entry.student_id).filter(id => !rosterIds.has(id)))];
+      const historical = [];
+      for (let start = 0; start < historicalIds.length; start += 100) {
+        historical.push(...await result(client.from('students').select('id,full_name,source_class')
+          .in('id', historicalIds.slice(start, start + 100))));
+      }
+      return { first, second, students: [...roster, ...historical] };
+    },
     monthStates: term => result(client.from('monthly_workflow_access').select('month_start,is_open,updated_at').eq('term_id',term).order('month_start')),
     setMonthOpen: (term,month,open) => result(client.rpc('set_month_workflow_open',{p_term:term,p_month:month,p_open:open})),
     async monthlyOverview(term,month) {
