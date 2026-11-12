@@ -104,14 +104,14 @@ function juzSummary(juz, interactive) {
     const count = period.buckets[key].length;
     const measured = ['one', 'two', 'many', 'zero'].includes(key);
     const rate = measured && period.measurable ? achievementPercent.format(count / period.measurable) : '';
-    const value = `${number.format(count)}${rate ? ` <small>${rate}</small>` : ''}`;
-    return `<td>${interactive && count ? `<button type="button" class="mc-count" data-mc-juz-period="${index}" data-mc-juz-category="${key}" aria-label="${juzCategories[key]}، ${juzPeriods[index]}، ${number.format(count)} طالبًا">${value}</button>` : value}</td>`;
+    const value = `<bdi class="mc-juz-number" dir="ltr">${number.format(count)}</bdi>${rate ? `<bdi class="mc-juz-rate" dir="ltr">${rate}</bdi>` : ''}`;
+    return `<td>${interactive && count ? `<button type="button" class="mc-count" data-mc-juz-period="${index}" data-mc-juz-category="${key}" aria-label="${juzCategories[key]}، ${juzPeriods[index]}، ${number.format(count)} طالبًا${rate ? `، ${rate}` : ''}">${value}</button>` : `<span class="mc-count-static${count ? '' : ' mc-count-zero'}">${value}</span>`}</td>`;
   };
-  return `<section class="mc-panel mc-summary"><h3>الأجزاء المكتملة في الحفظ</h3>
+  return `<section class="mc-panel mc-summary mc-juz-summary"><h3>الأجزاء المكتملة في الحفظ</h3>
     <div class="mc-table-wrap" tabindex="0" role="region" aria-label="توزيع الأجزاء المكتملة"><table class="mc-table mc-juz-table">
       <thead><tr><th scope="col">مقدار الحفظ</th>${juzPeriods.map(period => `<th scope="col">${period}</th>`).join('')}</tr></thead>
-      <tbody>${Object.entries(juzCategories).map(([key, label]) => `<tr><th scope="row">${label}</th>${juz.map((period, index) => cell(period, index, key)).join('')}</tr>`).join('')}</tbody>
-      <tfoot><tr><th scope="row">الطلاب القابلون للحساب</th>${juz.map(period => `<td>${number.format(period.measurable)} من ${number.format(period.total)}</td>`).join('')}</tr></tfoot>
+      <tbody>${Object.entries(juzCategories).map(([key, label]) => `<tr class="mc-juz-${key}"><th scope="row">${label}</th>${juz.map((period, index) => cell(period, index, key)).join('')}</tr>`).join('')}</tbody>
+      <tfoot><tr><th scope="row">الطلاب القابلون للحساب</th>${juz.map(period => `<td><bdi class="mc-juz-number" dir="ltr">${number.format(period.measurable)}</bdi><span>من <bdi dir="ltr">${number.format(period.total)}</bdi></span></td>`).join('')}</tr></tfoot>
     </table></div>
     <p class="mc-method">النسب من الطلاب القابلين للحساب في كل عمود. إجمالي الشهرين يجمع الآيات المحفوظة مرة واحدة ويحتسب الجزء عند اكتمال جميع آياته.</p></section>`;
 }
