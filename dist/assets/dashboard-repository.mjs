@@ -76,6 +76,9 @@ export function createDashboardRepository(client) {
     async monthly(teacher, term, month) {
       const reports = await result(client.from('monthly_reports').select('*').eq('teacher_username', teacher).eq('term_id', term).eq('month_start', month));
       const report = reports[0] || null;
+      if (report && (report.teacher_username !== teacher || report.term_id !== term || report.month_start !== month)) {
+        throw new Error('تعذّر مطابقة التقرير مع الشهر والحلقة المختارين. حدّث البيانات وأعد المحاولة.');
+      }
       const entries = report ? await allRows(() => client.from('monthly_entries').select('*').eq('report_id', report.id).order('student_id')) : [];
       return { report, entries };
     },
@@ -106,7 +109,14 @@ export function createDashboardRepository(client) {
       const entries=reports.length?await allRows(()=>client.from('monthly_entries').select('*').in('report_id',reports.map(r=>r.id)).order('report_id').order('student_id')):[];
       return {reports,students,entries};
     },
-    saveMonthly: args => result(client.rpc('save_monthly_report', args)),
+    async saveMonthly(args) {
+      const saved = await result(client.rpc('save_monthly_report', args));
+      if (!saved?.id || saved.teacher_username !== args.p_teacher || saved.term_id !== args.p_term ||
+          saved.month_start !== args.p_month || saved.version !== args.p_version + 1) {
+        throw new Error('تعذّر تأكيد حفظ التقرير للشهر المختار. حدّث البيانات قبل إعادة المحاولة.');
+      }
+      return saved;
+    },
     khairkom: (term,period=1) => loadKhairkom(client, term,period),
     khairkomReport: (term,period=1) => result(client.rpc('khairkom_report_snapshot_period', {p_term:term,p_period:period})),
     khairkomCandidates: (term,period=1) => result(client.rpc('khairkom_nomination_candidates_period', {p_term:term,p_period:period})),

@@ -28,6 +28,7 @@ function errorText(error) {
 export async function mountDashboard(root, { repository: repo, account, onLogout, onChangePassword, preview = false }) {
   let terms = [], teachers = [], termId = '', teacherId = account.username || '', week = '', view = account.role === 'admin' ? 'reports' : 'home';
   let context = { students: [], reviews: [], evaluations: [], honors: [] }, overview = null, weekStates = [], monthStates = [], monthlyOverview = {reports:[],entries:[],students:[]};
+  let loadedMonthlyScope = '';
   let scores = new Map(), dirty = false, honorDirty = false, knightDirty = false, busy = false, generation = 0, monthlyDirty = false, month = '', monthlyData = { report: null, entries: [] }, monthlyRows = new Map(), champions = [], chosenKnight = '', selectedHonors = new Set(), khairkomData = { sets: [], rows: [], students: [] }, nominatedStudents = new Map(), identityNumbers = new Map(), nominationDirty = false;
   let messageTimer, editingStudent = '', rosterDirty = false, monthlyCardsVisible = false, monthlyStudentFilter = 'pending';
   let nominationSaveReceipt = null, rosterRequests = [], requestFilter = 'pending', rosterPollTimer, rosterPolling=false, dashboardClosed=false;
@@ -237,24 +238,27 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
   }
   async function loadContext() {
     const ticket = ++generation;
+    const months = termMonths(selectedTerm());
+    if (!months.includes(month)) month = months[0] || '';
+    const scope = monthlyScope();
     if (!admin) root.querySelector('#teacher-home').hidden = true;
     content.innerHTML = '<div class="empty-state"><span class="loading-ring"></span><h2>جارٍ تحميل بيانات الحلقة</h2></div>';
     try {
       const [access,requests,rounds] = await Promise.all([termId?repo.weekStates(termId):Promise.resolve([]),repo.rosterRequests(),readRoundAccess()]);
       const data = teacherId ? await repo.context(teacherId, termId) : { students: [], reviews: [], evaluations: [], honors: [] };
       const report = admin && termId ? await repo.overview(termId) : null;
-      const months = termMonths(selectedTerm());
-      if (!months.includes(month)) month = months[0] || '';
+      if (ticket !== generation || scope !== monthlyScope()) return;
       const monthly = teacherId && termId && month ? await repo.monthly(teacherId, termId, month) : { report: null, entries: [] };
       const monthsAccess = termId ? await repo.monthStates(termId) : [];
       const monthsOverview = monthlyReader && ['monthly','monthlyReport','monthlyProgress'].includes(view) && monthlyOverviewMode() && termId && month ? await repo.monthlyOverview(termId,month) : {reports:[],entries:[],students:[]};
       const gallery = manager && termId ? await repo.champions(termId, week) : [];
-      if (ticket !== generation) return;
+      if (ticket !== generation || scope !== monthlyScope()) return;
       roundAccess = rounds;
       if (!nominationRounds().includes(nominationPeriod)) nominationPeriod = nominationRounds().at(-1);
       const combined = nominationViewer && termId ? await repo.khairkomReport(termId,contextNominationPeriod()) : null;
       const nominations = termId ? await repo.khairkom(termId,contextNominationPeriod()) : { sets: [], rows: [], students: [] };
-      if (ticket !== generation) return;
+      if (ticket !== generation || scope !== monthlyScope()) return;
+      loadedMonthlyScope = scope;
       rosterRequests=requests; rosterDirty=false; editingStudent=''; nominationReport = combined; context = data; overview = report; weekStates = access; monthlyData = monthly; monthStates=monthsAccess; monthlyOverview=monthsOverview; champions = gallery; khairkomData = nominations; loadNomineeDraft(nominations,contextNominationPeriod()); nominationDirty = false; loadScores(); loadMonthlyRows(); updateSelectors(); render();
     } catch (error) { if (ticket !== generation) return; content.innerHTML = '<div class="empty-state"><h2>تعذر تحميل البيانات</h2><p>اضغط تحديث البيانات للمحاولة مرة أخرى.</p></div>'; notify(errorText(error), true); }
   }
@@ -338,16 +342,20 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
     <div class="note-panel"><label for="knight-note">سبب اختيار فارس الأسبوع <small>(اختياري)</small></label><textarea id="knight-note" maxlength="500" placeholder="مثال: تحسن واضح في إتقان التسميع" ${!weekOpen(week)?'disabled':''}>${esc(current?.knight_note || '')}</textarea></div><div class="save-bar"><span>يحتفظ الطالب بميداليته تقديرًا لإنجازه.</span><div><button class="light-button" type="button" data-view="home">⌂ العودة للرئيسية</button><button class="gold-button" id="save-knight" ${!chosenKnight || !selectedTerm()?.active || !weekOpen(week) || week > today() ? 'disabled' : ''}>حفظ فارس الأسبوع ★</button></div></div>`;
   }
   const monthlyStudents = () => context.students.filter(student => student.active || monthlyData.entries.some(row => row.student_id === student.id));
+  const monthlyScope = () => JSON.stringify([teacherId, termId, month]);
   const monthOpen = () => monthStates.find(r=>r.month_start===month)?.is_open!==false;
-  const monthlyReadonly = () => admin || ['monthlyReport','monthlyProgress'].includes(view) || !monthOpen() || !selectedTerm()?.active || teacherId !== account.username;
+  const monthlyReadonly = () => loadedMonthlyScope !== monthlyScope() || admin || ['monthlyReport','monthlyProgress'].includes(view) || !monthOpen() || !selectedTerm()?.active || teacherId !== account.username;
   function loadMonthlyRows() {
     monthlyRows = mergeMonthlyRoster(context.students, monthlyData.entries);
     monthlyDirty = false;
   }
   async function refreshMonthlyRoster() {
-    const targetTeacher=teacherId,targetTerm=termId,targetMonth=month,preserve=monthlyDirty;
+    const targetTeacher=teacherId,targetTerm=termId,targetMonth=month,scope=monthlyScope();
+    const preserve=monthlyDirty && loadedMonthlyScope===scope;
     const [fresh,saved,access,summary]=await Promise.all([repo.context(targetTeacher,targetTerm),preserve?Promise.resolve(monthlyData):repo.monthly(targetTeacher,targetTerm,targetMonth),repo.monthStates(targetTerm),monthlyReader&&monthlyOverviewMode()?repo.monthlyOverview(targetTerm,targetMonth):Promise.resolve(null)]);
-    if(targetTeacher!==teacherId||targetTerm!==termId||targetMonth!==month)return false;
+    if(scope!==monthlyScope())return false;
+    loadedMonthlyScope=scope;
+    monthlyDirty=preserve;
     context.students=fresh.students;monthlyData=saved;monthStates=access;if(summary)monthlyOverview=summary;
     monthlyRows=mergeMonthlyRoster(context.students,monthlyData.entries,preserve?[...monthlyRows.values()]:[]);
     render();return true;
@@ -361,7 +369,12 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
   function monthlyReaderPicker() {
     return `<label class="monthly-reader-select">المعلم / الحلقة<select id="monthly-report-teacher">${teachers.map(t=>`<option value="${esc(t.username)}" ${t.username===teacherId?'selected':''}>${esc(t.full_name)} · ${esc(t.ring_name||t.class_name)}</option>`).join('')}</select></label>`;
   }
+  function renderMonthlyLoadError() {
+    content.innerHTML = `<div class="empty-state"><h2>تعذر تحميل ${monthLabel(month)}</h2>
+      <button type="button" class="light-button" id="refresh-monthly-roster">إعادة المحاولة</button></div>`;
+  }
   function renderMonthlyProgress() {
+    if (loadedMonthlyScope !== monthlyScope()) { renderMonthlyLoadError(); return; }
     content.innerHTML = `<div class="section-heading"><div><p class="section-kicker teal-text">متابعة الشهر</p><h2>إنجاز التقارير الشهرية</h2><p>متابعة اكتمال التقارير وفتح الشهر أو إغلاقه. لقراءة مقادير الحفظ والمراجعة افتح تقارير الحفظ الشهرية.</p></div><button class="teal-button" data-view="${admin?'monthly':'monthlyReport'}">▤ عرض تقارير الحفظ</button></div><div class="monthly-toolbar"><label>الشهر<select id="month-select">${termMonths(selectedTerm()).map(value=>`<option value="${value}" ${month===value?'selected':''}>${monthLabel(value)}</option>`).join('')}</select></label><button class="light-button" id="refresh-monthly-roster">↻ تحديث الإنجاز</button></div>${monthWorkflow()}${monthlyAdminSummary()}`;
   }
   function monthlyAdminSummary() {
@@ -379,6 +392,7 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
     return `<div class="monthly-student-filters" role="group" aria-label="عرض طلاب التقرير"><button type="button" data-monthly-filter="pending" aria-pressed="${monthlyStudentFilter==='pending'}">المتبقون <b>${total-done}</b></button><button type="button" data-monthly-filter="complete" aria-pressed="${monthlyStudentFilter==='complete'}">المكتملون <b>${done}</b></button><button type="button" data-monthly-filter="all" aria-pressed="${monthlyStudentFilter==='all'}">جميع الطلاب <b>${total}</b></button></div><p class="monthly-finish-hint">اضغط «تم الانتهاء من الطالب» لحفظ بياناته ونقله إلى المكتملين. البيانات غير المحفوظة تبقى ضمن المتبقين.</p>`;
   }
   function renderMonthly() {
+    if (loadedMonthlyScope !== monthlyScope()) { renderMonthlyLoadError(); return; }
     const savedComplete = monthlyData.report && savedMonthlyProgress().complete;
     content.innerHTML = `<div class="section-heading"><div><p class="section-kicker teal-text">التقرير الشهري</p><h2>${monthlyOverviewMode()?'تقارير الحفظ والمراجعة الشهرية':'رحلة الحفظ والمراجعة'}</h2><p>${monthlyOverviewMode()?'اختر الشهر والمعلم لعرض مقدار حفظ ومراجعة كل طالب مباشرة، ثم اطبع تقرير الحلقة.':'اختر سورة البداية والنهاية وأرقام الآيات لكل طالب، أو اختر «لا يوجد». يمكنك تعديل التقرير بعد حفظه؛ وتظهر آخر نسخة محفوظة عند الإدارة.'}</p></div><span class="status-pill teal-status">${monthlyData.report ? savedComplete ? '✓ تقرير مكتمل ومحفوظ' : '◷ مسودة محفوظة · غير مكتملة' : monthlyOverviewMode()?'لم يُرسل تقرير':'تقرير جديد'}</span></div><div class="monthly-toolbar"><label>الشهر<select id="month-select">${termMonths(selectedTerm()).map(value => `<option value="${value}" ${month === value ? 'selected' : ''}>${monthLabel(value)}</option>`).join('')}</select></label>${monthlyOverviewMode()&&!admin?monthlyReaderPicker():''}${!monthlyReadonly() ? '<button class="teal-button" type="button" id="bulk-monthly" '+(!monthlyRows.size?'disabled':'')+'>⇄ تطبيق مقدار على عدة طلاب</button>' : ''}<button type="button" class="light-button" id="refresh-monthly-roster">↻ تحديث قائمة الطلاب</button><button class="light-button" id="print-monthly">▤ طباعة التقرير</button><span>${esc(teacher().full_name)} · ${esc(teacher().ring_name || teacher().class_name)}</span></div><div class="print-heading"><h2>التقرير الشهري — ${monthLabel(month)}</h2><p>${esc(teacher().full_name)} · ${esc(teacher().ring_name || teacher().class_name)}</p></div>${!monthlyOverviewMode()?monthWorkflow():''}${monthlyOverviewMode()?monthlyReadingHeading({teacher:teacher(),label:monthLabel(month)}):''}${!monthlyOverviewMode()?monthlyProgressCard():''}${monthlyReadonly() ? monthlyData.report ? monthlyTable() : empty('لم يُرسل تقرير هذا الشهر بعد', monthlyOverviewMode()?'لا يوجد تقرير محفوظ لهذه الحلقة في الشهر المختار.':monthOpen()?'سيظهر تقرير الحلقة هنا بعد حفظه بواسطة المعلم.':'هذا الشهر مغلق. يمكنك إعداد التقرير بعد أن تفتحه الإدارة.') : ` ${monthlyStudentFilters()}<div class="monthly-grid">${monthlyFilteredStudents().map(student => `<article class="monthly-card" data-monthly-student="${student.id}"><header><span class="student-avatar">${esc(student.full_name.slice(0, 1))}</span><h3>${esc(student.full_name)}</h3>${student.active ? '' : '<small>مؤرشف · تقرير محفوظ</small>'}</header><label class="monthly-absence"><input type="checkbox" data-monthly-absent ${monthlyAbsent(monthlyRows.get(student.id))?'checked':''}><span>غائب — لم يحضر</span></label>${monthlyAbsent(monthlyRows.get(student.id)) ? '<div class="monthly-absence-info">الطالب غائب؛ لا يُطلب له حفظ أو مراجعة، ولا يمنع اكتمال التقرير.</div>' : `${monthlySection(student, 'memorization', 'حفظ')}<button type="button" class="monthly-copy-button monthly-copy-revision" data-copy-revision="${student.id}">↓ نسخ الحفظ إلى المراجعة</button>${monthlySection(student, 'revision', 'مراجعة')}<label class="monthly-note">ملاحظة اختيارية<textarea data-monthly-note maxlength="500" rows="2" ${monthlyReadonly() ? 'disabled' : ''}>${esc(monthlyRows.get(student.id).note)}</textarea></label><button type="button" class="monthly-copy-button" data-copy-monthly="${student.id}">⇄ نسخ المقدار لطلاب آخرين</button>`}<button type="button" class="monthly-finish-button" data-finish-monthly="${student.id}" ${monthlyProblem(monthlyRows.get(student.id))?'disabled':''}>✓ تم الانتهاء من الطالب</button></article>`).join('') || (monthlyRows.size?empty(monthlyStudentFilter==='pending'?'اكتمل تقرير الشهر لجميع الطلاب 🎉':'لا يوجد طلاب مكتملون محفوظون بعد',monthlyStudentFilter==='pending'?'يمكنك عرض المكتملين والرجوع لتعديلهم ما دام الشهر مفتوحًا.':'أكمل بيانات الطالب واضغط «تم الانتهاء من الطالب» لحفظه.') : empty('لا توجد أسماء في الحلقة', 'أضف الطلاب قبل إعداد التقرير الشهري.'))}</div><div class="print-only">${monthlyTable()}</div>`}<div class="save-bar"><span id="monthly-save-state">${monthlyReadonly() ? 'اطلاع فقط · آخر نسخة محفوظة لدى المعلم' : monthlyDirty ? 'تغييرات لم تُحفظ بعد' : 'حفظ واحد لجميع طلاب الحلقة'}</span>${!monthlyReadonly() ? `<button class="teal-button" id="save-monthly" ${!monthlyRows.size ? 'disabled' : ''}>${monthlyData.report ? '✓ حفظ التعديلات' : '✓ حفظ التقرير الشهري'}</button>` : '<span>عرض تقرير الحلقة المحفوظ</span>'}</div>`;
   }
@@ -1062,8 +1076,20 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
     if (event.target.id === 'month-select') {
       if (busy) { event.target.value = month; return; }
       const next = event.target.value;
+      if (next === month || !termMonths(selectedTerm()).includes(next)) return;
       if (!await mayLeave()) { event.target.value = month; return; }
-      month = next; await loadContext(); return;
+      if (busy || !event.target.isConnected) return;
+      await action(async () => {
+        generation++;
+        month = next;
+        loadedMonthlyScope = '';
+        monthlyDirty = false;
+        monthlyStudentFilter = 'pending';
+        content.innerHTML = `<div class="empty-state"><h2>جارٍ تحميل ${monthLabel(month)}</h2></div>`;
+        try { await refreshMonthlyRoster(); }
+        catch (error) { renderMonthlyLoadError(); throw error; }
+      });
+      return;
     }
     if(event.target.hasAttribute('data-monthly-absent')&&!monthlyReadonly()&&!busy){
       const id=event.target.closest('[data-monthly-student]').dataset.monthlyStudent;
