@@ -7,7 +7,7 @@ import {mountDashboardIdentity} from './dashboard-identity.mjs?v=monthly-reading
 import {buildMonthlyReadingTable,monthlyReadingHeading} from './monthly-report-view.mjs?v=monthly-reading5';
 import {teacherWeeks} from './teacher-week-model.mjs?v=monthly-reading5';
 import { summarizeMonthlyTeachers } from './monthly-progress-model.mjs?v=monthly-admin1';
-import { createMonthlyComparison } from './monthly-comparison-view.mjs?v=1';
+import { createMonthlyComparison } from './monthly-comparison-view.mjs?v=2';
 import { emptyMonthly, monthlyProblem, monthlyDraftProblem, termMonths, monthlyLabel, SURAHS, monthlyRangeText, monthlyProgress, applyMonthlyAmounts, copyMonthlyAmounts, copyMemorizationToRevision, monthlyAbsent, setMonthlyAbsent, mergeMonthlyRoster, monthlySavedComplete, monthlyStudentPayload, monthlyHasChanges } from './monthly-model.mjs?v=monthly-save2';
 import { SCORE_FIELDS, emptyScores, scoreTotal, validateScores, termWeeks, semesterSummary, weekNumber, weekEnd } from './evaluation-model.mjs?v=rosters2';
 import { applyEditedNominee, applySavedNominations, filterNominations, nominationGroups, nominationRoundLabels, nominationType, nominationFilterLabel, formatTestParts, testPartLabel, testPartOptions, normalizeIdentityNumber, validIdentityNumber, validTestParts } from './khairkom-model.mjs?v=nas-duha';
@@ -120,7 +120,7 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
   const teacherSelect = root.querySelector('#teacher-select');
   const dialog = root.querySelector('#dashboard-confirm');
   const reportPreview = root.querySelector('#report-preview');
-  const monthlyComparison = admin ? createMonthlyComparison({ repo, openPdf: showReportMarkup }) : null;
+  const monthlyComparison = admin ? createMonthlyComparison({ repo, openPdf: showReportMarkup, openMonthlyReport: openComparedMonthlyReport }) : null;
   const weeklyNarrative = weeklyNarrativeOwner ? createNimrWeeklyEditor({
     repo, author:account.full_name,
     confirmReload:()=>confirm('جلب المسودة المحفوظة','سيظهر آخر نص محفوظ لهذا الأسبوع.'),
@@ -348,6 +348,16 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
   function loadMonthlyRows() {
     monthlyRows = mergeMonthlyRoster(context.students, monthlyData.entries);
     monthlyDirty = false;
+  }
+  async function openComparedMonthlyReport(teacher, period) {
+    await action(async () => {
+      teacherId = teacher;
+      month = period;
+      view = 'monthly';
+      updateSelectors();
+      try { await refreshMonthlyRoster(); }
+      catch (error) { render(); throw error; }
+    });
   }
   async function refreshMonthlyRoster() {
     const targetTeacher=teacherId,targetTerm=termId,targetMonth=month,scope=monthlyScope();

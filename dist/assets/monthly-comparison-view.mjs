@@ -10,12 +10,14 @@ const signed = new Intl.NumberFormat('ar-EG', { signDisplay: 'exceptZero' });
 const percent = new Intl.NumberFormat('ar-EG', { style: 'percent', signDisplay: 'exceptZero', maximumFractionDigits: 1 });
 const date = new Intl.DateTimeFormat('ar-SA-u-ca-gregory', { month: 'long', year: 'numeric', timeZone: 'UTC' });
 const periods = ['الشهر الأول', 'الشهر الثاني'];
-const statuses = { up: 'زاد المقدار', down: 'قلّ المقدار', same: 'دون تغيير', new: 'بدأ التسجيل', unavailable: 'تعذّرت المقارنة' };
-const explanation = 'نسبة التغيّر هي فرق عدد الآيات مقسومًا على مقدار الشهر الأول. عند بدء التسجيل من صفر يظهر فرق الآيات. الغياب والبيانات غير المسجّلة والمقادير التي يتعذّر عدّها تُستبعد من حساب التغيّر.';
+const statuses = { up: 'زاد المقدار', down: 'قلّ المقدار', same: 'دون تغيير', new: 'بدأ التسجيل', unavailable: 'بلا نسبة تغيّر' };
+const explanation = 'تُحسب نسبة التغيّر عند توفر عدد الآيات للشهرين. تظهر المقادير النصية كما حُفظت، ويمكن مراجعتها جنبًا إلى جنب. عند بدء التسجيل من صفر يظهر فرق الآيات.';
 const monthName = month => date.format(new Date(month + 'T00:00:00Z'));
 
 function delta(result) {
-  const label = result.percent === null ? statuses[result.state] : '<bdi>' + percent.format(result.percent / 100) + '</bdi>';
+  const label = result.percent === null
+    ? result.first.legacy || result.second.legacy ? 'مقارنة نصية' : statuses[result.state]
+    : '<bdi>' + percent.format(result.percent / 100) + '</bdi>';
   return '<span class="mc-delta mc-' + result.state + '">' + label + '</span>';
 }
 
@@ -29,9 +31,11 @@ function chart(rows, kind, interactive) {
   }
   const stats = Object.entries(statuses).map(([state, label]) =>
     '<div class="mc-stat mc-' + state + '"><strong>' + number.format(totals[state]) + '</strong><span>' + label + '</span></div>').join('');
-  const bar = (amount, index) => `<div class="mc-bar mc-period-${index}" aria-label="${periods[index]}">
+  const bar = (amount, index) => amount.legacy
+    ? `<div class="mc-bar mc-bar-text mc-period-${index}"><b>${periods[index]}</b> <span>${escape(amount.label)}</span></div>`
+    : `<div class="mc-bar mc-period-${index}" aria-label="${periods[index]}">
     <span class="mc-track" aria-hidden="true">${amount.count > 0 ? '<i style="--mc-size:' + (amount.count * 100 / maximum) + '%"></i>' : ''}</span>
-    <span>${amount.count === null ? escape(amount.legacy ? 'مقدار نصي' : amount.label) : number.format(amount.count)}</span>
+    <span>${amount.count === null ? escape(amount.label) : number.format(amount.count)}</span>
   </div>`;
   const items = rows.map((row, index) => {
     const name = escape(row.name);
@@ -64,11 +68,12 @@ function table(rows, kind) {
     }).join('')}</tbody></table></div>`;
 }
 
-function metadata(teacher, months, data) {
+function metadata(teacher, months, data, interactive = false) {
   return `<div class="mc-metadata"><div><span>المعلم</span><strong>${escape(teacher.full_name)}</strong>
     <bdi>${escape(teacher.ring_name || teacher.class_name)}</bdi></div>
     ${[data.first, data.second].map((value, i) => `<div><span>${periods[i]}</span><strong>${monthName(months[i])}</strong>
-      <small>${value.report ? 'تقرير محفوظ' : 'لا يوجد تقرير محفوظ'}</small></div>`).join('')}</div>`;
+      <small>${value.report ? `تقرير محفوظ · ${number.format(value.entries.length)} سجل طالب` : 'لا يوجد تقرير محفوظ'}</small>
+      ${interactive && value.report ? `<button type="button" class="light-button" data-mc-report="${i}">فتح تقرير ${periods[i]}</button>` : ''}</div>`).join('')}</div>`;
 }
 
 function printReport({ teacher, months, term, data, rows, kind }) {
@@ -83,7 +88,7 @@ function printReport({ teacher, months, term, data, rows, kind }) {
   </article>`;
 }
 
-export function createMonthlyComparison({ repo, openPdf }) {
+export function createMonthlyComparison({ repo, openPdf, openMonthlyReport }) {
   let selected = '', kind = 'memorization';
 
   function show(host, term, teachers) {
@@ -127,7 +132,7 @@ export function createMonthlyComparison({ repo, openPdf }) {
         const rows = buildMonthlyComparison(data.students, data.first.entries, data.second.entries);
         snapshot = { teacher, months, term, data, rows };
         status.textContent = rows.length ? '' : 'لا توجد قائمة طلاب أو سجلات محفوظة لهذه الحلقة في الشهرين.';
-        result.innerHTML = metadata(teacher, months, data);
+        result.innerHTML = metadata(teacher, months, data, true);
         if (!rows.length) return;
         result.insertAdjacentHTML('beforeend', `<div class="mc-actions">
           <div role="group" aria-label="نوع المقارنة">${Object.entries(comparisonKinds).map(([key, label]) =>
@@ -150,6 +155,10 @@ export function createMonthlyComparison({ repo, openPdf }) {
     result.addEventListener('click', event => {
       const button = event.target.closest('button');
       if (!button || !snapshot) return;
+      if (button.hasAttribute('data-mc-report')) {
+        openMonthlyReport(snapshot.teacher.username, snapshot.months[Number(button.dataset.mcReport)]);
+        return;
+      }
       if (button.hasAttribute('data-mc-pdf')) openPdf(printReport({ ...snapshot, kind }));
       if (button.dataset.mcKind) {
         kind = button.dataset.mcKind;

@@ -16,6 +16,7 @@
 .mc-metadata strong{font-size:.92rem}
 .mc-metadata :is(span,small,bdi){color:var(--mc-muted);font-size:.75rem}
 .mc-metadata bdi{justify-self:start}
+.mc-metadata button{justify-self:start;margin-top:4px}
 .mc-actions{align-items:center;justify-content:space-between}
 .mc-actions>div{display:flex;gap:4px;border:1px solid var(--mc-line);background:#edf3f6;padding:4px;border-radius:11px}
 .mc-workspace .mc-actions button[data-mc-kind]{border:0;border-radius:8px;background:transparent;color:var(--mc-ink);padding:9px 18px;cursor:pointer;font:inherit;font-size:.79rem;font-weight:700}
@@ -42,6 +43,8 @@
 .mc-chart-name button{border:0;background:none;color:#1b527a;padding:3px 0;text-align:start;font:inherit;font-weight:700;text-decoration:underline;text-underline-offset:4px;cursor:pointer}
 .mc-bars{display:grid;gap:4px}
 .mc-bar{display:grid;grid-template-columns:minmax(0,1fr) minmax(88px,.28fr);align-items:center;gap:7px;font-size:.69rem;color:var(--mc-muted);min-height:14px}
+.mc-bar-text{display:block;border-inline-start:3px solid var(--mc-period);padding-inline-start:6px;overflow-wrap:anywhere}
+.mc-bar-text b{color:var(--mc-period);margin-inline-end:4px}
 .mc-track{display:block;min-width:0;height:8px;border-radius:20px;background:#edf3f5}
 .mc-track i{display:block;width:var(--mc-size);min-width:2px;height:100%;border-radius:20px;background:var(--mc-period)}
 .mc-delta{justify-self:end;display:inline-block;border-radius:8px;padding:4px 7px;color:var(--mc-tone);background:var(--mc-fill);font-size:.72rem;font-weight:700;text-align:center}
