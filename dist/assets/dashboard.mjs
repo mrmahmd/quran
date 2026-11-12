@@ -1,4 +1,5 @@
 import { brandLockup, platformName, schoolName } from './brand.mjs';
+import { createNimrWeeklyEditor } from './nimr-weekly-editor.mjs?v=1';
 import {reviewRosterRequests} from './roster-request-bulk.mjs?v=bulk-requests1';
 import {mountMyAccount} from './my-account.mjs?v=1';
 import {mountTeacherAppearance} from './teacher-appearance.mjs?v=monthly-reading5';
@@ -50,6 +51,7 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
   const admin = account.role === 'admin';
   const manager = admin || account.roster_manager;
   const canManageRoster = () => manager || teacherId === account.username;
+  const weeklyNarrativeOwner = !admin && account.role === 'teacher' && account.username === 'quran17';
   const monthlyReader = admin || account.username === 'quran17';
   const monthlyOverviewMode = () => admin || ['monthlyReport','monthlyProgress'].includes(view);
   const selectedTerm = () => terms.find(term => term.id === termId);
@@ -102,7 +104,7 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
     ${preview ? '<div class="preview-banner">معاينة تصميم محلية - جميع الأسماء والدرجات هنا تجريبية</div>' : ''}
     <main class="dashboard-main"><section class="welcome-banner"><div><p class="eyebrow">${admin ? 'إشراف واضح.. ودعم لكل حلقة' : 'خطوة صغيرة.. وأثر كبير'}</p><h1>${admin ? 'لوحة إدارة يسرناه' : `أهلًا بك، ${esc(account.full_name)}`}</h1><p>${admin ? 'تابع التقييمات المعتمدة وفرسان الأسبوع والتكريم الفصلي.' : `حلقة ${esc(account.ring_name || "")} <bdi dir="ltr">${esc(account.class_name)}</bdi> · قيّم اجتهاد كل طالب وتقدمه مقارنة بنفسه.`}</p></div><div class="welcome-symbol" aria-hidden="true">✦</div></section>
     ${admin ? '' : toolbar + '<div id="teacher-save-indicator" class="teacher-save-indicator" role="status"></div><section id="teacher-home" hidden aria-label="ملخص عمل الحلقة"></section>'}
-    ${admin ? `<div class="admin-workspace"><aside class="admin-sidebar"><div class="admin-sidebar-title"><span>✦</span><div><strong>مركز الإدارة</strong><small>متابعة الحلقات والتقارير</small></div></div><nav aria-label="أقسام الإدارة"><button data-view="reports"><span>▦</span> نظرة عامة</button><button data-view="evaluation"><span>✓</span> تقييم الحلقة</button><button data-view="champions"><span>★</span> فرسان الأسبوع</button><button data-view="khairkom"><span>◆</span> ترشيحات خيركم</button><button data-view="monthly"><span>▤</span> تقارير الحفظ الشهرية</button><button data-view="monthlyProgress"><span>◔</span> إنجاز التقارير الشهرية</button><button data-view="honors"><span>✦</span> التكريم الفصلي</button><button data-view="rosterRequests"><span>◷</span> طلبات الطلاب <b data-roster-request-count>0</b></button><button data-view="setup"><span>♧</span> قوائم الطلاب</button></nav><div class="admin-sidebar-note">في النظرة العامة اختر الأسبوع فقط؛ ولعرض طلاب حلقة افتح «تقييم الحلقة» ثم اختر المعلم.</div></aside><div class="admin-workspace-content">${toolbar}` : `<nav class="dashboard-actions" aria-label="أقسام لوحة التحكم"><button class="action-card home-card" data-view="home"><span class="action-symbol">⌂</span><span><strong>الرئيسية</strong><small>إنجازك وما تبقّى عليك</small></span><span class="action-arrow">←</span></button><button class="action-card blue-card" data-view="evaluation"><span class="action-symbol">✓</span><span><strong>التقييم الأسبوعي</strong><small>نقاط واضحة من ١٢</small></span><span class="action-arrow">←</span></button><button class="action-card gold-card" data-view="knight"><span class="action-symbol">★</span><span><strong>فارس الأسبوع</strong><small>احتفِ بالاجتهاد والتحسن</small></span><span class="action-arrow">←</span></button><button class="action-card purple-card" data-view="honors"><span class="action-symbol">✦</span><span><strong>التكريم الفصلي</strong><small>ثمرة رحلة الفصل الدراسي</small></span><span class="action-arrow">←</span></button><button class="action-card teal-card" data-view="monthly"><span class="action-symbol">▤</span><span><strong>التقرير الشهري</strong><small>مقدار الحفظ والمراجعة</small></span><span class="action-arrow">←</span></button><button class="action-card khairkom-card" data-view="khairkom"><span class="action-symbol">◆</span><span><strong>ترشيحات جمعية خيركم</strong><small>رشّح طلاب حلقتك</small></span><span class="action-arrow">←</span></button>${!manager ? '<button class="action-card roster-card" data-view="setup"><span class="action-symbol">♧</span><span><strong>طلاب حلقتي</strong><small>طلبات إضافة وحذف · تعديل الاسم</small></span><span class="action-arrow">←</span></button>' : ''}</nav>${manager ? '<div class="admin-tabs"><span>مشرف الطلاب · تقييمات الحلقات الأخرى تخص معلميها</span><button class="gold-button" data-view="champions">★ فرسان الأسبوع</button><button class="light-button" data-view="setup">إدارة قوائم الطلاب</button></div>' : ''}`}
+    ${admin ? `<div class="admin-workspace"><aside class="admin-sidebar"><div class="admin-sidebar-title"><span>✦</span><div><strong>مركز الإدارة</strong><small>متابعة الحلقات والتقارير</small></div></div><nav aria-label="أقسام الإدارة"><button data-view="reports"><span>▦</span> نظرة عامة</button><button data-view="evaluation"><span>✓</span> تقييم الحلقة</button><button data-view="champions"><span>★</span> فرسان الأسبوع</button><button data-view="khairkom"><span>◆</span> ترشيحات خيركم</button><button data-view="monthly"><span>▤</span> تقارير الحفظ الشهرية</button><button data-view="monthlyProgress"><span>◔</span> إنجاز التقارير الشهرية</button><button data-view="honors"><span>✦</span> التكريم الفصلي</button><button data-view="rosterRequests"><span>◷</span> طلبات الطلاب <b data-roster-request-count>0</b></button><button data-view="setup"><span>♧</span> قوائم الطلاب</button></nav><div class="admin-sidebar-note">في النظرة العامة اختر الأسبوع فقط؛ ولعرض طلاب حلقة افتح «تقييم الحلقة» ثم اختر المعلم.</div></aside><div class="admin-workspace-content">${toolbar}` : `<nav class="dashboard-actions" aria-label="أقسام لوحة التحكم"><button class="action-card home-card" data-view="home"><span class="action-symbol">⌂</span><span><strong>الرئيسية</strong><small>إنجازك وما تبقّى عليك</small></span><span class="action-arrow">←</span></button><button class="action-card blue-card" data-view="evaluation"><span class="action-symbol">✓</span><span><strong>التقييم الأسبوعي</strong><small>نقاط واضحة من ١٢</small></span><span class="action-arrow">←</span></button> ${weeklyNarrativeOwner ? '<button class="action-card blue-card" data-view="nimrWeekly"><span class="action-symbol" aria-hidden="true">▤</span><span><strong>التقرير الأسبوعي</strong><small>كتابة التقرير وتحميله PDF</small></span><span class="action-arrow" aria-hidden="true">←</span></button>' : ''}<button class="action-card gold-card" data-view="knight"><span class="action-symbol">★</span><span><strong>فارس الأسبوع</strong><small>احتفِ بالاجتهاد والتحسن</small></span><span class="action-arrow">←</span></button><button class="action-card purple-card" data-view="honors"><span class="action-symbol">✦</span><span><strong>التكريم الفصلي</strong><small>ثمرة رحلة الفصل الدراسي</small></span><span class="action-arrow">←</span></button><button class="action-card teal-card" data-view="monthly"><span class="action-symbol">▤</span><span><strong>التقرير الشهري</strong><small>مقدار الحفظ والمراجعة</small></span><span class="action-arrow">←</span></button><button class="action-card khairkom-card" data-view="khairkom"><span class="action-symbol">◆</span><span><strong>ترشيحات جمعية خيركم</strong><small>رشّح طلاب حلقتك</small></span><span class="action-arrow">←</span></button>${!manager ? '<button class="action-card roster-card" data-view="setup"><span class="action-symbol">♧</span><span><strong>طلاب حلقتي</strong><small>طلبات إضافة وحذف · تعديل الاسم</small></span><span class="action-arrow">←</span></button>' : ''}</nav>${manager ? '<div class="admin-tabs"><span>مشرف الطلاب · تقييمات الحلقات الأخرى تخص معلميها</span><button class="gold-button" data-view="champions">★ فرسان الأسبوع</button><button class="light-button" data-view="setup">إدارة قوائم الطلاب</button></div>' : ''}`}
     ${!admin && monthlyReader ? '<div class="admin-tabs"><button class="solid-button" data-view="monthlyReport">▤ استعراض التقارير الشهرية لجميع الحلقات</button><button class="light-button" data-view="monthlyProgress">◔ إنجاز التقارير الشهرية</button></div>' : ''}${!admin && nominationViewer ? '<div class="admin-tabs"><button class="solid-button" data-view="khairkomReport">◆ استعراض ترشيحات جميع المعلمين</button></div>' : ''}${!admin?'<div class="teacher-workspace-return" hidden><button class="solid-button" type="button" data-view="home">⌂ العودة للصفحة الرئيسية</button></div>':''}<div id="week-workflow" class="week-workflow" aria-live="polite"></div><div id="dashboard-message" class="dashboard-message" role="status" hidden></div><section id="dashboard-content" aria-live="polite"></section>
     ${admin ? '</div></div>' : ''}</main><footer class="dashboard-footer">${platformName} · ${schoolName}</footer>
     <dialog id="dashboard-confirm" class="confirm-dialog"><h2></h2><p></p><div><button class="light-button" data-answer="cancel">العودة</button><button class="solid-button" data-answer="confirm">تأكيد</button></div></dialog></div><section id="report-preview" class="report-preview" hidden aria-label="معاينة التقرير"><div class="report-preview-toolbar"><strong>معاينة التقرير</strong><span>اختر «حفظ PDF» من نافذة الطباعة للحصول على الملف.</span><div><a id="report-download-ready" class="achievement-download" hidden>تحميل تقرير الإنجاز PDF</a><button type="button" id="report-print">حفظ PDF / طباعة</button><button type="button" id="report-close">إغلاق المعاينة</button></div></div><div id="report-preview-body"></div></section>`;
@@ -116,10 +118,29 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
   const teacherSelect = root.querySelector('#teacher-select');
   const dialog = root.querySelector('#dashboard-confirm');
   const reportPreview = root.querySelector('#report-preview');
+  const weeklyNarrative = weeklyNarrativeOwner ? createNimrWeeklyEditor({
+    repo, author:account.full_name,
+    confirmReload:()=>confirm('جلب المسودة المحفوظة','سيظهر آخر نص محفوظ لهذا الأسبوع.'),
+    showPdf:({pages,blob},filename)=>{
+      clearAchievementDownload();
+      root.querySelector('#report-preview-body').replaceChildren(pages);
+      const link=root.querySelector('#report-download-ready');
+      link.textContent='تحميل PDF';
+      link.href=URL.createObjectURL(blob);
+      link.download=filename;
+      link.hidden=false;
+      root.querySelector('#report-print').hidden=true;
+      root.querySelector('.report-preview-toolbar>span').textContent='التقرير الأسبوعي';
+      reportPreview.hidden=false;
+      reportPreview.scrollTop=0;
+      document.body.classList.add('report-is-open');
+      root.querySelector('#report-close').focus();
+    }
+  }) : null;
   function updateToolbarVisibility() {
     if (!admin) {
       root.querySelector('[data-filter="week"]').hidden=!['home','evaluation','knight','champions'].includes(view);
-      if (manager) root.querySelector('[data-filter="teacher"]').hidden=['monthlyReport','monthlyProgress','khairkomReport','champions'].includes(view);
+      if (manager) root.querySelector('[data-filter="teacher"]').hidden=['monthlyReport','monthlyProgress','khairkomReport','champions','nimrWeekly'].includes(view);
       return;
     }
     const showTeacher = ['evaluation', 'monthly', 'honors', 'setup'].includes(view);
@@ -257,7 +278,7 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
     node.textContent = busy?'◷ جارٍ تنفيذ طلبك…':pending?'● لديك تعديلات لم تُحفظ بعد':'✓ المعروض في ملخص الإنجاز هو المحفوظ فقط';
   }
   function render() {
-    if (!admin && account.roster_manager && teacherId !== account.username && !['champions','setup','khairkomReport',...(monthlyReader?['monthlyReport','monthlyProgress']:[])].includes(view)) view = 'setup';
+    if (!admin && account.roster_manager && teacherId !== account.username && !['champions','setup','khairkomReport','nimrWeekly',...(monthlyReader?['monthlyReport','monthlyProgress']:[])].includes(view)) view = 'setup';
     teacherAppearance?.setView(view);
     const returnBar=root.querySelector('.teacher-workspace-return');if(returnBar)returnBar.hidden=view==='home';
     root.querySelector('.dashboard-shell').dataset.workspace = view;
@@ -270,6 +291,7 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
     if (view === 'rosterRequests' && admin) { renderRosterRequests(); return; }
     if (!termId) { content.innerHTML = empty('جاهزون لبدء الرحلة', 'ستظهر التقييمات بعد إضافة تواريخ الفصل الدراسي وقوائم الطلاب التي سترسلها الإدارة.'); return; }
     if (view === 'home') { content.replaceChildren(); return; }
+    if (view === 'nimrWeekly' && weeklyNarrative) { weeklyNarrative.show(content,selectedTerm(),week); return; }
     if (view === 'champions') { renderChampions(); return; }
     if (view === 'khairkomReport' && nominationViewer) { renderKhairkom(); return; }
     if (view === 'khairkom') { renderKhairkom(); return; }
@@ -792,6 +814,7 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
         root.querySelector('#report-preview-body').replaceChildren(pages);
         const link = root.querySelector('#report-download-ready');
         link.href = URL.createObjectURL(blob);
+        link.textContent='تحميل تقرير الإنجاز PDF';
         link.download = `تقرير-إنجاز-المعلمين-${nominationRoundLabel().replace(' ','-')}.pdf`;
         link.hidden = false;
         root.querySelector('#report-print').hidden = true;
@@ -923,6 +946,7 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
         chosenKnight = review()?.knight_student_id || ''; knightDirty = false;
       }
       const nextView = nav.dataset.view;
+      if (nextView === 'nimrWeekly' && !weeklyNarrative) return;
       if(view==='evaluation' && nextView!=='evaluation') weeklyEditing=false;
       if (!admin && nextView === 'home' && teacherId !== account.username) { teacherId = account.username; view = nextView; updateSelectors(); await loadContext(); return; }
       if(!admin && ['monthlyReport','monthlyProgress'].includes(view) && !['monthlyReport','monthlyProgress','setup','champions','khairkomReport'].includes(nextView)){teacherId=account.username;view=nextView;updateSelectors();await loadContext();return;}
@@ -972,6 +996,7 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
       updateSelectors(); await loadContext();
     }, 'تم تحديث البيانات.');
     if (id === 'dashboard-logout' && !busy && await mayLeave()) {
+      if (weeklyNarrative?.hasUnsaved() && !await confirm('مسودة تقرير لم تُحفظ','هل تريد تسجيل الخروج قبل حفظ التقرير الأسبوعي؟')) return;
       try { await onLogout(); dashboardClosed=true;clearInterval(rosterPollTimer);teacherAppearance?.destroy();dashboardIdentity.destroy(); for (const type of ['input','change','click']) root.removeEventListener(type,queueTeacherSaveState); clearTimeout(messageTimer); window.removeEventListener('beforeunload', beforeUnload); }
       catch (error) { notify(errorText(error), true); }
     }
@@ -1106,7 +1131,7 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
       await action(async () => { const added=admin?await repo.addStudents(rows.map(row=>({...row,source_class:teacher().class_name||''}))):await repo.requestRosterAdditions(rows,teacherId); if(!Array.isArray(added)||added.length!==rows.length||added.some(row=>!row.id||!admin&&row.status!=='pending'))throw new Error('تعذر تأكيد إضافة الطلاب. حدّث القائمة قبل إعادة المحاولة.'); await loadContext(); }, admin?'تم حفظ الطلاب وربطهم بالمعلم.':'تم إرسال طلبات الإضافة للإدارة. ستظهر الأسماء في الحلقة بعد الموافقة.');
     }
   });
-  function beforeUnload(event) { if (dirty || honorDirty || knightDirty || monthlyDirty || nominationDirty || rosterDirty) { event.preventDefault(); event.returnValue = ''; } }
+  function beforeUnload(event) { if (dirty || honorDirty || knightDirty || monthlyDirty || nominationDirty || rosterDirty || weeklyNarrative?.hasUnsaved()) { event.preventDefault(); event.returnValue = ''; } }
   // Refresh the indicator after each existing input handler without re-rendering fields.
   function queueTeacherSaveState() { queueMicrotask(updateTeacherSaveState); }
   if (!admin) for (const eventName of ['input','change','click']) root.addEventListener(eventName,queueTeacherSaveState);

@@ -26,6 +26,15 @@ export function createDashboardRepository(client) {
       return result(client.from('teacher_preferences').upsert({user_id:data.user.id,text_size}).select('text_size').single());
     },
     terms: () => result(client.from('school_terms').select('*').order('starts_on', { ascending: false })),
+    nimrWeeklyReport: (term, week) => result(client.from('nimr_weekly_reports')
+      .select('body,revision').eq('term_id',term).eq('week_start',week).maybeSingle()),
+    saveNimrWeeklyReport(term, week, body, revision) {
+      const reports = client.from('nimr_weekly_reports');
+      const write = revision
+        ? reports.update({body}).eq('term_id',term).eq('week_start',week).eq('revision',revision)
+        : reports.insert({term_id:term,week_start:week,body});
+      return result(write.select('body,revision').maybeSingle());
+    },
     khairkomSecondMonthState: term => result(client.from('school_terms').select('khairkom_second_month_open').eq('id',term).single()).then(row => row.khairkom_second_month_open === true),
     setKhairkomSecondMonthOpen: (term, open) => result(client.rpc('set_khairkom_second_month_open', {p_term:term,p_open:open})),
     khairkomRoundState: term => result(client.from('school_terms').select('*').eq('id',term).single()).then(row => ({

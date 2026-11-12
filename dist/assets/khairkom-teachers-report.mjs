@@ -68,6 +68,10 @@ export async function prepareKhairkomTeachersReport({term,snapshot,roundLabel}) 
 }
 
 export async function createKhairkomTeachersPdf(source) {
+  return createA4ReportPdf(source, `تقرير إنجاز المعلمين · جمعية خيركم · ${platformName}`);
+}
+
+export async function createA4ReportPdf(source, title) {
   await preparePdfExport();
   const pdf = new window.jspdf.jsPDF({orientation:'portrait',unit:'mm',format:'a4',compress:true});
   const host = document.createElement('div'); host.className='nominee-export-host';
@@ -79,7 +83,7 @@ export async function createKhairkomTeachersPdf(source) {
       if(index) pdf.addPage();
       pdf.addImage(canvas.toDataURL('image/jpeg',0.97),'JPEG',0,0,210,297); canvas.width=canvas.height=0;
     }
-    pdf.setProperties({title:`تقرير إنجاز المعلمين · جمعية خيركم · ${platformName}`,author:schoolName});
+    pdf.setProperties({title,author:schoolName});
     return pdf.output('blob');
   } finally {host.remove();}
 }
