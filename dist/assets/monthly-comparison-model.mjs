@@ -1,4 +1,4 @@
-import { monthlyProblem, monthlyRangeText } from './monthly-model.mjs?v=monthly-save2';
+import { monthlyAbsent, monthlyProblem, monthlyRangeText } from './monthly-model.mjs?v=monthly-save2';
 import { recordedAyahRanges } from './quran-juz.mjs';
 
 export const comparisonKinds = { memorization: 'الحفظ', revision: 'المراجعة' };
@@ -55,9 +55,12 @@ export function buildMonthlyComparison(students, firstEntries, secondEntries) {
 export function summarizeMonthlyComparison(students, firstEntries, secondEntries, rows) {
   const active = students.filter(student => student.active).map(student => student.id);
   const months = [firstEntries, secondEntries].map(entries => {
-    const total = new Set([...active, ...entries.map(entry => entry.student_id)]).size;
-    const completed = entries.filter(entry => entry.is_complete ?? !monthlyProblem(entry)).length;
-    return { total, completed, rate: total ? completed / total : null };
+    const roster = new Set([...active, ...entries.map(entry => entry.student_id)]);
+    const absent = new Set(entries.filter(monthlyAbsent).map(entry => entry.student_id));
+    const total = roster.size - absent.size;
+    const completed = entries.filter(entry => !absent.has(entry.student_id)
+      && (entry.is_complete ?? !monthlyProblem(entry))).length;
+    return { total, completed, absent: absent.size, rate: total ? completed / total : null };
   });
   const average = months.every(month => month.rate !== null)
     ? (months[0].rate + months[1].rate) / 2

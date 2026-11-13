@@ -67,7 +67,7 @@ test('teacher achievement counts completed text entries and averages the monthly
   const second = [entry(text, none)];
   const rows = buildMonthlyComparison(students, first, second);
   const result = summarizeMonthlyComparison(students, first, second, rows);
-  assert.deepEqual(result.months, [{ total: 2, completed: 1, rate: 0.5 }, { total: 1, completed: 1, rate: 1 }]);
+  assert.deepEqual(result.months, [{ total: 2, completed: 1, absent: 0, rate: 0.5 }, { total: 1, completed: 1, absent: 0, rate: 1 }]);
   assert.equal(result.average, 0.75);
   assert.deepEqual(result.changes.memorization, { compared: 0, total: 1, first: 0, second: 0, difference: 0, rate: null });
 });
@@ -100,7 +100,11 @@ test('saved amounts contribute independently to monthly totals and matching pair
     { ...entry(incomplete, incomplete), student_id: 'never-saved', is_complete: false },
     { ...entry(absent, absent), student_id: 'absent' }];
   const rows = buildMonthlyComparison(students, first, second);
-  const { changes, monthlyTotals } = summarizeMonthlyComparison(students, first, second, rows);
+  const { changes, monthlyTotals, months } = summarizeMonthlyComparison(students, first, second, rows);
+  assert.deepEqual(months, [
+    { total: 4, completed: 1, absent: 1, rate: 0.25 },
+    { total: 4, completed: 2, absent: 1, rate: 0.5 },
+  ]);
   assert.deepEqual(rows.map(row => row.id), ['1', 'draft', 'revision-only']);
   assert.equal(rows[1].revision.first.count, null);
   assert.deepEqual(monthlyTotals.memorization, [{ ayat: 100, students: 2 }, { ayat: 50, students: 2 }]);

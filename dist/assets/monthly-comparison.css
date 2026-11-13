@@ -97,7 +97,7 @@
 .mc-meter i { display: block; height: 100%; border-radius: inherit; background: var(--mc-meter-color); }
 .mc-change {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
   margin-top: 13px;
   padding-top: 10px;

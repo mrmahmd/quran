@@ -1,6 +1,6 @@
 import { brandLockup } from './brand.mjs';
 import { termMonths } from './monthly-model.mjs?v=monthly-finish1';
-import { buildMonthlyComparison, comparisonKinds, hasRecordedComparison, summarizeMonthlyComparison } from './monthly-comparison-model.mjs?v=5';
+import { buildMonthlyComparison, comparisonKinds, hasRecordedComparison, summarizeMonthlyComparison } from './monthly-comparison-model.mjs?v=6';
 import { buildJuzReport, juzCategories } from './monthly-juz-report.mjs?v=3';
 
 const escape = value => String(value ?? '').replace(/[&<>"']/g, char => ({
@@ -20,6 +20,7 @@ const calculationRules = `<details class="mc-panel mc-rules"><summary>قواعد
   <li>عند الرجوع نحو أول المصحف، يُحسب باقي سورة البداية، ثم كل السور الواقعة بينهما، ثم الآيات من أول سورة الوصول حتى آية النهاية. داخل كل سورة يبقى العدّ بترتيب الآيات.</li>
   <li>يُحسب الحفظ المحفوظ حتى لو المراجعة ناقصة، وتُحسب المراجعة المحفوظة حتى لو الحفظ ناقص. «لا يوجد» يُحسب صفرًا، والمقدار الناقص أو النصي والغياب لا يدخلون في إجمالي الآيات.</li>
   <li>لكل نوع، تُحسب نسبة التغيّر للطلاب أنفسهم ممن أمكن عدّ مقدارهم في الشهرين. إذا كان إجمالي الشهر الأول صفرًا ثم زاد المقدار، يظهر فرق الآيات فقط.</li>
+  <li>الطالب المسجّل غائبًا يُستبعد من نسبة اكتمال تسجيل الشهر. السجل الفارغ لطالب غير مسجّل غائبًا يُعدّ ناقصًا.</li>
   <li>يُحتسب الجزء إذا غطّى حفظ الطالب جميع آياته على مدار الشهرين. تُحسب الآيات المكررة مرة واحدة.</li>
 </ul></details>`;
 
@@ -59,21 +60,23 @@ function teacherSummary({ months, average, changes, monthlyTotals }) {
   return `<section class="mc-panel mc-completion">
     <div><h3>متوسط اكتمال التقرير</h3><strong><bdi>${rate(average)}</bdi></strong></div>
     <div class="mc-completion-months">${months.map((month, i) => `<div><span>${periods[i]}</span><bdi>${rate(month.rate)}</bdi>
-      <small>${number.format(month.completed)} من ${number.format(month.total)} طالبًا</small></div>`).join('')}</div>
+      <small>${number.format(month.completed)} من ${number.format(month.total)} طالبًا</small>
+      ${month.absent ? `<small>${number.format(month.absent)} غياب مستبعد</small>` : ''}</div>`).join('')}</div>
   </section>
   <div class="mc-quantity-grid">${Object.entries(changes).map(([kind, change]) => {
     const totals = monthlyTotals[kind];
-    const maximum = Math.max(1, ...totals.map(total => total.ayat));
+    const pairedTotals = [change.first, change.second];
+    const maximum = Math.max(1, ...pairedTotals);
     const tone = change.difference > 0 ? 'up' : change.difference < 0 ? 'down' : 'same';
     return `<section class="mc-panel mc-quantity"><h3>آيات ${comparisonKinds[kind]}</h3>
-      <div class="mc-quantity-bars">${totals.map((total, index) => `<div class="mc-period-${index}">
-        <div class="mc-metric-line"><span>${periods[index]}</span><strong><bdi>${total.students ? number.format(total.ayat) : '—'}</bdi></strong></div>
-        ${meter(total.ayat / maximum, 'var(--mc-period)')}
-        <small>${number.format(total.students)} طالبًا</small>
+      <p class="mc-method">المقارنة لنفس الطلاب · ${number.format(change.compared)} طالبًا</p>
+      <div class="mc-quantity-bars">${pairedTotals.map((ayat, index) => `<div class="mc-period-${index}">
+        <div class="mc-metric-line"><span>${periods[index]}</span><strong><bdi>${change.compared ? number.format(ayat) : '—'}</bdi></strong></div>
+        ${meter(ayat / maximum, 'var(--mc-period)')}
+        <small>إجمالي الشهر · ${totals[index].students ? number.format(totals[index].ayat) : '—'} آية · ${number.format(totals[index].students)} طالبًا</small>
       </div>`).join('')}</div>
       <div class="mc-change"><div><span>نسبة التغيّر</span><bdi class="mc-delta mc-${tone}">${change.rate === null ? '—' : percent.format(change.rate)}</bdi></div>
         <div><span>فرق الآيات</span><bdi>${change.compared ? signed.format(change.difference) : '—'}</bdi></div>
-        <div><span>طلاب المقارنة</span><span>${number.format(change.compared)} من ${number.format(change.total)}</span></div>
       </div>
     </section>`;
   }).join('')}</div>`;
