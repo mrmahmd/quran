@@ -3,7 +3,7 @@ import { recordedAyahRanges } from './quran-juz.mjs';
 
 export const comparisonKinds = { memorization: 'الحفظ', revision: 'المراجعة' };
 
-function amount(value) {
+export function monthlyAmount(value) {
   if (value?.absent === true) return { count: null, label: 'غائب' };
   const text = typeof value?.text === 'string' ? value.text.trim() : '';
   if (value?.none === true && !text) return { count: 0, label: 'لا يوجد' };
@@ -19,7 +19,7 @@ function amount(value) {
 const isRecorded = detail => detail.count !== null || detail.legacy === true;
 export const hasRecordedComparison = ({ first, second }) => isRecorded(first) || isRecorded(second);
 
-function compare(first, second) {
+export function compare(first, second) {
   if (first.count === null || second.count === null) {
     return { first, second, change: null, percent: null, state: 'unavailable' };
   }
@@ -39,8 +39,8 @@ export function buildMonthlyComparison(students, firstEntries, secondEntries) {
     const firstEntry = first.get(id), secondEntry = second.get(id);
     // The inputs are persisted entries. is_complete describes the whole row,
     // so it must not gate either of the two amounts.
-    const memorization = compare(amount(firstEntry?.memorization), amount(secondEntry?.memorization));
-    const revision = compare(amount(firstEntry?.revision), amount(secondEntry?.revision));
+    const memorization = compare(monthlyAmount(firstEntry?.memorization), monthlyAmount(secondEntry?.memorization));
+    const revision = compare(monthlyAmount(firstEntry?.revision), monthlyAmount(secondEntry?.revision));
     if (!hasRecordedComparison(memorization) && !hasRecordedComparison(revision)) return [];
     return [{
       id,

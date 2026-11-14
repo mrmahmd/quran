@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>تقرير ابني | يسرناه</title>
+<link rel="stylesheet" href="./assets/parent-report.css?v=quran-light2">
+<script src="./assets/supabase-config.js"></script>
+<script type="module" src="./assets/parent-report.mjs?v=lookup2"></script>
+</head>
+<body data-report-mode="preview">
+<header class="masthead"><div class="shell">
+  <div class="brand">
+    <span class="brand-marks">
+      <img src="./assets/yassarnahu-1448.png" alt="">
+      <img class="brand-school-logo" src="./assets/alandalus-logo.png" alt="">
+    </span>
+    <span>يسرناه<small>المسار المصري - مدارس الأندلس</small></span>
+  </div>
+</div></header>
+<main class="shell">
+<section class="hero" aria-labelledby="page-title">
+  <div class="hero-copy">
+    <p class="eyebrow">متابعة ولي الأمر</p>
+    <h1 id="page-title">رحلة ابني <br><span>مع القرآن</span></h1>
+    <figure class="verse">
+      <blockquote>﴿ وَلَقَدْ يَسَّرْنَا الْقُرْآنَ لِلذِّكْرِ فَهَلْ مِنْ مُدَّكِرٍ ﴾</blockquote>
+      <figcaption>سورة القمر، الآية ١٧</figcaption>
+    </figure>
+    <p class="intro">تابع ما حفظه ابنك وما راجعه خلال الشهرين الأول والثاني.</p>
+    <form class="lookup" id="lookup">
+      <label for="iqama">رقم إقامة الطالب</label>
+      <input id="iqama" type="text" dir="ltr" inputmode="numeric" autocomplete="off" maxlength="10" required aria-describedby="hint status" placeholder="••••••••••">
+      <button type="submit">عرض التقرير</button>
+      <small id="hint" hidden>للمعاينة استخدم الرقم التجريبي <bdi>2000000000</bdi></small>
+      <p id="status" role="status"></p>
+    </form>
+  </div>
+</section>
+<article id="report" hidden aria-labelledby="student-name">
+  <header class="report-header">
+    <div><p class="eyebrow" id="report-label">تقرير الحفظ والمراجعة</p><h2 id="student-name" tabindex="-1"></h2></div>
+    <button id="print" type="button">طباعة / حفظ PDF</button>
+  </header>
+  <div id="tracks"></div>
+</article>
+</main>
+<footer class="shell footer">مشروع يسرناه · المسار المصري - مدارس الأندلس</footer>
+</body>
+</html>
