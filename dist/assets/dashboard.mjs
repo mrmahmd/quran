@@ -26,6 +26,8 @@ function errorText(error) {
 }
 
 export async function mountDashboard(root, { repository: repo, account, onLogout, onChangePassword, preview = false }) {
+  const readOnly = account.readOnly === true;
+  root.classList.toggle('dashboard-read-only', readOnly);
   let terms = [], teachers = [], termId = '', teacherId = account.username || '', week = '', view = account.role === 'admin' ? 'reports' : 'home';
   let context = { students: [], reviews: [], evaluations: [], honors: [] }, overview = null, weekStates = [], monthStates = [], monthlyOverview = {reports:[],entries:[],students:[]};
   let loadedMonthlyScope = '';
@@ -46,8 +48,8 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
   let progressFocus = 'weekly', weeklyEditing = false;
   let nominationFilters = {parts:[], mode:'all', teacher:'', className:''}, nominationReport = null;
   const nominationViewer = account.role === 'admin' || account.khairkom_viewer === true;
-  const identityEditor = account.role === 'admin' || account.khairkom_identity_editor === true;
-  const nominationAdder = account.role === 'admin' || account.khairkom_nomination_adder === true;
+  const identityEditor = !readOnly && (account.role === 'admin' || account.khairkom_identity_editor === true);
+  const nominationAdder = !readOnly && (account.role === 'admin' || account.khairkom_nomination_adder === true);
   const reportData = () => nominationReport || {...khairkomData, teachers};
   const filteredNominations = () => filterNominations(reportData(), reportData().teachers, nominationFilters, nominationPeriod);
   const admin = account.role === 'admin';
@@ -90,8 +92,8 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
     type.addEventListener('change',sync);
     sync();
   }
-  const canEditSavedWeek = () => !admin && teacherId===account.username && selectedTerm()?.active && weekOpen(week) && week<=today() && review()?.status==='submitted';
-  const readonly = () => admin || teacherId!==account.username || !selectedTerm()?.active || !weekOpen(week) || review()?.status==='submitted' && !weeklyEditing;
+  const canEditSavedWeek = () => !readOnly && !admin && teacherId===account.username && selectedTerm()?.active && weekOpen(week) && week<=today() && review()?.status==='submitted';
+  const readonly = () => readOnly || admin || teacherId!==account.username || !selectedTerm()?.active || !weekOpen(week) || review()?.status==='submitted' && !weeklyEditing;
   const weekStudents = () => context.students.filter(student => (review()?.status !== 'submitted' && student.active) || context.evaluations.some(row => row.review_id === review()?.id && row.student_id === student.id));
   const completeCount = () => [...scores.values()].filter(row => validateScores(row, true)).length;
   const adminProgress = () => summarizeTeacherProgress(teachers, overview?.reviews || [], champions, khairkomData.rows, week, weekNumber(selectedTerm(), termWeeks(selectedTerm()).indexOf(week)));
@@ -103,7 +105,7 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
 
   root.innerHTML = `<div class="dashboard-shell">
     <header class="dashboard-topbar"><a class="brand" href="#">${brandLockup()}</a><div class="dashboard-user"><span>${esc(account.role === 'admin' ? 'حساب الإدارة' : account.full_name)}</span><button class="light-button" id="dashboard-logout">تسجيل الخروج</button></div></header>
-    ${preview ? '<div class="preview-banner">معاينة تصميم محلية - جميع الأسماء والدرجات هنا تجريبية</div>' : ''}
+    ${readOnly ? '<div class="preview-banner">حساب للاطلاع فقط</div>' : preview ? '<div class="preview-banner">معاينة تصميم محلية - جميع الأسماء والدرجات هنا تجريبية</div>' : ''}
     <main class="dashboard-main"><section class="welcome-banner"><div><p class="eyebrow">${admin ? 'إشراف واضح.. ودعم لكل حلقة' : 'خطوة صغيرة.. وأثر كبير'}</p><h1>${admin ? 'لوحة إدارة يسرناه' : `أهلًا بك، ${esc(account.full_name)}`}</h1><p>${admin ? 'تابع التقييمات المعتمدة وفرسان الأسبوع والتكريم الفصلي.' : `حلقة ${esc(account.ring_name || "")} <bdi dir="ltr">${esc(account.class_name)}</bdi> · قيّم اجتهاد كل طالب وتقدمه مقارنة بنفسه.`}</p></div><div class="welcome-symbol" aria-hidden="true">✦</div></section>
     ${admin ? '' : toolbar + '<div id="teacher-save-indicator" class="teacher-save-indicator" role="status"></div><section id="teacher-home" hidden aria-label="ملخص عمل الحلقة"></section>'}
     ${admin ? `<div class="admin-workspace"><aside class="admin-sidebar"><div class="admin-sidebar-title"><span>✦</span><div><strong>مركز الإدارة</strong><small>متابعة الحلقات والتقارير</small></div></div><nav aria-label="أقسام الإدارة"><button data-view="reports"><span>▦</span> نظرة عامة</button><button data-view="evaluation"><span>✓</span> تقييم الحلقة</button><button data-view="champions"><span>★</span> فرسان الأسبوع</button><button data-view="khairkom"><span>◆</span> ترشيحات خيركم</button><button data-view="monthly"><span>▤</span> تقارير الحفظ الشهرية</button><button data-view="monthlyProgress"><span>◔</span> إنجاز التقارير الشهرية</button><button data-view="monthlyComparison"><span aria-hidden="true">⇄</span> مقارنة الحفظ والمراجعة</button><button data-view="honors"><span>✦</span> التكريم الفصلي</button><button data-view="rosterRequests"><span>◷</span> طلبات الطلاب <b data-roster-request-count>0</b></button><button data-view="setup"><span>♧</span> قوائم الطلاب</button></nav><div class="admin-sidebar-note">في النظرة العامة اختر الأسبوع فقط؛ ولعرض طلاب حلقة افتح «تقييم الحلقة» ثم اختر المعلم.</div></aside><div class="admin-workspace-content">${toolbar}` : `<nav class="dashboard-actions" aria-label="أقسام لوحة التحكم"><button class="action-card home-card" data-view="home"><span class="action-symbol">⌂</span><span><strong>الرئيسية</strong><small>إنجازك وما تبقّى عليك</small></span><span class="action-arrow">←</span></button><button class="action-card blue-card" data-view="evaluation"><span class="action-symbol">✓</span><span><strong>التقييم الأسبوعي</strong><small>نقاط واضحة من ١٢</small></span><span class="action-arrow">←</span></button> ${weeklyNarrativeOwner ? '<button class="action-card blue-card" data-view="nimrWeekly"><span class="action-symbol" aria-hidden="true">▤</span><span><strong>التقرير الأسبوعي</strong><small>كتابة التقرير وتحميله PDF</small></span><span class="action-arrow" aria-hidden="true">←</span></button>' : ''}<button class="action-card gold-card" data-view="knight"><span class="action-symbol">★</span><span><strong>فارس الأسبوع</strong><small>احتفِ بالاجتهاد والتحسن</small></span><span class="action-arrow">←</span></button><button class="action-card purple-card" data-view="honors"><span class="action-symbol">✦</span><span><strong>التكريم الفصلي</strong><small>ثمرة رحلة الفصل الدراسي</small></span><span class="action-arrow">←</span></button><button class="action-card teal-card" data-view="monthly"><span class="action-symbol">▤</span><span><strong>التقرير الشهري</strong><small>مقدار الحفظ والمراجعة</small></span><span class="action-arrow">←</span></button><button class="action-card khairkom-card" data-view="khairkom"><span class="action-symbol">◆</span><span><strong>ترشيحات جمعية خيركم</strong><small>رشّح طلاب حلقتك</small></span><span class="action-arrow">←</span></button>${!manager ? '<button class="action-card roster-card" data-view="setup"><span class="action-symbol">♧</span><span><strong>طلاب حلقتي</strong><small>طلبات إضافة وحذف · تعديل الاسم</small></span><span class="action-arrow">←</span></button>' : ''}</nav>${manager ? '<div class="admin-tabs"><span>مشرف الطلاب · تقييمات الحلقات الأخرى تخص معلميها</span><button class="gold-button" data-view="champions">★ فرسان الأسبوع</button><button class="light-button" data-view="setup">إدارة قوائم الطلاب</button></div>' : ''}`}
@@ -344,7 +346,7 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
   const monthlyStudents = () => context.students.filter(student => student.active || monthlyData.entries.some(row => row.student_id === student.id));
   const monthlyScope = () => JSON.stringify([teacherId, termId, month]);
   const monthOpen = () => monthStates.find(r=>r.month_start===month)?.is_open!==false;
-  const monthlyReadonly = () => loadedMonthlyScope !== monthlyScope() || admin || ['monthlyReport','monthlyProgress'].includes(view) || !monthOpen() || !selectedTerm()?.active || teacherId !== account.username;
+  const monthlyReadonly = () => readOnly || loadedMonthlyScope !== monthlyScope() || admin || ['monthlyReport','monthlyProgress'].includes(view) || !monthOpen() || !selectedTerm()?.active || teacherId !== account.username;
   function loadMonthlyRows() {
     monthlyRows = mergeMonthlyRoster(context.students, monthlyData.entries);
     monthlyDirty = false;

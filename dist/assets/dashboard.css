@@ -178,3 +178,10 @@
 }
 .khairkom-report-group { margin-block: 16px; }
 .khairkom-report-group h3 { margin-block: 0 10px; }
+
+.dashboard-read-only :is(
+  #term-form, #students-form, #student-edit-form, #reopen-week,
+  #save-knight, #save-honors, #save-khairkom, #add-supervised-nominee,
+  [data-archive-student], [data-edit-student], [data-edit-nomination],
+  [data-khairkom-type], [data-select-request], [data-honor]
+) { display: none !important; }

@@ -26,8 +26,14 @@ async function loadKhairkom(client, term, period = 1) {
   const students = rows.length ? await allRows(() => client.from('students').select('id,full_name,teacher_username,source_class').in('id', rows.map(row => row.student_id)).order('full_name')) : [];
   return { sets, rows, students };
 }
-export function createDashboardRepository(client) {
-  return {
+export function createDashboardRepository(client, { readOnly = false } = {}) {
+  const viewerReport = (kind, term, filters) => result(client.rpc(
+    'dashboard_viewer_report', { p_kind: kind, p_term: term, ...filters }, { get: true },
+  ));
+  const champions = (term, week) => readOnly
+    ? viewerReport('champions', term, { p_week: week })
+    : result(client.rpc('weekly_champions', { p_term: term, p_week: week }));
+  const repository = {
     teacherAppearance: () => result(client.from('teacher_preferences').select('text_size').maybeSingle()),
     async saveTeacherAppearance(text_size) {
       const {data,error}=await client.auth.getUser();if(error)throw error;
@@ -76,7 +82,7 @@ export function createDashboardRepository(client) {
       const [teachers, reviews, champions, nominations] = await Promise.all([
         result(client.from('teacher_accounts').select('username,full_name,class_name,ring_name,active').eq('active', true).order('username')),
         allRows(() => client.from('weekly_reviews').select('teacher_username,week_start,status,knight_student_id').eq('term_id', term).eq('week_start', week).order('teacher_username')),
-        result(client.rpc('weekly_champions', {p_term:term,p_week:week})),
+        champions(term, week),
         loadKhairkom(client, term),
       ]);
       return { teachers, reviews, champions, nominations };
@@ -137,13 +143,14 @@ export function createDashboardRepository(client) {
       return saved;
     },
     khairkom: (term,period=1) => loadKhairkom(client, term,period),
-    khairkomReport: (term,period=1) => result(client.rpc('khairkom_report_snapshot_period', {p_term:term,p_period:period})),
+    khairkomReport: (term,period=1) => readOnly ? viewerReport('khairkom', term, { p_period: period })
+      : result(client.rpc('khairkom_report_snapshot_period', {p_term:term,p_period:period})),
     khairkomCandidates: (term,period=1) => result(client.rpc('khairkom_nomination_candidates_period', {p_term:term,p_period:period})),
     addKhairkomNomination: args => result(client.rpc('add_khairkom_nomination_period', args)),
     updateKhairkomNominee: args => result(client.rpc('update_khairkom_nominee', args)),
     updateKhairkomIdentity: args => result(client.rpc('update_khairkom_identity', args)),
     saveKhairkom: args => result(client.rpc('save_khairkom_nominations_period', args)),
-    champions: (term, week) => result(client.rpc('weekly_champions', {p_term:term,p_week:week})),
+    champions,
     knight: args => result(client.rpc('select_manual_weekly_knight', args)),
     honors: args => result(client.rpc('save_semester_honors', args)),
     reopen: args => result(client.rpc('reopen_weekly_evaluation', args)),
@@ -157,4 +164,18 @@ export function createDashboardRepository(client) {
     addTerm: term => result(client.from('school_terms').insert(term).select().single()),
     addStudents: students => result(client.from('students').insert(students).select('id')),
   };
+  if (!readOnly) return repository;
+  const reads = new Set([
+    'teacherAppearance', 'terms', 'nimrWeeklyReport', 'khairkomSecondMonthState',
+    'khairkomRoundState', 'teachers', 'weekStates', 'context', 'overview',
+    'teacherProgress', 'monthly', 'monthlyComparison', 'monthlySchoolComparison',
+    'monthStates', 'monthlyOverview', 'khairkom', 'khairkomReport', 'champions',
+    'rosterRequests',
+  ]);
+  for (const name of Object.keys(repository)) {
+    if (!reads.has(name)) repository[name] = async () => {
+      throw { code: '42501', message: 'هذا الحساب للاطلاع فقط.' };
+    };
+  }
+  return repository;
 }

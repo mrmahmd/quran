@@ -38,6 +38,12 @@ function showForm(form) {
 }
 
 async function showAccount(user) {
+  const { data: viewer, error: viewerError } = await client.rpc('dashboard_viewer_profile', {}, { get: true });
+  if (viewerError && viewerError.code !== 'PGRST202') throw viewerError;
+  if (viewer?.readOnly === true) {
+    await openDashboard(viewer, user.id);
+    return;
+  }
   const { data: adminAccount, error: adminError } = await client.from('admin_accounts')
     .select('email, active')
     .eq('auth_user_id', user.id)
@@ -67,7 +73,7 @@ async function showAccount(user) {
 
 async function openDashboard(account, userId) {
   const [{ mountDashboard }, { createDashboardRepository }] = await Promise.all([
-    import('./dashboard.mjs?v=monthly-comparison-pairs1'), import('./dashboard-repository.mjs?v=monthly-juz1'),
+    import('./dashboard.mjs?v=dashboard-viewers1'), import('./dashboard-repository.mjs?v=dashboard-viewers1'),
   ]);
   const previousRoot = document.querySelector('#dashboard-root');
   const root = previousRoot.cloneNode(false);
@@ -75,8 +81,8 @@ async function openDashboard(account, userId) {
   document.querySelector('.page-shell').hidden = true;
   root.hidden = false;
   await mountDashboard(root, {
-    account, repository: createDashboardRepository(client),
-    onChangePassword: async password => {
+    account, repository: createDashboardRepository(client, { readOnly: account.readOnly }),
+    onChangePassword: account.readOnly ? undefined : async password => {
       const { data: sessionUser, error: sessionError } = await client.auth.getUser();
       if (sessionError) throw sessionError;
       if (sessionUser.user?.id !== userId) throw { code: 'session_not_found' };
