@@ -123,20 +123,21 @@ loginForm.addEventListener('submit', async (event) => {
   event.preventDefault();
   const button = loginForm.querySelector('.submit-button');
   const username = document.querySelector('#username').value.trim().toLowerCase();
+  const viewerAlias = /^test\s*([12])$/.exec(username);
   const isEmail = username.includes('@');
-  if ((!isEmail && !/^[a-z][a-z0-9._-]{1,63}$/.test(username)) || (isEmail && !/^\S+@\S+\.\S+$/.test(username))) {
+  if ((!isEmail && !viewerAlias && !/^[a-z][a-z0-9._-]{1,63}$/.test(username)) || (isEmail && !/^\S+@\S+\.\S+$/.test(username))) {
     showMessage(document.querySelector('#login-error'), 'اكتب اسم المستخدم بشكل صحيح.');
     return;
   }
   button.disabled = true;
   try {
     let result;
-    if (!isEmail && !/^quran\d{2}$/.test(username)) {
+    if (!isEmail && !viewerAlias && !/^quran\d{2}$/.test(username)) {
       const session = await schoolAccountRequest(config, { action: 'login', username, password: password.value });
       result = await client.auth.setSession(session);
     } else {
       result = await client.auth.signInWithPassword({
-        email: isEmail ? username : `${username}@quran-school.invalid`, password: password.value,
+        email: isEmail ? username : `${viewerAlias ? `test${viewerAlias[1]}` : username}@quran-school.invalid`, password: password.value,
       });
     }
     const { data, error } = result;
