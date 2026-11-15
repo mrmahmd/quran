@@ -10,6 +10,7 @@ export function summarizeMonthlyTeachers(teachers, data) {
  });
  const assigned=rows.filter(r=>r.status!=='empty'),completed=assigned.filter(r=>r.status==='complete').length;
  return {rows,total:assigned.length,completed,remaining:assigned.length-completed,
+  partial:assigned.filter(r=>r.status==='draft').length,
   pending:assigned.filter(r=>r.status==='missing').length,empty:rows.length-assigned.length,
   percent:assigned.length?Math.floor(completed*100/assigned.length):0};
 }

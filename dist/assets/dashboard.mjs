@@ -6,12 +6,12 @@ import {mountTeacherAppearance} from './teacher-appearance.mjs?v=monthly-reading
 import {mountDashboardIdentity} from './dashboard-identity.mjs?v=monthly-reading5';
 import {buildMonthlyReadingTable,monthlyReadingHeading} from './monthly-report-view.mjs?v=monthly-reading5';
 import {teacherWeeks} from './teacher-week-model.mjs?v=monthly-reading5';
-import { summarizeMonthlyTeachers } from './monthly-progress-model.mjs?v=monthly-admin1';
+import { summarizeMonthlyTeachers } from './monthly-progress-model.mjs?v=monthly-progress2';
 import { createMonthlyComparison } from './monthly-comparison-view.mjs?v=9';
 import { emptyMonthly, monthlyProblem, monthlyDraftProblem, termMonths, monthlyLabel, SURAHS, monthlyRangeText, monthlyProgress, applyMonthlyAmounts, copyMonthlyAmounts, copyMemorizationToRevision, monthlyAbsent, setMonthlyAbsent, mergeMonthlyRoster, monthlySavedComplete, monthlyStudentPayload, monthlyHasChanges } from './monthly-model.mjs?v=monthly-save2';
 import { SCORE_FIELDS, emptyScores, scoreTotal, validateScores, termWeeks, semesterSummary, weekNumber, weekEnd } from './evaluation-model.mjs?v=rosters2';
 import { applyEditedNominee, applySavedNominations, filterNominations, nominationGroups, nominationRoundLabels, nominationType, nominationFilterLabel, formatTestParts, testPartLabel, testPartOptions, normalizeIdentityNumber, validIdentityNumber, validTestParts } from './khairkom-model.mjs?v=nas-duha';
-import { buildWeeklyReport, buildKhairkomReport, buildChampionsReport, buildTeacherProgressReport, buildMonthlyReport } from './report-layout.mjs?v=nas-duha';
+import { buildWeeklyReport, buildKhairkomReport, buildChampionsReport, buildTeacherProgressReport, buildMonthlyReport } from './report-layout.mjs?v=monthly-progress2';
 import { summarizeTeacherProgress } from './admin-progress-model.mjs?v=monthly-admin1';
 
 const esc = value => String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]);
@@ -32,7 +32,7 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
   let context = { students: [], reviews: [], evaluations: [], honors: [] }, overview = null, weekStates = [], monthStates = [], monthlyOverview = {reports:[],entries:[],students:[]};
   let loadedMonthlyScope = '';
   let scores = new Map(), dirty = false, honorDirty = false, knightDirty = false, busy = false, generation = 0, monthlyDirty = false, month = '', monthlyData = { report: null, entries: [] }, monthlyRows = new Map(), champions = [], chosenKnight = '', selectedHonors = new Set(), khairkomData = { sets: [], rows: [], students: [] }, nominatedStudents = new Map(), identityNumbers = new Map(), nominationDirty = false;
-  let messageTimer, editingStudent = '', rosterDirty = false, monthlyCardsVisible = false, monthlyStudentFilter = 'pending';
+  let messageTimer, editingStudent = '', rosterDirty = false, monthlyTeacherFilter = null, monthlyStudentFilter = 'pending';
   let nominationSaveReceipt = null, rosterRequests = [], requestFilter = 'pending', rosterPollTimer, rosterPolling=false, dashboardClosed=false;
   const selectedRequestIds = new Set(), requestNotes = new Map();
   let rosterBatchReport = '', nominationPeriod;
@@ -440,8 +440,40 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
     content.innerHTML = `<div class="section-heading"><div><p class="section-kicker teal-text">متابعة الشهر</p><h2>إنجاز التقارير الشهرية</h2><p>متابعة اكتمال التقارير وفتح الشهر أو إغلاقه. لقراءة مقادير الحفظ والمراجعة افتح تقارير الحفظ الشهرية.</p></div><button class="teal-button" data-view="${admin?'monthly':'monthlyReport'}">▤ عرض تقارير الحفظ</button></div><div class="monthly-toolbar"><label>الشهر<select id="month-select">${termMonths(selectedTerm()).map(value=>`<option value="${value}" ${month===value?'selected':''}>${monthLabel(value)}</option>`).join('')}</select></label><button class="light-button" id="refresh-monthly-roster">↻ تحديث الإنجاز</button></div>${monthWorkflow()}${monthlyAdminSummary()}`;
   }
   function monthlyAdminSummary() {
-    const p=summarizeMonthlyTeachers(teachers,monthlyOverview);
-    return `<section class="monthly-admin-summary"><div class="monthly-admin-hero"><div><span>متابعة إنجاز المعلمين</span><h2>${monthLabel(month)} · صورة واضحة لكل حلقة</h2><p>المعلم منتهي عند حفظ تقرير جميع طلابه، والغائب لا يمنع الاكتمال.</p></div><button class="teal-button" id="print-monthly-overview">▤ تقرير جميع المعلمين</button></div><div class="monthly-admin-stats"><article class="aqua"><span>نسبة إنجاز المعلمين</span><strong>${p.percent}%</strong><progress max="100" value="${p.percent}"></progress></article><article class="mint"><span>معلمون انتهوا</span><strong>${p.completed}</strong><small>من ${p.total} معلمًا لديهم طلاب</small></article><article class="amber"><span>لم ينتهوا بعد</span><strong>${p.remaining}</strong><small>تقارير جزئية أو لم تُحفظ</small></article><article class="lilac"><span>لم يرسلوا تقريرًا</span><strong>${p.pending}</strong><small>${p.empty?`${p.empty} حلقة بلا طلاب خارج نسبة الإنجاز`:'متابعة واضحة للشهر المختار'}</small></article></div><div class="monthly-cards-toolbar"><button type="button" class="light-button" id="toggle-monthly-teachers" aria-expanded="${monthlyCardsVisible}" aria-controls="monthly-teacher-cards">${monthlyCardsVisible?'⌃ إخفاء بطاقات المعلمين':'⌄ عرض بطاقات المعلمين'}</button><span>${p.rows.length} معلمًا · تفاصيل الإنجاز لكل حلقة</span></div><div id="monthly-teacher-cards" class="monthly-teacher-grid" ${monthlyCardsVisible?'':'hidden'}>${p.rows.map(t=>`<button type="button" class="monthly-teacher-status ${t.status} ${t.username===teacherId?'selected':''}" data-monthly-teacher="${esc(t.username)}"><span class="monthly-teacher-state">${t.status==='complete'?'✓ منتهٍ':t.status==='draft'?'◷ غير مكتمل':t.status==='empty'?'— بلا طلاب':'○ لم يبدأ'}</span><h3>${esc(t.full_name)}</h3><small>${esc(t.ring_name||t.class_name)}</small><strong>${t.percent}%</strong><progress max="100" value="${t.percent}"></progress><span>${t.completed} من ${t.total} طالبًا · عرض التقرير ←</span></button>`).join('')}</div></section>`;
+    const p = summarizeMonthlyTeachers(teachers, monthlyOverview);
+    const statuses = { complete: '✓ مكتمل', draft: '◷ تقرير جزئي', missing: '○ لا يوجد تقرير محفوظ' };
+    const categories = [
+      { key: 'all', color: 'aqua', title: 'نسبة إنجاز المعلمين', value: `${p.percent}%`, detail: `${p.completed} من ${p.total} معلمًا لديهم طلاب` },
+      { key: 'complete', color: 'mint', title: 'معلمون انتهوا', value: p.completed, detail: 'تقارير مكتملة ومحفوظة' },
+      { key: 'draft', color: 'amber', title: 'تقارير جزئية', value: p.partial, detail: 'تقارير محفوظة تحتاج استكمالًا' },
+      { key: 'missing', color: 'lilac', title: 'لم يحفظوا تقريرًا', value: p.pending, detail: 'لا يوجد تقرير محفوظ لهذا الشهر' },
+    ];
+    const active = categories.find(category => category.key === monthlyTeacherFilter);
+    const visible = active ? p.rows.filter(t => active.key === 'all' ? t.status !== 'empty' : t.status === active.key) : [];
+    const heading = active?.key === 'all' ? 'المعلمون الذين لديهم طلاب' : active?.title;
+    return `<section class="monthly-admin-summary">
+      <div class="monthly-admin-hero"><div><span>متابعة إنجاز المعلمين</span><h2>${monthLabel(month)}</h2>
+      <p>يكتمل التقرير بعد حفظ بيانات جميع طلاب الحلقة. الطالب المسجّل غائبًا لا يمنع الاكتمال.</p></div>
+      <button class="teal-button" id="print-monthly-overview">▤ تقرير جميع المعلمين</button></div>
+      <div class="monthly-admin-stats" role="group" aria-label="تصفية المعلمين حسب حالة التقرير">
+        ${categories.map(({ key, color, title, value, detail }) => `<button type="button" class="${color}" data-monthly-progress-filter="${key}"
+          aria-expanded="${monthlyTeacherFilter === key}" aria-controls="monthly-teacher-cards">
+          <span>${title}</span><strong>${value}</strong><small>${detail}</small>
+          ${key === 'all' ? `<progress max="100" value="${p.percent}" aria-hidden="true"></progress>` : ''}
+          <small class="monthly-card-cta">${monthlyTeacherFilter === key ? 'إخفاء الأسماء ↑' : 'عرض الأسماء ↓'}</small>
+        </button>`).join('')}
+      </div>
+      ${p.empty ? `<p class="monthly-empty-rings">${p.empty} حلقة بلا طلاب خارج حساب الإنجاز.</p>` : ''}
+      <section id="monthly-teacher-cards" ${active ? '' : 'hidden'} aria-labelledby="monthly-teacher-heading">
+        <div class="monthly-cards-toolbar"><h3 id="monthly-teacher-heading">${heading || ''}</h3><span>${visible.length} معلمًا</span></div>
+        ${visible.length ? `<div class="monthly-teacher-grid">${visible.map(t => `<button type="button" class="monthly-teacher-status ${t.status} ${t.username === teacherId ? 'selected' : ''}" data-monthly-teacher="${esc(t.username)}">
+          <span class="monthly-teacher-state">${statuses[t.status]}</span><h3>${esc(t.full_name)}</h3>
+          <small>${esc(t.ring_name || t.class_name)}</small>
+          <strong>${t.percent}%</strong><progress max="100" value="${t.percent}" aria-label="نسبة اكتمال تقرير ${esc(t.full_name)}"></progress>
+          <span>${t.completed} من ${t.total} طالبًا · عرض تفاصيل الحلقة ←</span>
+        </button>`).join('')}</div>` : active ? '<p class="monthly-empty-group">لا يوجد معلمون في هذه الحالة للشهر المختار.</p>' : ''}
+      </section>
+    </section>`;
   }
   function monthWorkflow() {
     return `<section class="month-workflow ${monthOpen()?'':'closed'}"><div><strong>${monthLabel(month)} · ${monthOpen()?'مفتوح أمام المعلمين':'مغلق من الإدارة'}</strong><p>${monthOpen()?'يمكن للمعلمين إدخال التقارير وحفظها وتعديلها.':'التقارير المحفوظة متاحة للعرض؛ الإدخال والحفظ متوقفان حتى إعادة فتح الشهر.'}</p></div>${admin?`<button type="button" class="week-toggle ${monthOpen()?'':'closed'}" id="toggle-month-workflow" role="switch" aria-checked="${monthOpen()}" aria-label="${monthOpen()?'إغلاق':'فتح'} الشهر أمام جميع المعلمين" ${selectedTerm()?.active?'':'disabled'}><span class="week-toggle-track"><i></i></span><b>${monthOpen()?'مفتوح':'مغلق'}</b></button>`:''}</section>`;
@@ -744,12 +776,13 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
         renderMonthly();notify('تم حفظ بيانات الطالب بنجاح ونقله إلى المكتملين.');
       },'');return;
     }
-    const monthlyCardsToggle=event.target.closest('#toggle-monthly-teachers');
-    if(monthlyCardsToggle&&monthlyReader){
-      monthlyCardsVisible=!monthlyCardsVisible;
-      root.querySelector('#monthly-teacher-cards').hidden=!monthlyCardsVisible;
-      monthlyCardsToggle.setAttribute('aria-expanded',String(monthlyCardsVisible));
-      monthlyCardsToggle.textContent=monthlyCardsVisible?'⌃ إخفاء بطاقات المعلمين':'⌄ عرض بطاقات المعلمين';
+    const progressFilter = event.target.closest('[data-monthly-progress-filter]');
+    if (progressFilter && monthlyReader) {
+      const key = progressFilter.dataset.monthlyProgressFilter;
+      monthlyTeacherFilter = monthlyTeacherFilter === key ? null : key;
+      progressFilter.closest('.monthly-admin-summary').outerHTML = monthlyAdminSummary();
+      root.querySelector(`[data-monthly-progress-filter="${key}"]`)?.focus({ preventScroll: true });
+      if (monthlyTeacherFilter) root.querySelector('#monthly-teacher-heading')?.scrollIntoView({ block: 'nearest' });
       return;
     }
     if(event.target.closest('#toggle-month-workflow')&&admin&&!busy){

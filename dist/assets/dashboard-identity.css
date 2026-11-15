@@ -208,7 +208,7 @@
   .dashboard-shell .progress-report-action button,.dashboard-shell .report-intro button{white-space:normal;width:100%;font-size:18px;line-height:1.8;min-height:50px}
   .dashboard-shell .admin-student-scores{grid-template-columns:repeat(3,minmax(0,1fr))}
   .dashboard-shell .monthly-admin-stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
-  .dashboard-shell .monthly-admin-stats article{padding:16px}.dashboard-shell .monthly-admin-stats strong{font-size:32px}
+  .dashboard-shell .monthly-admin-stats button{padding:16px}.dashboard-shell .monthly-admin-stats strong{font-size:32px}
   .dashboard-shell .monthly-range-grid{grid-template-columns:1fr}
   .dashboard-shell .monthly-toolbar{padding:16px}.dashboard-shell .monthly-toolbar>label{width:100%;min-width:0}.dashboard-shell .monthly-toolbar select{min-width:0;width:100%}
   .dashboard-shell .monthly-range-end{padding:12px}.dashboard-shell .monthly-section{padding:14px}
