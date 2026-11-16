@@ -42,6 +42,14 @@ with check (
     where t.id = term_id and week_start <= t.ends_on and week_start + 6 >= t.starts_on)
 );
 
+drop policy if exists nimr_weekly_report_admin_read on public.nimr_weekly_reports;
+create policy nimr_weekly_report_admin_read on public.nimr_weekly_reports
+for select to authenticated
+using (
+  exists (select 1 from public.admin_accounts
+    where active and auth_user_id = (select auth.uid()))
+);
+
 create or replace function quran_private.revise_nimr_weekly_report()
 returns trigger language plpgsql security invoker set search_path = '' as $$
 begin

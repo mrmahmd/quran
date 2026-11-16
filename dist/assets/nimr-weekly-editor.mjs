@@ -1,7 +1,7 @@
 import { termWeeks, weekEnd, weekNumber } from './evaluation-model.mjs?v=rosters2';
 import { formatSelection, narrativeBlock, narrativeDate, parseNarrative } from './nimr-weekly-model.mjs?v=1';
 
-export function createNimrWeeklyEditor({repo,author,showPdf,confirmReload}) {
+export function createNimrWeeklyEditor({repo,author,showPdf,confirmReload,readOnly=false}) {
   const drafts = new Map();
   const panel = document.createElement('section');
   panel.className='narrative-editor';
@@ -32,7 +32,7 @@ export function createNimrWeeklyEditor({repo,author,showPdf,confirmReload}) {
       <span data-narrative-state role="status"></span>
       <button type="button" class="light-button" data-narrative-reload hidden>جلب المسودة المحفوظة</button>
       <button type="button" class="light-button" data-narrative-pdf>معاينة وتحميل PDF</button>
-      <button type="button" class="solid-button" data-narrative-save>حفظ المسودة</button>
+      ${readOnly ? '' : '<button type="button" class="solid-button" data-narrative-save>حفظ المسودة</button>'}
     </div>`;
   const select = panel.querySelector('select');
   const field = panel.querySelector('textarea');
@@ -54,9 +54,9 @@ export function createNimrWeeklyEditor({repo,author,showPdf,confirmReload}) {
     const disabled=working||!draft;
     const hasText=field.value.trim().length>0;
     select.disabled=working||!weeks.length;
-    field.disabled=disabled;
+    field.disabled=disabled||readOnly;
     tools.forEach(button=>button.disabled=disabled);
-    save.disabled=disabled||!hasText||!dirty(draft);
+    if (save) save.disabled=disabled||!hasText||!dirty(draft);
     exportPdf.disabled=disabled||!hasText;
     reload.disabled=working;
   }
@@ -117,7 +117,7 @@ export function createNimrWeeklyEditor({repo,author,showPdf,confirmReload}) {
   reload.addEventListener('click',async()=>{
     if (!dirty(draft)||await confirmReload()) await load(true);
   });
-  save.addEventListener('click',async()=>{
+  save?.addEventListener('click',async()=>{
     if (save.disabled) return;
     const saving=draft;
     working=true;

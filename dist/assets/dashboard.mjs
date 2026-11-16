@@ -56,6 +56,7 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
   const manager = admin || account.roster_manager;
   const canManageRoster = () => manager || teacherId === account.username;
   const weeklyNarrativeOwner = !admin && account.role === 'teacher' && account.username === 'quran17';
+  const weeklyNarrativeViewer = weeklyNarrativeOwner || admin;
   const monthlyReader = admin || account.username === 'quran17';
   const monthlyOverviewMode = () => admin || ['monthlyReport','monthlyProgress'].includes(view);
   const selectedTerm = () => terms.find(term => term.id === termId);
@@ -113,6 +114,15 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
     ${admin ? '</div></div>' : ''}</main><footer class="dashboard-footer">${platformName} · ${schoolName}</footer>
     <dialog id="dashboard-confirm" class="confirm-dialog"><h2></h2><p></p><div><button class="light-button" data-answer="cancel">العودة</button><button class="solid-button" data-answer="confirm">تأكيد</button></div></dialog></div><section id="report-preview" class="report-preview" hidden aria-label="معاينة التقرير"><div class="report-preview-toolbar"><strong>معاينة التقرير</strong><span>اختر «حفظ PDF» من نافذة الطباعة للحصول على الملف.</span><div><a id="report-download-ready" class="achievement-download" hidden>تحميل تقرير الإنجاز PDF</a><button type="button" id="report-print">حفظ PDF / طباعة</button><button type="button" id="report-close">إغلاق المعاينة</button></div></div><div id="report-preview-body"></div></section>`;
 
+  if (admin) {
+    const nav = root.querySelector('.admin-sidebar nav');
+    if (nav && !nav.querySelector('[data-view="nimrWeekly"]')) {
+      const button = document.createElement('button');
+      button.dataset.view = 'nimrWeekly';
+      button.textContent = '▤ التقرير الأسبوعي لمحمد النمر';
+      nav.append(button);
+    }
+  }
   if (onChangePassword) mountMyAccount(root, account, onChangePassword);
   const teacherAppearance = admin ? null : mountTeacherAppearance(root,repo);
   const content = root.querySelector('#dashboard-content');
@@ -123,7 +133,7 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
   const dialog = root.querySelector('#dashboard-confirm');
   const reportPreview = root.querySelector('#report-preview');
   const monthlyComparison = admin ? createMonthlyComparison({ repo, openPdf: showReportMarkup, openMonthlyReport: openComparedMonthlyReport }) : null;
-  const weeklyNarrative = weeklyNarrativeOwner ? createNimrWeeklyEditor({
+  const weeklyNarrative = weeklyNarrativeViewer ? createNimrWeeklyEditor({
     repo, author:account.full_name,
     confirmReload:()=>confirm('جلب المسودة المحفوظة','سيظهر آخر نص محفوظ لهذا الأسبوع.'),
     showPdf:({pages,blob},filename)=>{
@@ -140,7 +150,8 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
       reportPreview.scrollTop=0;
       document.body.classList.add('report-is-open');
       root.querySelector('#report-close').focus();
-    }
+    },
+    readOnly: admin,
   }) : null;
   function updateToolbarVisibility() {
     if (!admin) {
