@@ -1,5 +1,5 @@
 import { brandLockup, platformName, schoolName } from './brand.mjs';
-import { createNimrWeeklyEditor } from './nimr-weekly-editor.mjs?v=1';
+import { createNimrWeeklyEditor } from './nimr-weekly-editor.mjs?v=2';
 import {reviewRosterRequests} from './roster-request-bulk.mjs?v=bulk-requests1';
 import {mountMyAccount} from './my-account.mjs?v=1';
 import {mountTeacherAppearance} from './teacher-appearance.mjs?v=monthly-reading5';
@@ -134,7 +134,7 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
   const reportPreview = root.querySelector('#report-preview');
   const monthlyComparison = admin ? createMonthlyComparison({ repo, openPdf: showReportMarkup, openMonthlyReport: openComparedMonthlyReport }) : null;
   const weeklyNarrative = weeklyNarrativeViewer ? createNimrWeeklyEditor({
-    repo, author:account.full_name,
+    repo, author:()=>admin ? teachers.find(row=>row.username==='quran17')?.full_name || 'محمد نمر فوزي' : account.full_name,
     confirmReload:()=>confirm('جلب المسودة المحفوظة','سيظهر آخر نص محفوظ لهذا الأسبوع.'),
     showPdf:({pages,blob},filename)=>{
       clearAchievementDownload();

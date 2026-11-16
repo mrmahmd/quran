@@ -11,8 +11,8 @@ export function createNimrWeeklyEditor({repo,author,showPdf,confirmReload,readOn
       <label>الأسبوع <select data-narrative-week></select></label>
       <span data-narrative-dates></span>
     </div>
-    <div class="narrative-editor-grid">
-      <section class="narrative-editor-card">
+    <div class="${readOnly ? 'narrative-reader' : 'narrative-editor-grid'}">
+      <section class="narrative-editor-card"${readOnly ? ' style="display:none"' : ''}>
         <label for="narrative-text">نص التقرير</label>
         <div class="narrative-tools" role="group" aria-label="تنسيق التقرير">
           <button type="button" data-narrative-format="paragraph">فقرة</button>
@@ -24,7 +24,7 @@ export function createNimrWeeklyEditor({repo,author,showPdf,confirmReload,readOn
         <textarea id="narrative-text" rows="13" maxlength="30000" placeholder="اكتب التقرير هنا…"></textarea>
       </section>
       <section class="narrative-editor-card">
-        <h3>معاينة النص</h3>
+        <h3>${readOnly ? 'التقرير المحفوظ' : 'معاينة النص'}</h3>
         <div class="narrative-text-preview" aria-live="off"></div>
       </section>
     </div>
@@ -62,7 +62,7 @@ export function createNimrWeeklyEditor({repo,author,showPdf,confirmReload,readOn
   }
   function showText() {
     textPreview.innerHTML=parseNarrative(field.value).map(block=>narrativeBlock(block)).join('')
-      || '<p class="narrative-placeholder">هيظهر النص المنسق هنا.</p>';
+      || `<p class="narrative-placeholder">${readOnly ? 'لا يوجد تقرير محفوظ لهذا الأسبوع.' : 'هيظهر النص المنسق هنا.'}</p>`;
   }
   async function load(force=false) {
     const token=++revisionRequest;
@@ -145,7 +145,7 @@ export function createNimrWeeklyEditor({repo,author,showPdf,confirmReload,readOn
     if(exportPdf.disabled) return;
     const week=select.value;
     const exporting=draft;
-    const details={term,week,end:weekEnd(week),weekNumber:weekNumber(term,weeks.indexOf(week)),author};
+    const details={term,week,end:weekEnd(week),weekNumber:weekNumber(term,weeks.indexOf(week)),author:author()};
     working=true;
     updateControls();
     notice('جارٍ تجهيز ملف PDF…');
