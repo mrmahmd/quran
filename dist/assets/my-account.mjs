@@ -1,45 +1,55 @@
 // "حسابي": account details, the teacher's own login name, and the password.
+// Teachers get a full page in their dashboard (renderMyAccountPage); the administration keeps a dialog.
 // loadProfile/changeLoginName are given for teacher accounts only.
-export function mountMyAccount(root, account, changePassword, { loadProfile = null, changeLoginName = null } = {}) {
-  const open = document.createElement('button');
-  open.type = 'button';
-  open.className = 'light-button';
-  open.textContent = 'حسابي';
-  open.setAttribute('aria-haspopup', 'dialog');
-  root.querySelector('#dashboard-logout').before(open);
 
+const passwordMessages = {
+  weak_password: 'اختر كلمة مرور أقوى تستوفي شروط الأمان.',
+  same_password: 'اختر كلمة مرور مختلفة عن الحالية.',
+  session_not_found: 'انتهت جلسة الدخول. سجّل الدخول مرة أخرى.',
+  reauthentication_needed: 'جدّد جلسة تسجيل الدخول ثم حاول مرة أخرى.',
+  current_password_required: 'إعدادات المصادقة الحالية تتطلب التحقق من كلمة المرور القديمة.',
+};
+
+function buildAccount({ account, changePassword, loadProfile, changeLoginName, page, onClose }) {
   const admin = account.role === 'admin';
   const teacherTools = !admin && typeof loadProfile === 'function' && typeof changeLoginName === 'function';
-  const dialog = document.createElement('dialog');
-  dialog.className = 'confirm-dialog my-account';
-  dialog.setAttribute('aria-labelledby', 'my-account-title');
-  dialog.innerHTML = `
-    <h2 id="my-account-title">حسابي</h2>
-    <dl class="my-account-details"></dl>
-    ${teacherTools ? `<form data-account-login novalidate>
-      <h3>تعديل اسم المستخدم</h3>
-      <p class="my-account-hint">اسم تدخل به بدل <bdi dir="ltr" data-original-username></bdi>: حروف إنجليزية صغيرة وأرقام ويبدأ بحرف (مثال: <bdi dir="ltr">ahmed.salem</bdi>). يظل اسمك الأصلي صالحًا للدخول أيضًا، ولا تتغير طلابك أو تقاريرك.</p>
-      <label>اسم المستخدم الجديد
-        <input name="login" type="text" dir="ltr" autocomplete="username" autocapitalize="none" spellcheck="false" minlength="3" maxlength="32" required>
-      </label>
-      <p class="my-account-status" role="status" aria-live="polite"></p>
-      <div class="my-account-actions"><button type="submit" class="solid-button">حفظ اسم المستخدم</button></div>
-    </form>` : ''}
-    <form data-account-password>
-      <h3>تعديل كلمة المرور</h3>
-      <label>كلمة المرور الجديدة
-        <input name="password" type="password" autocomplete="new-password" minlength="6" maxlength="128" required>
-      </label>
-      <label>تأكيد كلمة المرور الجديدة
-        <input name="confirmation" type="password" autocomplete="new-password" minlength="6" maxlength="128" required>
-      </label>
-      <p class="my-account-status" role="status" aria-live="polite"></p>
-      <div class="my-account-actions">
-        <button type="button" class="light-button" data-close-account>إغلاق</button>
-        <button type="submit" class="solid-button">حفظ كلمة المرور</button>
-      </div>
-    </form>`;
-  const details = dialog.querySelector('dl');
+  const node = document.createElement(page ? 'section' : 'div');
+  node.className = page ? 'my-account my-account-page' : 'my-account-body';
+  node.innerHTML = `
+    ${page ? `<div class="section-heading"><div><p class="section-kicker teal-text">بيانات الحساب</p><h2 id="my-account-title">حسابي</h2>
+      <p>بياناتك في المنصة، ومنها تغيّر اسم المستخدم الذي تدخل به وكلمة المرور.</p></div></div>` : '<h2 id="my-account-title">حسابي</h2>'}
+    <div class="my-account-cards">
+      <section class="my-account-card my-account-info" aria-labelledby="my-account-info-title">
+        <h3 id="my-account-info-title">بياناتي</h3>
+        <dl class="my-account-details"></dl>
+        ${teacherTools ? '<p class="my-account-hint">لتعديل الاسم أو رقم الهاتف تواصل مع إدارة المدرسة.</p>' : ''}
+      </section>
+      ${teacherTools ? `<form class="my-account-card" data-account-login novalidate>
+        <h3>تعديل اسم المستخدم</h3>
+        <p class="my-account-hint">اسم تدخل به بدل <bdi dir="ltr" data-original-username></bdi>: حروف إنجليزية صغيرة وأرقام ويبدأ بحرف (مثال: <bdi dir="ltr">ahmed.salem</bdi>). يظل اسمك الأصلي صالحًا للدخول أيضًا، ولا يتغير طلابك أو تقاريرك.</p>
+        <label>اسم المستخدم الجديد
+          <input name="login" type="text" dir="ltr" autocomplete="username" autocapitalize="none" spellcheck="false" minlength="3" maxlength="32" required>
+        </label>
+        <p class="my-account-status" role="status" aria-live="polite"></p>
+        <div class="my-account-actions"><button type="submit" class="solid-button">حفظ اسم المستخدم</button></div>
+      </form>` : ''}
+      <form class="my-account-card" data-account-password>
+        <h3>تعديل كلمة المرور</h3>
+        <label>كلمة المرور الجديدة
+          <input name="password" type="password" autocomplete="new-password" minlength="6" maxlength="128" required>
+        </label>
+        <label>تأكيد كلمة المرور الجديدة
+          <input name="confirmation" type="password" autocomplete="new-password" minlength="6" maxlength="128" required>
+        </label>
+        <p class="my-account-status" role="status" aria-live="polite"></p>
+        <div class="my-account-actions">
+          ${page ? '' : '<button type="button" class="light-button" data-close-account>إغلاق</button>'}
+          <button type="submit" class="solid-button">حفظ كلمة المرور</button>
+        </div>
+      </form>
+    </div>`;
+
+  const details = node.querySelector('dl');
   let profile = null;
   function renderDetails() {
     const rows = [
@@ -63,42 +73,39 @@ export function mountMyAccount(root, account, changePassword, { loadProfile = nu
     }
   }
   renderDetails();
-  root.append(dialog);
 
-  const form = dialog.querySelector('[data-account-password]');
+  const form = node.querySelector('[data-account-password]');
   const save = form.querySelector('[type="submit"]');
   const close = form.querySelector('[data-close-account]');
   const status = form.querySelector('[role="status"]');
-  const loginForm = dialog.querySelector('[data-account-login]');
+  const loginForm = node.querySelector('[data-account-login]');
   const loginSave = loginForm?.querySelector('[type="submit"]');
   const loginStatus = loginForm?.querySelector('[role="status"]');
   const busy = () => save.disabled || loginSave?.disabled;
+  const lock = value => { save.disabled = value; if (loginSave) loginSave.disabled = value; if (close) close.disabled = value; };
+  close?.addEventListener('click', () => onClose?.());
 
-  async function refreshProfile() {
+  async function refresh() {
     if (!teacherTools) return;
     try {
       profile = await loadProfile();
+      if (!node.isConnected) return;
       renderDetails();
       loginForm.querySelector('[data-original-username]').textContent = profile?.username || account.username;
       loginForm.elements.login.value = profile?.login_name || account.username;
     } catch {
       profile = null;
       loginStatus.dataset.result = 'error';
-      loginStatus.textContent = 'تعذر تحميل بيانات الحساب. أغلق النافذة وافتحها مرة أخرى.';
+      loginStatus.textContent = 'تعذر تحميل بيانات الحساب. حدّث الصفحة وحاول مرة أخرى.';
     }
   }
-  open.addEventListener('click', () => { dialog.showModal(); refreshProfile(); });
-  close.addEventListener('click', () => dialog.close());
-  dialog.addEventListener('cancel', event => {
-    if (busy()) event.preventDefault();
-  });
-  dialog.addEventListener('close', () => {
+  function reset() {
     form.reset();
     for (const element of [status, loginStatus].filter(Boolean)) {
       element.textContent = '';
       delete element.dataset.result;
     }
-  });
+  }
 
   loginForm?.addEventListener('submit', async event => {
     event.preventDefault();
@@ -114,7 +121,7 @@ export function mountMyAccount(root, account, changePassword, { loadProfile = nu
       loginStatus.textContent = 'هذا هو اسم المستخدم الحالي.';
       return;
     }
-    loginSave.disabled = close.disabled = true;
+    lock(true);
     delete loginStatus.dataset.result;
     loginStatus.textContent = 'جارٍ حفظ اسم المستخدم…';
     try {
@@ -128,7 +135,7 @@ export function mountMyAccount(root, account, changePassword, { loadProfile = nu
       loginStatus.dataset.result = 'error';
       loginStatus.textContent = /[؀-ۿ]/.test(error?.message || '') ? error.message : 'تعذر حفظ اسم المستخدم. تحقّق من الاتصال وحاول مرة أخرى.';
     } finally {
-      loginSave.disabled = close.disabled = false;
+      lock(false);
     }
   });
 
@@ -147,7 +154,7 @@ export function mountMyAccount(root, account, changePassword, { loadProfile = nu
       password.focus();
       return;
     }
-    save.disabled = close.disabled = true;
+    lock(true);
     delete status.dataset.result;
     status.textContent = 'جارٍ حفظ كلمة المرور…';
     try {
@@ -157,16 +164,42 @@ export function mountMyAccount(root, account, changePassword, { loadProfile = nu
       status.textContent = 'تم حفظ كلمة المرور الجديدة.';
     } catch (error) {
       status.dataset.result = 'error';
-      const messages = {
-        weak_password: 'اختر كلمة مرور أقوى تستوفي شروط الأمان.',
-        same_password: 'اختر كلمة مرور مختلفة عن الحالية.',
-        session_not_found: 'انتهت جلسة الدخول. سجّل الدخول مرة أخرى.',
-        reauthentication_needed: 'جدّد جلسة تسجيل الدخول ثم حاول مرة أخرى.',
-        current_password_required: 'إعدادات المصادقة الحالية تتطلب التحقق من كلمة المرور القديمة.',
-      };
-      status.textContent = messages[error?.code] || 'تعذر تأكيد حفظ كلمة المرور. تحقّق من الاتصال قبل إعادة المحاولة.';
+      status.textContent = passwordMessages[error?.code] || 'تعذر تأكيد حفظ كلمة المرور. تحقّق من الاتصال قبل إعادة المحاولة.';
     } finally {
-      save.disabled = close.disabled = false;
+      lock(false);
     }
   });
+
+  return { node, refresh, reset, busy };
+}
+
+// Teacher dashboard page: shown in the dashboard content when the "حسابي" section is chosen.
+export function renderMyAccountPage(container, account, changePassword, { loadProfile = null, changeLoginName = null } = {}) {
+  const view = buildAccount({ account, changePassword, loadProfile, changeLoginName, page: true });
+  container.replaceChildren(view.node);
+  view.refresh();
+  return view;
+}
+
+// Header button. With openPage (teachers) it opens the dashboard page; otherwise a dialog.
+export function mountMyAccount(root, account, changePassword, { loadProfile = null, changeLoginName = null, openPage = null } = {}) {
+  const open = document.createElement('button');
+  open.type = 'button';
+  open.className = 'light-button';
+  open.textContent = 'حسابي';
+  root.querySelector('#dashboard-logout').before(open);
+  if (typeof openPage === 'function') {
+    open.dataset.view = 'account';
+    return;
+  }
+  open.setAttribute('aria-haspopup', 'dialog');
+  const dialog = document.createElement('dialog');
+  dialog.className = 'confirm-dialog my-account';
+  dialog.setAttribute('aria-labelledby', 'my-account-title');
+  const view = buildAccount({ account, changePassword, loadProfile, changeLoginName, page: false, onClose: () => dialog.close() });
+  dialog.append(view.node);
+  root.append(dialog);
+  open.addEventListener('click', () => { dialog.showModal(); view.refresh(); });
+  dialog.addEventListener('cancel', event => { if (view.busy()) event.preventDefault(); });
+  dialog.addEventListener('close', () => view.reset());
 }

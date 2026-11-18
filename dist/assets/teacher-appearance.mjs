@@ -62,7 +62,7 @@ export function mountTeacherAppearance(root, repository) {
     }
   };
   root.addEventListener('keydown',menuKeys);
-  const viewNames={home:'اختر القسم المطلوب',evaluation:'التقييم الأسبوعي',knight:'فارس الأسبوع',monthly:'التقرير الشهري',honors:'التكريم الفصلي',khairkom:'ترشيحات جمعية خيركم',champions:'فرسان جميع الحلقات',setup:'إدارة قوائم الطلاب',monthlyReport:'تقارير الحلقات الشهرية',monthlyProgress:'إنجاز التقارير الشهرية',khairkomReport:'ترشيحات جميع المعلمين'};
+  const viewNames={home:'اختر القسم المطلوب',account:'حسابي',evaluation:'التقييم الأسبوعي',knight:'فارس الأسبوع',monthly:'التقرير الشهري',honors:'التكريم الفصلي',khairkom:'ترشيحات جمعية خيركم',champions:'فرسان جميع الحلقات',setup:'إدارة قوائم الطلاب',monthlyReport:'تقارير الحلقات الشهرية',monthlyProgress:'إنجاز التقارير الشهرية',khairkomReport:'ترشيحات جميع المعلمين'};
   function setView(view){
     shell.dataset.workspace=view;navigation.dataset.compact=String(view!=='home');
     closeMenu(workspace.dataset.menuOpen==='true');
