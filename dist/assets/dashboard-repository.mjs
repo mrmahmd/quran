@@ -134,6 +134,11 @@ export function createDashboardRepository(client, { readOnly = false } = {}) {
       }
       return { first, second, students: [...roster, ...historical] };
     },
+    // Saved entries of one teacher for each month of the term (admin comparison trend chart).
+    async monthlyTrend(teacher, term, months) {
+      const monthly = await Promise.all(months.map(month => this.monthly(teacher, term, month)));
+      return monthly.map(({ report, entries }) => ({ report, entries }));
+    },
     async monthlySchoolComparison(term, months) {
       const [reports, students] = await Promise.all([
         allRows(() => client.from('monthly_reports').select('id,month_start')
@@ -188,7 +193,7 @@ export function createDashboardRepository(client, { readOnly = false } = {}) {
   const reads = new Set([
     'teacherAppearance', 'terms', 'nimrWeeklyReport', 'khairkomSecondMonthState',
     'khairkomRoundState', 'teachers', 'weekStates', 'context', 'overview',
-    'teacherProgress', 'monthly', 'monthlyComparison', 'monthlySchoolComparison',
+    'teacherProgress', 'monthly', 'monthlyComparison', 'monthlyTrend', 'monthlySchoolComparison',
     'monthStates', 'monthlyOverview', 'khairkom', 'khairkomReport', 'champions',
     'rosterRequests',
   ]);

@@ -69,7 +69,7 @@ test('teacher achievement counts completed text entries and averages the monthly
   const result = summarizeMonthlyComparison(students, first, second, rows);
   assert.deepEqual(result.months, [{ total: 2, completed: 1, absent: 0, rate: 0.5 }, { total: 1, completed: 1, absent: 0, rate: 1 }]);
   assert.equal(result.average, 0.75);
-  assert.deepEqual(result.changes.memorization, { compared: 0, total: 1, first: 0, second: 0, difference: 0, rate: null });
+  assert.deepEqual(result.changes.memorization, { compared: 0, total: 1, first: 0, second: 0, difference: 0, rate: null, improved: 0, declined: 0, unchanged: 0, outliers: 0, excluded: 0 });
 });
 
 test('quantity comparison sums ayat for the same students and handles a zero baseline', () => {
@@ -79,8 +79,8 @@ test('quantity comparison sums ayat for the same students and handles a zero bas
     { ...entry(range(2, 1, 2, 40), none), student_id: '3' }];
   const rows = buildMonthlyComparison(students, first, second);
   const result = summarizeMonthlyComparison(students, first, second, rows);
-  assert.deepEqual(result.changes.memorization, { compared: 2, total: 2, first: 40, second: 40, difference: 0, rate: 0 });
-  assert.deepEqual(result.changes.revision, { compared: 2, total: 2, first: 0, second: 10, difference: 10, rate: null });
+  assert.deepEqual(result.changes.memorization, { compared: 2, total: 2, first: 40, second: 40, difference: 0, rate: 0, improved: 1, declined: 1, unchanged: 0, outliers: 0, excluded: 0 });
+  assert.deepEqual(result.changes.revision, { compared: 2, total: 2, first: 0, second: 10, difference: 10, rate: null, improved: 1, declined: 0, unchanged: 1, outliers: 0, excluded: 0 });
   const missing = summarizeMonthlyComparison(students, first, [], buildMonthlyComparison(students, first, []));
   assert.equal(missing.months[1].rate, 0);
   assert.equal(summarizeMonthlyComparison([], [], [], []).average, null);
@@ -108,7 +108,29 @@ test('saved amounts contribute independently to monthly totals and matching pair
   assert.deepEqual(rows.map(row => row.id), ['1', 'draft', 'revision-only']);
   assert.equal(rows[1].revision.first.count, null);
   assert.deepEqual(monthlyTotals.memorization, [{ ayat: 100, students: 2 }, { ayat: 50, students: 2 }]);
-  assert.deepEqual(changes.memorization, { compared: 2, total: 2, first: 100, second: 50, difference: -50, rate: -0.5 });
+  assert.deepEqual(changes.memorization, { compared: 2, total: 2, first: 100, second: 50, difference: -50, rate: -0.5, improved: 1, declined: 1, unchanged: 0, outliers: 0, excluded: 0 });
   assert.deepEqual(monthlyTotals.revision, [{ ayat: 8, students: 2 }, { ayat: 12, students: 3 }]);
-  assert.deepEqual(changes.revision, { compared: 2, total: 2, first: 8, second: 12, difference: 4, rate: 0.5 });
+  assert.deepEqual(changes.revision, { compared: 2, total: 2, first: 8, second: 12, difference: 4, rate: 0.5, improved: 1, declined: 0, unchanged: 1, outliers: 0, excluded: 0 });
+});
+
+test('flags memorization outliers, can leave them out of the rate, and counts copied revision', async () => {
+  const { memorizationOutlierLimit, ayatByMonth } = await import('../dist/assets/monthly-comparison-model.mjs');
+  const students = ['1', '2', '3'].map(id => ({ id, active: true }));
+  const huge = range(2, 1, 9, 129); // well above the limit
+  const first = [entry(range(2, 1, 2, 10), range(2, 1, 2, 10)), { ...entry(range(2, 1, 2, 30), none), student_id: '2' }, { ...entry(range(2, 1, 2, 5), none), student_id: '3' }];
+  const second = [entry(range(2, 1, 2, 20), range(2, 1, 2, 20)), { ...entry(huge, none), student_id: '2' }, { ...entry(range(2, 1, 2, 5), none), student_id: '3' }];
+  const rows = buildMonthlyComparison(students, first, second);
+  assert.equal(rows.find(row => row.id === '2').memorization.outlier, true);
+  assert.ok(rows.find(row => row.id === '2').memorization.second.count > memorizationOutlierLimit);
+  const all = summarizeMonthlyComparison(students, first, second, rows);
+  assert.equal(all.changes.memorization.outliers, 1);
+  assert.equal(all.changes.memorization.compared, 3);
+  assert.deepEqual([all.changes.memorization.improved, all.changes.memorization.declined, all.changes.memorization.unchanged], [2, 0, 1]);
+  const trimmed = summarizeMonthlyComparison(students, first, second, rows, { excludeOutliers: true });
+  assert.deepEqual([trimmed.changes.memorization.compared, trimmed.changes.memorization.first, trimmed.changes.memorization.second, trimmed.changes.memorization.excluded], [2, 15, 25, 1]);
+  assert.equal(trimmed.changes.memorization.rate, 10 / 15);
+  assert.deepEqual(all.revisionCopies, [{ copies: 1, recorded: 3 }, { copies: 1, recorded: 3 }]);
+  assert.deepEqual(ayatByMonth([first, []]), [
+    { memorization: { ayat: 45, students: 3 }, revision: { ayat: 10, students: 3 } },
+    { memorization: { ayat: 0, students: 0 }, revision: { ayat: 0, students: 0 } }]);
 });

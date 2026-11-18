@@ -1,6 +1,7 @@
 import { brandLockup } from './brand.mjs';
 import { termMonths } from './monthly-model.mjs?v=monthly-finish1';
-import { buildMonthlyComparison, comparisonKinds, hasRecordedComparison, summarizeMonthlyComparison } from './monthly-comparison-model.mjs?v=6';
+import { ayatByMonth, buildMonthlyComparison, comparisonKinds, hasRecordedComparison, memorizationOutlierLimit, summarizeMonthlyComparison } from './monthly-comparison-model.mjs?v=7';
+import { bindChartTooltips, columnChart, divergingChart, formatAyatChange, formatPercentChange, kindColors } from './comparison-charts.mjs?v=1';
 import { buildJuzReport, juzCategories } from './monthly-juz-report.mjs?v=3';
 
 const escape = value => String(value ?? '').replace(/[&<>"']/g, char => ({
@@ -22,6 +23,8 @@ const calculationRules = `<details class="mc-panel mc-rules"><summary>قواعد
   <li>لكل نوع، تُحسب نسبة التغيّر للطلاب أنفسهم ممن أمكن عدّ مقدارهم في الشهرين. إذا كان إجمالي الشهر الأول صفرًا ثم زاد المقدار، يظهر فرق الآيات فقط.</li>
   <li>الطالب المسجّل غائبًا يُستبعد من نسبة اكتمال تسجيل الشهر. السجل الفارغ لطالب غير مسجّل غائبًا يُعدّ ناقصًا.</li>
   <li>يُحتسب الجزء إذا غطّى حفظ الطالب جميع آياته على مدار الشهرين. تُحسب الآيات المكررة مرة واحدة.</li>
+  <li>«تحسّن» و«تراجع» يعدّان الطلاب الذين زاد أو قلّ مقدارهم بين الشهرين، فلا يغطي طالب بمقدار كبير على بقية الحلقة.</li>
+  <li>حفظ أكثر من ${new Intl.NumberFormat('ar-EG').format(memorizationOutlierLimit)} آية في شهر واحد يُميَّز للمراجعة؛ ويمكن استبعاده من نسبة التغيّر بالخيار الظاهر فوق النتائج.</li>
 </ul></details>`;
 
 function delta(result) {
@@ -44,7 +47,7 @@ function table(rows, kind) {
       <tr><th scope="col">الطالب</th><th scope="col">${periods[0]}</th><th scope="col">${periods[1]}</th><th scope="col">فرق الآيات</th><th scope="col">نسبة التغيّر</th></tr></thead>
     <tbody>${displayed.map(row => {
       const value = row[kind];
-      return `<tr><th scope="row">${escape(row.name)}${row.className ? '<small><bdi>' + escape(row.className) + '</bdi></small>' : ''}</th>
+      return `<tr${value.outlier ? ' class="mc-outlier-row"' : ''}><th scope="row">${escape(row.name)}${row.className ? '<small><bdi>' + escape(row.className) + '</bdi></small>' : ''}${value.outlier ? '<small class="mc-outlier-badge">⚠ مقدار كبير — راجعه</small>' : ''}</th>
         ${amountCell(value.first)}${amountCell(value.second)}
         <td><bdi>${value.change === null ? '—' : signed.format(value.change)}</bdi></td><td>${delta(value)}</td></tr>`;
     }).join('') || '<tr><td colspan="5">لا توجد مقادير مسجّلة.</td></tr>'}</tbody></table></div>`;
@@ -55,31 +58,115 @@ function reportActions(title, months) {
     <button type="button" class="teal-button" data-mc-pdf>معاينة وحفظ PDF</button></header>`;
 }
 
-function teacherSummary({ months, average, changes, monthlyTotals }) {
+const absPercent = value => achievementPercent.format(Math.abs(value));
+// Arabic counting: 1 طالب واحد, 2 طالبان, 3–10 طلاب, 11+ طالبًا.
+const studentCount = count => count === 1 ? 'طالب واحد' : count === 2 ? 'طالبان' : `${number.format(count)} ${count >= 3 && count <= 10 ? 'طلاب' : 'طالبًا'}`;
+
+function changeChip(change) {
+  if (!change.compared) return '<span class="mc-chip mc-chip-na">لا تتوفر مقارنة</span>';
+  if (change.rate === null) return change.difference > 0 ? '<span class="mc-chip mc-chip-up">↑ بدأ التسجيل</span>' : '<span class="mc-chip mc-chip-same">= دون تغيير</span>';
+  const tone = change.difference > 0 ? 'up' : change.difference < 0 ? 'down' : 'same';
+  return `<span class="mc-chip mc-chip-${tone}">${{ up: '↑', down: '↓', same: '=' }[tone]} <bdi>${absPercent(change.rate)}</bdi></span>`;
+}
+
+function changeSentence(change) {
+  if (!change.compared) return 'لا يوجد طلاب أمكن عدّ مقدارهم في الشهرين.';
+  const amount = change.difference > 0 ? `${number.format(change.difference)} آية أكثر من الشهر الأول`
+    : change.difference < 0 ? `${number.format(-change.difference)} آية أقل من الشهر الأول` : 'نفس مقدار الشهر الأول';
+  return `${amount} · ${studentCount(change.compared)} في المقارنة`;
+}
+
+function notices({ summary, reports, excludeOutliers }) {
+  const items = [];
+  if (!reports[0] || !reports[1]) items.push(`لا يوجد تقرير محفوظ ${!reports[0] && !reports[1] ? 'للشهرين' : !reports[0] ? 'للشهر الأول' : 'للشهر الثاني'} لهذه الحلقة؛ لذلك لا تظهر نسبة التغيّر.`);
+  else if (Object.values(summary.changes).every(change => !change.compared && change.total)) items.push('مقادير أحد الشهرين مكتوبة نصًا ولم تُحدَّد بالسور والآيات؛ تظهر النسبة بعد تحويلها من تقرير المعلم.');
+  summary.revisionCopies.forEach(({ copies, recorded }, index) => {
+    if (recorded >= 3 && copies / recorded >= 0.5) items.push(`المراجعة مطابقة للحفظ حرفيًا عند ${number.format(copies)} من ${studentCount(recorded)} في ${periods[index]}؛ قد لا تعبّر أرقام المراجعة عن مراجعة فعلية.`);
+  });
+  const outliers = summary.changes.memorization.outliers;
+  const toggle = outliers ? `<label class="mc-outlier-toggle"><input type="checkbox" data-mc-exclude-outliers ${excludeOutliers ? 'checked' : ''}>
+    استبعاد ${outliers === 1 ? 'هذا الطالب' : `هؤلاء الطلاب (${number.format(outliers)})`} من نسبة التغيّر</label>` : '';
+  if (outliers) items.push(`${outliers === 1 ? 'حفظ طالب واحد' : `حفظ ${studentCount(outliers)}`} تجاوز ${number.format(memorizationOutlierLimit)} آية في شهر واحد؛ راجع المقدار — غالبًا كُتبت المراجعة في خانة الحفظ. ${toggle}`);
+  return items.length ? `<section class="mc-notices" aria-label="تنبيهات المقارنة">${items.map(item => `<p class="mc-notice"><span aria-hidden="true">!</span><span>${item}</span></p>`).join('')}</section>` : '';
+}
+
+function teacherSummary({ months, average, changes }) {
   const rate = value => value === null ? '—' : achievementPercent.format(value);
-  return `<section class="mc-panel mc-completion">
-    <div><h3>متوسط اكتمال التقرير</h3><strong><bdi>${rate(average)}</bdi></strong></div>
-    <div class="mc-completion-months">${months.map((month, i) => `<div><span>${periods[i]}</span><bdi>${rate(month.rate)}</bdi>
-      <small>${number.format(month.completed)} من ${number.format(month.total)} طالبًا</small>
-      ${month.absent ? `<small>${number.format(month.absent)} غياب مستبعد</small>` : ''}</div>`).join('')}</div>
-  </section>
-  <div class="mc-quantity-grid">${Object.entries(changes).map(([kind, change]) => {
-    const totals = monthlyTotals[kind];
-    const pairedTotals = [change.first, change.second];
-    const maximum = Math.max(1, ...pairedTotals);
-    const tone = change.difference > 0 ? 'up' : change.difference < 0 ? 'down' : 'same';
-    return `<section class="mc-panel mc-quantity"><h3>آيات ${comparisonKinds[kind]}</h3>
-      <p class="mc-method">المقارنة لنفس الطلاب · ${number.format(change.compared)} طالبًا</p>
-      <div class="mc-quantity-bars">${pairedTotals.map((ayat, index) => `<div class="mc-period-${index}">
-        <div class="mc-metric-line"><span>${periods[index]}</span><strong><bdi>${change.compared ? number.format(ayat) : '—'}</bdi></strong></div>
-        ${meter(ayat / maximum, 'var(--mc-period)')}
-        <small>إجمالي الشهر · ${totals[index].students ? number.format(totals[index].ayat) : '—'} آية · ${number.format(totals[index].students)} طالبًا</small>
-      </div>`).join('')}</div>
-      <div class="mc-change"><div><span>نسبة التغيّر</span><bdi class="mc-delta mc-${tone}">${change.rate === null ? '—' : percent.format(change.rate)}</bdi></div>
-        <div><span>فرق الآيات</span><bdi>${change.compared ? signed.format(change.difference) : '—'}</bdi></div>
-      </div>
-    </section>`;
-  }).join('')}</div>`;
+  const kinds = Object.entries(changes).map(([kind, change]) => `<section class="mc-kpi mc-kpi-${kind}">
+      <span class="mc-kpi-label"><i style="background:${kindColors[kind]}" aria-hidden="true"></i>آيات ${comparisonKinds[kind]} · ${periods[1]}</span>
+      <strong class="mc-kpi-value">${change.compared ? number.format(change.second) : '—'}</strong>
+      <div class="mc-kpi-delta">${changeChip(change)}<span>${changeSentence(change)}</span></div>
+      ${change.excluded ? `<small class="mc-kpi-note">مستبعد ${number.format(change.excluded)} لمقدار كبير</small>` : ''}
+    </section>`).join('');
+  const memorization = changes.memorization;
+  return `<div class="mc-kpis">${kinds}
+    <section class="mc-kpi"><span class="mc-kpi-label">طلاب تحسّن حفظهم</span>
+      <strong class="mc-kpi-value">${memorization.compared ? `${number.format(memorization.improved)}<small> من ${studentCount(memorization.compared)}</small>` : '—'}</strong>
+      <div class="mc-kpi-split">${memorization.compared ? `<span class="mc-up">↑ ${number.format(memorization.improved)} تحسّن</span><span class="mc-down">↓ ${number.format(memorization.declined)} تراجع</span><span class="mc-same">= ${number.format(memorization.unchanged)} ثابت</span>` : ''}</div>
+    </section>
+    <section class="mc-kpi"><span class="mc-kpi-label">متوسط اكتمال التقرير</span>
+      <strong class="mc-kpi-value"><bdi>${rate(average)}</bdi></strong>
+      <div class="mc-kpi-split">${months.map((month, i) => `<span>${periods[i]}: <bdi>${rate(month.rate)}</bdi> · ${number.format(month.completed)} من ${number.format(month.total)}</span>`).join('')}</div>
+    </section></div>`;
+}
+
+function comparisonChart(changes) {
+  const kinds = Object.keys(comparisonKinds).filter(kind => changes[kind].compared);
+  if (!kinds.length) return '';
+  return `<section class="mc-panel mc-chart-panel">${columnChart({
+    title: 'الشهر الأول مقابل الشهر الثاني',
+    caption: `مجموع الآيات لنفس الطلاب في الشهرين · ${kinds.map(kind => `${comparisonKinds[kind]}: ${studentCount(changes[kind].compared)}`).join(' · ')}`,
+    categories: periods,
+    series: kinds.map(kind => ({ name: comparisonKinds[kind], color: kindColors[kind], values: [changes[kind].first, changes[kind].second] })),
+  })}</section>`;
+}
+
+function trendChart(trend, months) {
+  if (!trend) return '';
+  const totals = ayatByMonth(trend.map(month => month.entries));
+  const saved = trend.map(month => !!month.report);
+  if (saved.filter(Boolean).length < 1) return '';
+  const labels = ['الشهر الأول', 'الشهر الثاني', 'الشهر الثالث', 'الشهر الرابع'].slice(0, months.length);
+  return `<section class="mc-panel mc-chart-panel">${columnChart({
+    title: 'إجمالي آيات الحفظ والمراجعة في الحلقة',
+    caption: 'كل ما سُجّل لطلاب الحلقة في كل شهر من الفصل الدراسي؛ «—» يعني لا يوجد تقرير محفوظ لذلك الشهر.',
+    categories: labels,
+    series: Object.keys(comparisonKinds).map(kind => ({ name: comparisonKinds[kind], color: kindColors[kind],
+      values: totals.map((month, index) => saved[index] ? month[kind].ayat : null) })),
+  })}</section>`;
+}
+
+function kindSwitch(selected, label) {
+  return `<div class="mc-kind-switch" role="group" aria-label="${label}">${Object.entries(comparisonKinds).map(([kind, name]) =>
+    `<button type="button" data-mc-kind="${kind}" aria-pressed="${kind === selected}">${name}</button>`).join('')}</div>`;
+}
+
+function studentsChart(rows, kind, excludeOutliers) {
+  const data = rows.filter(row => hasRecordedComparison(row[kind])).map(row => {
+    const value = row[kind];
+    const excluded = excludeOutliers && value.outlier;
+    return { label: row.name, value: excluded || value.change === null ? null : value.change,
+      note: excluded ? 'مستبعد: مقدار كبير' : value.change === null ? (value.first.legacy || value.second.legacy ? 'مقدار نصي' : 'غائب أو غير مسجّل') : `من ${number.format(value.first.count)} إلى ${number.format(value.second.count)} آية` };
+  });
+  return `<section class="mc-panel mc-chart-panel"><div class="mc-chart-heading">${kindSwitch(kind, 'نوع المقدار في رسم الطلاب')}</div>${divergingChart({
+    title: `تغيّر ${comparisonKinds[kind]} لكل طالب`, caption: 'فرق الآيات بين الشهر الثاني والأول، مرتب من الأكثر زيادة.',
+    rows: data, format: value => formatAyatChange(value), emptyText: 'لا يوجد طلاب أمكن عدّ مقدارهم في الشهرين.',
+  })}</section>`;
+}
+
+function schoolRanking(school, teachers, kind) {
+  const rows = [...teachers.values()].map(teacher => {
+    const students = school.students.filter(student => student.teacher_username === teacher.username);
+    const [first, second] = school.entries.map(entries => entries.filter(entry => entry.teacher_username === teacher.username));
+    if (!first.length && !second.length) return null;
+    const change = summarizeMonthlyComparison(students, first, second, buildMonthlyComparison(students, first, second)).changes[kind];
+    const label = [teacher.full_name, teacher.ring_name || teacher.class_name].filter(Boolean).join(' · ');
+    return { label, value: change.rate, note: change.compared ? `${changeSentence(change)}` : !first.length || !second.length ? 'لا يوجد تقرير لأحد الشهرين' : 'مقادير نصية أو غير مكتملة' };
+  }).filter(Boolean);
+  return `<section class="mc-panel mc-chart-panel"><div class="mc-chart-heading">${kindSwitch(kind, 'نوع المقدار في ترتيب المعلمين')}</div>${divergingChart({
+    title: `ترتيب الحلقات حسب تغيّر ${comparisonKinds[kind]}`, caption: 'نسبة تغيّر مجموع الآيات لنفس الطلاب بين الشهر الأول والثاني.',
+    rows, format: value => formatPercentChange(value), emptyText: 'لا توجد حلقات لها تقريران قابلان للمقارنة.',
+  })}</section>`;
 }
 
 function meter(fraction, color) {
@@ -119,18 +206,19 @@ function juzStudents(rows, teachers) {
     }).join('')}</tbody></table></div>`;
 }
 
-function printReport({ title, months, term, summary, juz }) {
+function printReport({ title, months, term, summary, juz, charts = '' }) {
   return `<article class="report-document mc-document" lang="ar" dir="rtl">
     <header class="mc-print-header"><div class="mc-print-brand">${brandLockup()}</div>
       <div><h1>${escape(title)}</h1><p>${escape(term.name)} · ${months.map(monthName).join(' · ')}</p></div></header>
     ${summary ? teacherSummary(summary) : ''}
+    ${charts}
     ${juzSummary(juz, false)}
   </article>`;
 }
 
 // canMessage/messageTeacher: the administration's WhatsApp button at the top of a teacher's comparison.
 export function createMonthlyComparison({ repo, openPdf, openMonthlyReport, canMessage = () => false, messageTeacher = null }) {
-  let selected = '';
+  let selected = '', excludeOutliers = false, chartKind = 'memorization';
 
   function show(host, term, teachers) {
     const months = termMonths(term).slice(0, 2);
@@ -154,12 +242,45 @@ export function createMonthlyComparison({ repo, openPdf, openMonthlyReport, canM
     const result = workspace.querySelector('.mc-result');
     const dialog = workspace.querySelector('.mc-dialog');
     dialog.querySelector('[data-mc-close]').addEventListener('click', () => dialog.close());
-    let request = 0, snapshot;
+    bindChartTooltips(workspace);
+    let request = 0, snapshot, source;
+
+    // Redraws from the loaded data (toggles never refetch).
+    function draw() {
+      if (!source) return;
+      if (source.school) {
+        const { school, juz } = source;
+        snapshot = { title: 'ملخص المدرسة', months, term, juz, charts: schoolRanking(school, teacherNames, 'memorization') };
+        result.innerHTML = reportActions(snapshot.title, months) + schoolRanking(school, teacherNames, chartKind) + juzSummary(juz, true);
+        return;
+      }
+      const { teacher, data, trend, whatsapp } = source;
+      const rows = buildMonthlyComparison(data.students, data.first.entries, data.second.entries);
+      const summary = summarizeMonthlyComparison(data.students, data.first.entries, data.second.entries, rows, { excludeOutliers });
+      const juz = buildJuzReport(data.students, data.first.entries, data.second.entries)[2];
+      const title = [teacher.full_name, teacher.ring_name || teacher.class_name].filter(Boolean).join(' · ');
+      const charts = comparisonChart(summary.changes) + trendChart(trend, termMonths(term));
+      snapshot = { title, teacher, months, term, summary, juz, charts: charts + studentsChart(rows, 'memorization', excludeOutliers) };
+      status.textContent = rows.length ? '' : 'لا توجد مقادير حفظ أو مراجعة مسجّلة لهذه الحلقة في الشهرين.';
+      result.innerHTML = whatsapp + reportActions(title, months)
+        + notices({ summary, reports: [data.first.report, data.second.report], excludeOutliers })
+        + teacherSummary(summary) + `<div class="mc-chart-grid">${charts}</div>` + studentsChart(rows, chartKind, excludeOutliers) + juzSummary(juz, true);
+      const sourceReports = [data.first, data.second].map((value, index) => value.report
+        ? `<button type="button" class="light-button" data-mc-report="${index}">فتح تقرير ${periods[index]}</button>`
+        : '').join('');
+      if (rows.length || sourceReports) {
+        result.insertAdjacentHTML('beforeend', `<details class="mc-panel mc-student-details"><summary>تفاصيل الطلاب والتقارير الشهرية</summary>
+          <div class="mc-source-reports">${sourceReports}</div>
+          ${rows.length ? Object.keys(comparisonKinds).map(key => table(rows, key)).join('') : ''}
+        </details>`);
+      }
+    }
 
     async function load() {
       const ticket = ++request;
       const teacher = options.find(item => item.username === selected);
       snapshot = undefined;
+      source = undefined;
       result.replaceChildren();
       refresh.disabled = true;
       status.textContent = 'جارٍ تحميل التقريرين…';
@@ -167,35 +288,24 @@ export function createMonthlyComparison({ repo, openPdf, openMonthlyReport, canM
         if (!teacher) {
           const school = await repo.monthlySchoolComparison(term.id, months);
           if (ticket !== request || !workspace.isConnected) return;
-          const juz = buildJuzReport(school.students, ...school.entries)[2];
-          snapshot = { title: 'ملخص المدرسة', months, term, juz };
+          source = { school: true, school, juz: buildJuzReport(school.students, ...school.entries)[2] };
           status.textContent = '';
-          result.innerHTML = reportActions(snapshot.title, months) + juzSummary(juz, true);
+          draw();
           return;
         }
-        const data = await repo.monthlyComparison(teacher.username, term.id, months);
+        const [data, trend] = await Promise.all([
+          repo.monthlyComparison(teacher.username, term.id, months),
+          repo.monthlyTrend ? repo.monthlyTrend(teacher.username, term.id, termMonths(term)).catch(() => null) : null,
+        ]);
         if (ticket !== request || !workspace.isConnected) return;
-        const rows = buildMonthlyComparison(data.students, data.first.entries, data.second.entries);
-        const summary = summarizeMonthlyComparison(data.students, data.first.entries, data.second.entries, rows);
-        const juz = buildJuzReport(data.students, data.first.entries, data.second.entries)[2];
-        const title = [teacher.full_name, teacher.ring_name || teacher.class_name].filter(Boolean).join(' · ');
-        snapshot = { title, teacher, months, term, summary, juz };
-        status.textContent = rows.length ? '' : 'لا توجد مقادير حفظ أو مراجعة مسجّلة لهذه الحلقة في الشهرين.';
         const whatsapp = messageTeacher && canMessage(teacher.username)
           ? `<div class="mc-whatsapp-bar"><div><strong>تواصل مع ${escape(teacher.full_name)}</strong><span>أرسل له ملاحظتك عن تقرير الحلقة مباشرة على واتساب.</span></div>
             <button type="button" class="whatsapp-button" data-mc-whatsapp><span aria-hidden="true">💬</span> إرسال رسالة على واتساب</button></div>`
           : messageTeacher ? '<p class="whatsapp-missing mc-whatsapp-missing">لا يوجد رقم هاتف مسجّل لهذا المعلم؛ لا يمكن إرسال رسالة واتساب.</p>' : '';
-        result.innerHTML = whatsapp + reportActions(title, months) + teacherSummary(summary) + juzSummary(juz, true);
-        const sourceReports = [data.first, data.second].map((value, index) => value.report
-          ? `<button type="button" class="light-button" data-mc-report="${index}">فتح تقرير ${periods[index]}</button>`
-          : '').join('');
-        if (rows.length || sourceReports) {
-          result.insertAdjacentHTML('beforeend', `<details class="mc-panel mc-student-details"><summary>تفاصيل الطلاب والتقارير الشهرية</summary>
-            <div class="mc-source-reports">${sourceReports}</div>
-            ${rows.length ? Object.keys(comparisonKinds).map(key => table(rows, key)).join('') : ''}
-          </details>`);
-        }
-      } catch {
+        source = { teacher, data, trend, whatsapp };
+        draw();
+      } catch (error) {
+        console.error('monthly comparison', error);
         if (ticket === request && workspace.isConnected) status.textContent = 'تعذّر تحميل المقارنة. اضغط تحديث للمحاولة مرة أخرى.';
       } finally {
         if (ticket === request && workspace.isConnected) refresh.disabled = false;
@@ -205,7 +315,20 @@ export function createMonthlyComparison({ repo, openPdf, openMonthlyReport, canM
     select.value = selected;
     select.addEventListener('change', () => { selected = select.value; load(); });
     refresh.addEventListener('click', load);
+    result.addEventListener('change', event => {
+      if (!event.target.matches('[data-mc-exclude-outliers]')) return;
+      excludeOutliers = event.target.checked;
+      draw();
+      result.querySelector('[data-mc-exclude-outliers]')?.focus();
+    });
     result.addEventListener('click', event => {
+      const kindButton = event.target.closest('[data-mc-kind]');
+      if (kindButton) {
+        chartKind = kindButton.dataset.mcKind;
+        draw();
+        result.querySelector(`[data-mc-kind="${chartKind}"]`)?.focus();
+        return;
+      }
       const button = event.target.closest('button');
       if (!button || !snapshot) return;
       if (button.hasAttribute('data-mc-whatsapp') && snapshot.teacher) {

@@ -196,3 +196,69 @@
   .mc-document .mc-quantity-grid { break-inside: avoid; }
   .mc-document .mc-juz-metric { padding: 8px; }
 }
+
+/* ---- Summary tiles, notices and charts (comparison-charts.mjs) ---- */
+.mc-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 1100px) { .mc-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 520px) { .mc-kpis { grid-template-columns: 1fr; } }
+.mc-kpi { display: grid; align-content: start; gap: 8px; min-width: 0; padding: 18px 20px; border: 1px solid var(--mc-line); border-radius: 16px; background: #fff; box-shadow: 0 6px 18px #0d21330d; }
+.mc-kpi-label { display: flex; align-items: center; gap: 8px; color: var(--mc-muted); font-size: .86rem; font-weight: 700; }
+.mc-kpi-label i { inline-size: 12px; block-size: 12px; border-radius: 4px; flex: none; }
+.mc-kpi-value { font-size: clamp(1.9rem, 4vw, 2.5rem); font-weight: 800; line-height: 1.2; color: var(--mc-ink); font-variant-numeric: proportional-nums; }
+.mc-kpi-value small { font-size: .5em; font-weight: 700; color: var(--mc-muted); }
+.mc-kpi-delta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; color: var(--mc-muted); font-size: .8rem; font-weight: 600; line-height: 1.7; }
+.mc-kpi-split { display: flex; flex-wrap: wrap; gap: 6px 12px; color: var(--mc-muted); font-size: .8rem; font-weight: 700; }
+.mc-kpi-split .mc-up { color: #0b6b0b; } .mc-kpi-split .mc-down { color: #a12f2f; } .mc-kpi-split .mc-same { color: var(--mc-muted); }
+.mc-kpi-note { color: #8a5a00; font-weight: 700; }
+.mc-chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 999px; font-size: .9rem; font-weight: 800; white-space: nowrap; }
+.mc-chip-up { color: #0b6b0b; background: #e3f6e3; }
+.mc-chip-down { color: #a12f2f; background: #fbe6e6; }
+.mc-chip-same, .mc-chip-na { color: #3e596d; background: #edf2f5; }
+
+.mc-notices { display: grid; gap: 8px; }
+.mc-notice { display: flex; align-items: flex-start; gap: 10px; margin: 0; padding: 12px 16px; border: 1px solid #f0d199; border-radius: 14px; background: #fff8ea; color: #6d4706; font-size: .86rem; font-weight: 600; line-height: 1.9; }
+.mc-notice > span:first-child { display: grid; place-items: center; flex: none; inline-size: 22px; block-size: 22px; margin-top: 3px; border-radius: 50%; background: #d48a0c; color: #fff; font-weight: 800; }
+.mc-outlier-toggle { display: inline-flex; align-items: center; gap: 6px; margin-inline-start: 6px; padding: 2px 10px; border-radius: 999px; background: #fff; border: 1px solid #e7c27d; cursor: pointer; font-weight: 700; }
+.mc-outlier-toggle input { inline-size: 18px; block-size: 18px; accent-color: #b46f00; }
+.mc-outlier-row th { background: #fff8ea; }
+.mc-outlier-badge { color: #8a5a00 !important; font-weight: 800; }
+
+.mc-chart-grid { display: grid; gap: 14px; }
+.mc-chart { margin: 0; display: grid; gap: 10px; }
+.mc-chart figcaption { display: grid; gap: 2px; }
+.mc-chart figcaption strong { font-size: clamp(.98rem, 1.7vw, 1.15rem); color: var(--mc-ink); }
+.mc-chart figcaption span { color: var(--mc-muted); font-size: .8rem; font-weight: 600; line-height: 1.8; }
+.mc-chart-heading { display: flex; justify-content: flex-end; margin-bottom: 4px; }
+.mc-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 0; padding: 0; list-style: none; color: var(--mc-muted); font-size: .82rem; font-weight: 700; }
+.mc-legend li { display: inline-flex; align-items: center; gap: 6px; }
+.mc-legend i { inline-size: 14px; block-size: 10px; border-radius: 3px; }
+.mc-chart-frame { min-width: 0; }
+.mc-chart-svg { display: block; inline-size: 100%; block-size: auto; overflow: visible; font-family: Alexandria, Tahoma, sans-serif; }
+.mc-chart-svg .mc-chart-gridline { stroke: #e3eaee; stroke-width: 1; }
+.mc-chart-axis { stroke: #b9c7cf; stroke-width: 1; }
+.mc-chart-tick { fill: #6a7f8c; font-size: 12px; font-variant-numeric: tabular-nums; }
+.mc-chart-category { fill: var(--mc-ink); font-size: 14px; font-weight: 700; }
+.mc-chart-value { fill: var(--mc-ink); font-size: 13px; font-weight: 800; }
+.mc-chart-row-label { fill: var(--mc-ink); font-size: 13px; font-weight: 600; }
+.mc-chart-na { fill: #8a9aa4; font-size: 14px; font-weight: 700; }
+.mc-chart-mark { cursor: default; outline: none; }
+.mc-chart-mark:hover path, .mc-chart-mark:hover rect[rx], .mc-chart-mark:focus-visible path, .mc-chart-mark:focus-visible rect[rx] { filter: brightness(1.12); }
+.mc-chart-mark:focus-visible rect:first-child { fill: #0d21330f; }
+.mc-chart-empty, .mc-chart-missing { margin: 0; color: var(--mc-muted); font-size: .8rem; font-weight: 600; line-height: 1.8; }
+.mc-chart-tooltip { position: absolute; z-index: 20; max-inline-size: 280px; padding: 8px 12px; border-radius: 10px; background: #102a3c; color: #fff; font-size: .82rem; font-weight: 700; line-height: 1.7; pointer-events: none; box-shadow: 0 8px 24px #0d213333; }
+.mc-workspace { position: relative; }
+.mc-chart-table summary { cursor: pointer; color: #1d5d8a; font-size: .8rem; font-weight: 700; }
+.mc-chart-table table { inline-size: 100%; margin-top: 8px; border-collapse: collapse; font-size: .82rem; }
+.mc-chart-table :is(th, td) { padding: 6px 8px; border-bottom: 1px solid var(--mc-line); text-align: start; }
+.mc-chart-table caption { text-align: start; color: var(--mc-muted); font-size: .78rem; padding-bottom: 4px; }
+.mc-kind-switch { display: inline-flex; padding: 3px; border-radius: 999px; background: #edf2f5; }
+.mc-kind-switch button { padding: 6px 16px; border: 0; border-radius: 999px; background: transparent; color: var(--mc-muted); font: inherit; font-size: .85rem; font-weight: 700; cursor: pointer; }
+.mc-kind-switch button[aria-pressed="true"] { background: #fff; color: var(--mc-ink); box-shadow: 0 2px 6px #0d21331f; }
+
+@media print {
+  .mc-kind-switch, .mc-chart-table, .mc-chart-tooltip, .mc-notices .mc-outlier-toggle { display: none !important; }
+  .mc-kpi { box-shadow: none; break-inside: avoid; }
+  .mc-chart-panel { break-inside: avoid; }
+}
+.mc-chart-narrow { display: none; }
+@media screen and (max-width: 620px) { .mc-chart-wide { display: none; } .mc-chart-narrow { display: block; } }

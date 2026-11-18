@@ -2,6 +2,9 @@ import { monthlyAbsent, monthlyProblem, monthlyRangeText } from './monthly-model
 import { recordedAyahRanges } from './quran-juz.mjs';
 
 export const comparisonKinds = { memorization: 'الحفظ', revision: 'المراجعة' };
+// A month's memorization above this many ayat (about a sixth of the Quran) is flagged for review:
+// in the saved reports it usually means a revision range was typed in the memorization field.
+export const memorizationOutlierLimit = 1000;
 
 export function monthlyAmount(value) {
   if (value?.absent === true) return { count: null, label: 'غائب' };
@@ -41,6 +44,8 @@ export function buildMonthlyComparison(students, firstEntries, secondEntries) {
     // so it must not gate either of the two amounts.
     const memorization = compare(monthlyAmount(firstEntry?.memorization), monthlyAmount(secondEntry?.memorization));
     const revision = compare(monthlyAmount(firstEntry?.revision), monthlyAmount(secondEntry?.revision));
+    memorization.outlier = [memorization.first.count, memorization.second.count].some(count => count > memorizationOutlierLimit);
+    revision.outlier = false;
     if (!hasRecordedComparison(memorization) && !hasRecordedComparison(revision)) return [];
     return [{
       id,
@@ -52,7 +57,22 @@ export function buildMonthlyComparison(students, firstEntries, secondEntries) {
   }).sort((a, b) => a.name.localeCompare(b.name, 'ar', { numeric: true }));
 }
 
-export function summarizeMonthlyComparison(students, firstEntries, secondEntries, rows) {
+// Saved revision that repeats the memorization text word for word (the "copy" button).
+function revisionCopies(entries) {
+  const recorded = entries.filter(entry => !monthlyAbsent(entry) && entry.memorization?.none === false && entry.memorization.text?.trim());
+  return { copies: recorded.filter(entry => entry.revision?.none === false && entry.revision.text?.trim() === entry.memorization.text.trim()).length, recorded: recorded.length };
+}
+
+// Ayat totals per month for one teacher's saved reports (any number of months).
+export function ayatByMonth(entriesByMonth) {
+  return entriesByMonth.map(entries => Object.fromEntries(Object.keys(comparisonKinds).map(kind => {
+    const counted = entries.map(entry => monthlyAmount(entry[kind]).count).filter(count => count !== null);
+    return [kind, { ayat: counted.reduce((sum, count) => sum + count, 0), students: counted.length }];
+  })));
+}
+
+// excludeOutliers: leave flagged students out of the change rate (they still show in the tables).
+export function summarizeMonthlyComparison(students, firstEntries, secondEntries, rows, { excludeOutliers = false } = {}) {
   const active = students.filter(student => student.active).map(student => student.id);
   const months = [firstEntries, secondEntries].map(entries => {
     const roster = new Set([...active, ...entries.map(entry => entry.student_id)]);
@@ -68,12 +88,16 @@ export function summarizeMonthlyComparison(students, firstEntries, secondEntries
 
   const changes = Object.fromEntries(Object.keys(comparisonKinds).map(kind => {
     const registeredInBoth = rows.map(row => row[kind]).filter(({ first, second }) => isRecorded(first) && isRecorded(second));
-    const pairs = registeredInBoth.filter(({ first, second }) => first.count !== null && second.count !== null);
+    const countable = registeredInBoth.filter(({ first, second }) => first.count !== null && second.count !== null);
+    const outliers = countable.filter(pair => pair.outlier).length;
+    const pairs = excludeOutliers ? countable.filter(pair => !pair.outlier) : countable;
     const first = pairs.reduce((sum, pair) => sum + pair.first.count, 0);
     const second = pairs.reduce((sum, pair) => sum + pair.second.count, 0);
     const difference = second - first;
     const rate = first ? difference / first : pairs.length && second === 0 ? 0 : null;
-    return [kind, { compared: pairs.length, total: registeredInBoth.length, first, second, difference, rate }];
+    const improved = pairs.filter(pair => pair.change > 0).length, declined = pairs.filter(pair => pair.change < 0).length;
+    return [kind, { compared: pairs.length, total: registeredInBoth.length, first, second, difference, rate,
+      improved, declined, unchanged: pairs.length - improved - declined, outliers, excluded: excludeOutliers ? outliers : 0 }];
   }));
   const monthlyTotals = Object.fromEntries(Object.keys(comparisonKinds).map(kind => [kind,
     ['first', 'second'].map(month => {
@@ -81,5 +105,5 @@ export function summarizeMonthlyComparison(students, firstEntries, secondEntries
       return { ayat: counted.reduce((sum, count) => sum + count, 0), students: counted.length };
     }),
   ]));
-  return { months, average, changes, monthlyTotals };
+  return { months, average, changes, monthlyTotals, revisionCopies: [firstEntries, secondEntries].map(revisionCopies) };
 }
