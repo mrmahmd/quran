@@ -90,24 +90,38 @@ function notices({ summary, reports, excludeOutliers }) {
   return items.length ? `<section class="mc-notices" aria-label="تنبيهات المقارنة">${items.map(item => `<p class="mc-notice"><span aria-hidden="true">!</span><span>${item}</span></p>`).join('')}</section>` : '';
 }
 
+// Summary tiles. Each tile has its own theme (mc-kpi-<theme>) and icon; numbers stay in ink colors.
+function kpiTile({ theme, icon, label, value, body = '', foot = '' }) {
+  return `<section class="mc-kpi mc-kpi-${theme}">
+    <header class="mc-kpi-head"><span class="mc-kpi-icon" aria-hidden="true">${icon}</span><span class="mc-kpi-label">${label}</span></header>
+    <strong class="mc-kpi-value">${value}</strong>
+    ${body ? `<div class="mc-kpi-body">${body}</div>` : ''}
+    ${foot ? `<footer class="mc-kpi-foot">${foot}</footer>` : ''}
+  </section>`;
+}
+
 function teacherSummary({ months, average, changes }) {
   const rate = value => value === null ? '—' : achievementPercent.format(value);
-  const kinds = Object.entries(changes).map(([kind, change]) => `<section class="mc-kpi mc-kpi-${kind}">
-      <span class="mc-kpi-label"><i style="background:${kindColors[kind]}" aria-hidden="true"></i>آيات ${comparisonKinds[kind]} · ${periods[1]}</span>
-      <strong class="mc-kpi-value">${change.compared ? number.format(change.second) : '—'}</strong>
-      <div class="mc-kpi-delta">${changeChip(change)}<span>${changeSentence(change)}</span></div>
-      ${change.excluded ? `<small class="mc-kpi-note">مستبعد ${number.format(change.excluded)} لمقدار كبير</small>` : ''}
-    </section>`).join('');
+  const icons = { memorization: '✦', revision: '↻' };
+  const kinds = Object.entries(changes).map(([kind, change]) => kpiTile({
+    theme: kind, icon: icons[kind],
+    label: `آيات ${comparisonKinds[kind]}<small>${periods[1]}</small>`,
+    value: change.compared ? `${number.format(change.second)}<small> آية</small>` : '—',
+    body: `${changeChip(change)}<span class="mc-kpi-sentence">${changeSentence(change)}</span>`,
+    foot: [change.compared ? `<span>${periods[0]}: <b>${number.format(change.first)}</b> آية</span>` : '', change.excluded ? `<span class="mc-kpi-note">مستبعد ${number.format(change.excluded)} لمقدار كبير</span>` : ''].filter(Boolean).join(''),
+  })).join('');
   const memorization = changes.memorization;
+  const improvedShare = memorization.compared ? memorization.improved / memorization.compared : 0;
   return `<div class="mc-kpis">${kinds}
-    <section class="mc-kpi"><span class="mc-kpi-label">طلاب تحسّن حفظهم</span>
-      <strong class="mc-kpi-value">${memorization.compared ? `${number.format(memorization.improved)}<small> من ${studentCount(memorization.compared)}</small>` : '—'}</strong>
-      <div class="mc-kpi-split">${memorization.compared ? `<span class="mc-up">↑ ${number.format(memorization.improved)} تحسّن</span><span class="mc-down">↓ ${number.format(memorization.declined)} تراجع</span><span class="mc-same">= ${number.format(memorization.unchanged)} ثابت</span>` : ''}</div>
-    </section>
-    <section class="mc-kpi"><span class="mc-kpi-label">متوسط اكتمال التقرير</span>
-      <strong class="mc-kpi-value"><bdi>${rate(average)}</bdi></strong>
-      <div class="mc-kpi-split">${months.map((month, i) => `<span>${periods[i]}: <bdi>${rate(month.rate)}</bdi> · ${number.format(month.completed)} من ${number.format(month.total)}</span>`).join('')}</div>
-    </section></div>`;
+    ${kpiTile({ theme: 'students', icon: '↑', label: 'طلاب تحسّن حفظهم<small>بين الشهرين</small>',
+      value: memorization.compared ? `${number.format(memorization.improved)}<small> من ${studentCount(memorization.compared)}</small>` : '—',
+      body: memorization.compared ? `<span class="mc-kpi-meter" aria-hidden="true"><i style="inline-size:${improvedShare * 100}%"></i></span>` : '',
+      foot: memorization.compared ? `<span class="mc-up">↑ ${number.format(memorization.improved)} تحسّن</span><span class="mc-down">↓ ${number.format(memorization.declined)} تراجع</span><span class="mc-same">= ${number.format(memorization.unchanged)} ثابت</span>` : '' })}
+    ${kpiTile({ theme: 'completion', icon: '✓', label: 'متوسط اكتمال التقرير<small>للشهرين</small>',
+      value: `<bdi>${rate(average)}</bdi>`,
+      body: average === null ? '' : `<span class="mc-kpi-meter" aria-hidden="true"><i style="inline-size:${average * 100}%"></i></span>`,
+      foot: months.map((month, i) => `<span>${periods[i]}: <b><bdi>${rate(month.rate)}</bdi></b> (${number.format(month.completed)} من ${number.format(month.total)})</span>`).join('') })}
+  </div>`;
 }
 
 function comparisonChart(changes) {
