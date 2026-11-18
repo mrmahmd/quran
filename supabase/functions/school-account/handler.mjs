@@ -14,6 +14,13 @@ async function hashCode(code) {
   return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
 }
 
+// A teacher's self-chosen login name (teacher_accounts.login_name) maps to the unchanged quranNN account.
+async function teachersByLoginName(admin, username) {
+  const lookup = await admin.from('teacher_accounts').select('username, login_name, auth_user_id, active');
+  if (lookup.error) throw new Error('teacher lookup failed');
+  return (lookup.data || []).filter(account => account.login_name === username);
+}
+
 export function schoolAccountHandler({ admin, passwordClient }) {
   return async request => {
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers });
@@ -33,8 +40,16 @@ export function schoolAccountHandler({ admin, passwordClient }) {
     }
     try {
       if (body.action === 'login') {
-        // Only resolve admin aliases here. Teacher login retains the ordinary Auth flow.
+        // quranNN keeps the ordinary Auth flow; here: teacher login names, then admin aliases.
         if (/^quran\d{2}$/.test(username)) return invalid();
+        const teachers = await teachersByLoginName(admin, username);
+        if (teachers.length) {
+          const [teacher] = teachers;
+          if (teachers.length !== 1 || !teacher.active || !teacher.auth_user_id || !/^quran\d{2}$/.test(teacher.username)) return invalid();
+          const signed = await passwordClient().auth.signInWithPassword({ email: `${teacher.username}@quran-school.invalid`, password });
+          if (signed.error || !signed.data.session || signed.data.user?.id !== teacher.auth_user_id) return invalid();
+          return reply(200, { access_token: signed.data.session.access_token, refresh_token: signed.data.session.refresh_token });
+        }
         const lookup = await admin.from('admin_accounts').select('email, auth_user_id, active');
         if (lookup.error) return reply(503, { message: 'تعذر تسجيل الدخول الآن' });
         const matches = (lookup.data || []).filter(account => account.email.split('@')[0].toLowerCase() === username);
@@ -48,7 +63,13 @@ export function schoolAccountHandler({ admin, passwordClient }) {
         .replace(/[٠-٩]/g, digit => String(digit.charCodeAt(0) - 0x0660))
         .replace(/[۰-۹]/g, digit => String(digit.charCodeAt(0) - 0x06f0)) : '';
       if (!/^\d{6}$/.test(code)) return reply(400, { message: 'رمز المدرسة يجب أن يكون ٦ أرقام' });
-      const check = await admin.rpc('verify_school_recovery', { p_username: username, p_code_hash: await hashCode(code) });
+      let account_name = username;
+      if (!/^quran\d{2}$/.test(username)) {
+        const teachers = await teachersByLoginName(admin, username);
+        if (teachers.length > 1) return invalid();
+        if (teachers.length === 1) account_name = teachers[0].username;
+      }
+      const check = await admin.rpc('verify_school_recovery', { p_username: account_name, p_code_hash: await hashCode(code) });
       if (check.error) return reply(503, { message: 'تعذر التحقق الآن. حاول لاحقًا.' });
       const account = check.data?.[0];
       if (!account?.account_id || account.result !== 'ok') return invalid();

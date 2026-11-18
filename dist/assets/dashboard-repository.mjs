@@ -97,6 +97,14 @@ export function createDashboardRepository(client, { readOnly = false } = {}) {
       return { teachers, reviews, champions, nominations };
     },
     saveWeek: args => result(client.rpc('save_weekly_evaluation', args)),
+    myProfile: async () => (await result(client.rpc('my_teacher_profile')))?.[0] || null,
+    setLoginName: name => result(client.rpc('set_my_login_name', { p_login: name })),
+    // Admin only. Before teacher-profile.sql is applied the function is missing: no phone numbers.
+    async teacherContacts() {
+      const { data, error } = await client.rpc('teacher_contacts');
+      if (error) { if (error.code === 'PGRST202') return []; throw error; }
+      return data || [];
+    },
     async monthly(teacher, term, month) {
       const reports = await result(client.from('monthly_reports').select('*').eq('teacher_username', teacher).eq('term_id', term).eq('month_start', month));
       const report = reports[0] || null;

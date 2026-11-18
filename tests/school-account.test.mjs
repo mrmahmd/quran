@@ -92,3 +92,31 @@ test('the frontend sends only the supplied action and never retries uncertain re
   await assert.rejects(schoolAccountRequest(config, input(), async () => new Response('{}')));
   await assert.rejects(schoolAccountRequest(config, input(), async () => new Response('{')));
 });
+
+test('a teacher login name signs in to the unchanged quranNN account only', async () => {
+  const teacher = { username: 'quran09', login_name: 'jamal', auth_user_id: 'teacher-id', active: true };
+  const tables = [];
+  const calls = [];
+  const admin = { from: table => { tables.push(table); return { select: async () => ({ data: table === 'teacher_accounts' ? [teacher] : [] }) }; } };
+  const passwordClient = () => ({ auth: { signInWithPassword: async attrs => {
+    calls.push(attrs); return { data: { user: { id: 'teacher-id' }, session: { access_token: 'access', refresh_token: 'refresh' } } };
+  } } });
+  const response = await schoolAccountHandler({ admin, passwordClient })(request(input({ action: 'login', username: ' Jamal ' })));
+  assert.equal(response.status, 200);
+  assert.deepEqual(calls, [{ email: 'quran09@quran-school.invalid', password: 'example-only' }]);
+  assert.deepEqual(tables, ['teacher_accounts']);
+  for (const rows of [[{ ...teacher, active: false }], [{ ...teacher, auth_user_id: null }], [teacher, { ...teacher, username: 'quran10' }], [{ ...teacher, username: 'evil' }]]) {
+    const handler = schoolAccountHandler({ admin: { from: () => ({ select: async () => ({ data: rows }) }) }, passwordClient: () => assert.fail() });
+    assert.equal((await handler(request(input({ action: 'login', username: 'jamal' })))).status, 403);
+  }
+  const wrongUser = () => ({ auth: { signInWithPassword: async () => ({ data: { user: { id: 'other' }, session: { access_token: 'a', refresh_token: 'r' } } }) } });
+  assert.equal((await schoolAccountHandler({ admin, passwordClient: wrongUser })(request(input({ action: 'login', username: 'jamal' })))).status, 403);
+});
+
+test('recovery with a teacher login name verifies the quranNN account', async () => {
+  const { calls, admin, handler: _ } = fixture();
+  admin.from = () => ({ select: async () => ({ data: [{ username: 'quran09', login_name: 'jamal', auth_user_id: 'x', active: true }] }) });
+  const response = await schoolAccountHandler({ admin })(request(input({ username: 'jamal' })));
+  assert.equal(response.status, 200);
+  assert.equal(calls[0][2].p_username, 'quran09');
+});

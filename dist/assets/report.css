@@ -205,3 +205,10 @@
 .monthly-range-required{padding:20px 24px;margin:20px 0;border:1px solid #f0c27b;border-inline-start:6px solid #d98a1c;border-radius:18px;background:#fff7e8;color:#7a4a08}.monthly-range-required strong{display:block;font-size:19px;font-weight:800}.monthly-range-required p{margin:8px 0 0;font-weight:600;line-height:1.9}
 .monthly-legacy-required{border-color:#f0c27b;background:#fff7e8}.monthly-legacy-required strong{color:#9a5a0a}.monthly-legacy-required p{white-space:pre-wrap;overflow-wrap:break-word;color:#5c4a2a}
 @media print{.monthly-range-required{display:none!important}}
+/* WhatsApp message to a teacher from the monthly progress cards. */
+.monthly-teacher-item{display:grid;gap:10px;align-content:start;min-width:0}.monthly-teacher-item>.monthly-teacher-status{width:100%}
+.whatsapp-button{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:13px 18px;border:0;border-radius:14px;background:linear-gradient(110deg,#25d366,#128c7e);color:#fff;font:inherit;font-size:17px;font-weight:800;cursor:pointer;box-shadow:0 6px 18px #128c7e33;transition:transform .2s,box-shadow .2s}.whatsapp-button:hover{transform:translateY(-2px);box-shadow:0 9px 22px #128c7e4d}.whatsapp-button:focus-visible{outline:3px solid #0b5f55;outline-offset:3px}
+.whatsapp-missing{padding:10px 14px;border:1px dashed #c4cfd6;border-radius:14px;color:#5b6b75;font-size:15px;font-weight:600;text-align:center}
+.whatsapp-dialog header span{color:#d4fbe4;font-weight:800}.whatsapp-steps{margin:16px 0;padding:16px 36px 16px 18px;border-radius:16px;background:#e9fbf1;border:1px solid #b5ebcd;color:#14573f;font-weight:600;line-height:2}.whatsapp-text-label{display:grid;gap:8px;font-weight:700}.whatsapp-text-label textarea{width:100%;padding:14px;border:1px solid #b9cfd8;border-radius:14px;font:inherit;font-size:17px;line-height:1.9;resize:vertical}
+.my-account .my-account-hint{margin:0;color:#4d6170;font-size:.92em;line-height:1.9}.my-account form+form{border-top:1px solid #dbe6ea;padding-top:14px}
+@media print{.whatsapp-button,.whatsapp-missing{display:none!important}}

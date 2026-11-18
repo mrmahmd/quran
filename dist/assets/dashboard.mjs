@@ -1,7 +1,8 @@
 import { brandLockup, platformName, schoolName } from './brand.mjs';
 import { createNimrWeeklyEditor } from './nimr-weekly-editor.mjs?v=2';
 import {reviewRosterRequests} from './roster-request-bulk.mjs?v=bulk-requests1';
-import {mountMyAccount} from './my-account.mjs?v=1';
+import {mountMyAccount} from './my-account.mjs?v=profile1';
+import {teacherReminderText, whatsappLink, whatsappNumber} from './whatsapp-message.mjs?v=1';
 import {mountTeacherAppearance} from './teacher-appearance.mjs?v=monthly-reading5';
 import {mountDashboardIdentity} from './dashboard-identity.mjs?v=monthly-reading5';
 import {buildMonthlyReadingTable,monthlyReadingHeading} from './monthly-report-view.mjs?v=monthly-range1';
@@ -29,7 +30,7 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
   const readOnly = account.readOnly === true;
   root.classList.toggle('dashboard-read-only', readOnly);
   let terms = [], teachers = [], termId = '', teacherId = account.username || '', week = '', view = account.role === 'admin' ? 'reports' : 'home';
-  let context = { students: [], reviews: [], evaluations: [], honors: [] }, overview = null, weekStates = [], monthStates = [], monthlyOverview = {reports:[],entries:[],students:[]};
+  let teacherPhones = new Map(), context = { students: [], reviews: [], evaluations: [], honors: [] }, overview = null, weekStates = [], monthStates = [], monthlyOverview = {reports:[],entries:[],students:[]};
   let loadedMonthlyScope = '';
   let scores = new Map(), dirty = false, honorDirty = false, knightDirty = false, busy = false, generation = 0, monthlyDirty = false, month = '', monthlyData = { report: null, entries: [] }, monthlyRows = new Map(), champions = [], chosenKnight = '', selectedHonors = new Set(), khairkomData = { sets: [], rows: [], students: [] }, nominatedStudents = new Map(), identityNumbers = new Map(), nominationDirty = false;
   let messageTimer, editingStudent = '', rosterDirty = false, monthlyTeacherFilter = null, monthlyStudentFilter = 'pending';
@@ -123,7 +124,7 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
       nav.append(button);
     }
   }
-  if (onChangePassword) mountMyAccount(root, account, onChangePassword);
+  if (onChangePassword) mountMyAccount(root, account, onChangePassword, admin ? {} : { loadProfile: () => repo.myProfile(), changeLoginName: name => repo.setLoginName(name) });
   const teacherAppearance = admin ? null : mountTeacherAppearance(root,repo);
   const content = root.querySelector('#dashboard-content');
   const dashboardIdentity = mountDashboardIdentity(root);
@@ -263,6 +264,7 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
       if (ticket !== generation || scope !== monthlyScope()) return;
       const monthly = teacherId && termId && month ? await repo.monthly(teacherId, termId, month) : { report: null, entries: [] };
       const monthsAccess = termId ? await repo.monthStates(termId) : [];
+      if (admin && !teacherPhones.size) teacherPhones = new Map((await repo.teacherContacts().catch(() => [])).filter(row => row.phone).map(row => [row.username, row.phone]));
       const monthsOverview = monthlyReader && ['monthly','monthlyReport','monthlyProgress'].includes(view) && monthlyOverviewMode() && termId && month ? await repo.monthlyOverview(termId,month) : {reports:[],entries:[],students:[]};
       const gallery = manager && termId ? await repo.champions(termId, week) : [];
       if (ticket !== generation || scope !== monthlyScope()) return;
@@ -454,6 +456,34 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
     if (loadedMonthlyScope !== monthlyScope()) { renderMonthlyLoadError(); return; }
     content.innerHTML = `<div class="section-heading"><div><p class="section-kicker teal-text">متابعة الشهر</p><h2>إنجاز التقارير الشهرية</h2><p>متابعة اكتمال التقارير وفتح الشهر أو إغلاقه. لقراءة مقادير الحفظ والمراجعة افتح تقارير الحفظ الشهرية.</p></div><button class="teal-button" data-view="${admin?'monthly':'monthlyReport'}">▤ عرض تقارير الحفظ</button></div><div class="monthly-toolbar"><label>الشهر<select id="month-select">${termMonths(selectedTerm()).map(value=>`<option value="${value}" ${month===value?'selected':''}>${monthLabel(value)}</option>`).join('')}</select></label><button class="light-button" id="refresh-monthly-roster">↻ تحديث الإنجاز</button></div>${monthWorkflow()}${monthlyAdminSummary()}`;
   }
+  function openWhatsappMessage(username) {
+    const row = summarizeMonthlyTeachers(teachers, monthlyOverview).rows.find(t => t.username === username);
+    const phone = teacherPhones.get(username);
+    if (!row || !whatsappNumber(phone)) { notify('لا يوجد رقم هاتف صالح لهذا المعلم.', true); return; }
+    const modal = document.createElement('dialog');
+    modal.className = 'monthly-bulk-dialog whatsapp-dialog';
+    modal.setAttribute('aria-label', `رسالة واتساب إلى ${row.full_name}`);
+    modal.innerHTML = `<form novalidate><header><span>💬 رسالة واتساب</span><h2>${esc(row.full_name)}</h2><p><bdi dir="ltr">${esc(row.ring_name || row.class_name)}</bdi> · <bdi dir="ltr">${esc(phone)}</bdi></p></header>
+      <ol class="whatsapp-steps"><li>راجع الرسالة المقترحة وعدّلها كما تريد.</li><li>اضغط «فتح واتساب للإرسال».</li><li>تُفتح محادثة المعلم في واتساب والرسالة مكتوبة؛ اضغط زر الإرسال داخل واتساب.</li></ol>
+      <label class="whatsapp-text-label">نص الرسالة<textarea name="message" rows="8" maxlength="1500" required></textarea></label>
+      <p class="bulk-error" role="alert"></p>
+      <footer><button type="button" class="light-button" data-whatsapp-cancel>إلغاء</button><button type="submit" class="whatsapp-button">فتح واتساب للإرسال</button></footer></form>`;
+    const text = modal.querySelector('textarea');
+    text.value = teacherReminderText({ name: row.full_name, ring: row.ring_name || row.class_name, monthLabel: monthLabel(month), status: row.status, completed: row.completed, total: row.total });
+    modal.addEventListener('close', () => modal.remove(), { once: true });
+    modal.querySelector('[data-whatsapp-cancel]').addEventListener('click', () => modal.close());
+    modal.querySelector('form').addEventListener('submit', event => {
+      event.preventDefault();
+      let link;
+      try { link = whatsappLink(phone, text.value); } catch (error) { modal.querySelector('.bulk-error').textContent = error.message; text.focus(); return; }
+      window.open(link, '_blank', 'noopener');
+      modal.close();
+      notify('فُتح واتساب. اضغط زر الإرسال داخل المحادثة لإرسال الرسالة.');
+    });
+    document.body.append(modal);
+    modal.showModal();
+    text.focus();
+  }
   function monthlyAdminSummary() {
     const p = summarizeMonthlyTeachers(teachers, monthlyOverview);
     const statuses = { complete: '✓ مكتمل', draft: '◷ تقرير جزئي', missing: '○ لا يوجد تقرير محفوظ' };
@@ -481,12 +511,12 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
       ${p.empty ? `<p class="monthly-empty-rings">${p.empty} حلقة بلا طلاب خارج حساب الإنجاز.</p>` : ''}
       <section id="monthly-teacher-cards" ${active ? '' : 'hidden'} aria-labelledby="monthly-teacher-heading">
         <div class="monthly-cards-toolbar"><h3 id="monthly-teacher-heading">${heading || ''}</h3><span>${visible.length} معلمًا</span></div>
-        ${visible.length ? `<div class="monthly-teacher-grid">${visible.map(t => `<button type="button" class="monthly-teacher-status ${t.status} ${t.username === teacherId ? 'selected' : ''}" data-monthly-teacher="${esc(t.username)}">
+        ${visible.length ? `<div class="monthly-teacher-grid">${visible.map(t => `<div class="monthly-teacher-item"><button type="button" class="monthly-teacher-status ${t.status} ${t.username === teacherId ? 'selected' : ''}" data-monthly-teacher="${esc(t.username)}">
           <span class="monthly-teacher-state">${statuses[t.status]}</span><h3>${esc(t.full_name)}</h3>
           <small>${esc(t.ring_name || t.class_name)}</small>
           <strong>${t.percent}%</strong><progress max="100" value="${t.percent}" aria-label="نسبة اكتمال تقرير ${esc(t.full_name)}"></progress>
           <span>${t.completed} من ${t.total} طالبًا · عرض تفاصيل الحلقة ←</span>
-        </button>`).join('')}</div>` : active ? '<p class="monthly-empty-group">لا يوجد معلمون في هذه الحالة للشهر المختار.</p>' : ''}
+        </button>${admin ? whatsappNumber(teacherPhones.get(t.username)) ? `<button type="button" class="whatsapp-button" data-whatsapp-teacher="${esc(t.username)}"><span aria-hidden="true">💬</span> إرسال رسالة على واتساب</button>` : '<span class="whatsapp-missing">لا يوجد رقم هاتف مسجّل لهذا المعلم</span>' : ''}</div>`).join('')}</div>` : active ? '<p class="monthly-empty-group">لا يوجد معلمون في هذه الحالة للشهر المختار.</p>' : ''}
       </section>
     </section>`;
   }
@@ -804,6 +834,8 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
       const opening=!monthOpen();if(!await confirm(opening?'فتح الشهر لجميع المعلمين؟':'إغلاق الشهر لجميع المعلمين؟',opening?'سيتمكن جميع المعلمين من إدخال التقارير الشهرية وحفظها وتعديلها.':'سيتوقف حفظ وتعديل تقارير هذا الشهر لجميع المعلمين، وتبقى البيانات المحفوظة متاحة للعرض.',opening?'نعم، فتح الشهر':'نعم، إغلاق الشهر'))return;
       await action(async()=>{await repo.setMonthOpen(termId,month,opening);await refreshMonthlyRoster();},opening?'تم فتح الشهر لجميع المعلمين.':'تم إغلاق الشهر لجميع المعلمين.');return;
     }
+    const whatsappTeacher=event.target.closest('[data-whatsapp-teacher]');
+    if(whatsappTeacher&&admin){openWhatsappMessage(whatsappTeacher.dataset.whatsappTeacher);return;}
     const monthlyTeacher=event.target.closest('[data-monthly-teacher]');
     if(monthlyTeacher&&monthlyReader&&!busy){teacherId=monthlyTeacher.dataset.monthlyTeacher;view=admin?'monthly':'monthlyReport';updateSelectors();await action(refreshMonthlyRoster,'');root.querySelector('.monthly-detail-title')?.scrollIntoView({block:'start',behavior:'smooth'});return;}
     if(event.target.closest('#print-monthly-overview')&&monthlyReader&&!busy){await action(async()=>{await refreshMonthlyRoster();openReport('monthly');},'');return;}
