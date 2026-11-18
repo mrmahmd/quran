@@ -24,3 +24,12 @@ test('the suggested message follows the report status', () => {
   assert.match(teacherReminderText({ ...base, status: 'complete' }), /جزاكم الله خيرًا على إكمال/);
   assert.match(teacherReminderText({ ...base, status: 'missing' }), /^السلام عليكم[\s\S]*أستاذ جمال عبد الرحيم[\s\S]*إدارة مدارس الأندلس الأهلية$/);
 });
+
+test('the comparison message asks for a note and cannot be sent with the placeholder', async () => {
+  const { teacherComparisonText, notePlaceholder } = await import('../dist/assets/whatsapp-message.mjs');
+  const text = teacherComparisonText({ name: 'جمال عبد الرحيم', ring: '5/A', months: ['سبتمبر', 'أكتوبر'] });
+  assert.match(text, /بخصوص مقارنة الحفظ والمراجعة \(سبتمبر وأكتوبر\) لحلقة 5\/A/);
+  assert.ok(text.includes(notePlaceholder));
+  assert.throws(() => whatsappLink('0512345678', text), /اكتب ملاحظتك/);
+  assert.match(whatsappLink('0512345678', text.replace(notePlaceholder, 'أحسنتم')), /^https:\/\/wa\.me\/966512345678\?text=/);
+});

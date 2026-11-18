@@ -11,7 +11,16 @@ export function whatsappLink(phone, text) {
   const number = whatsappNumber(phone);
   if (!number) throw new Error('رقم هاتف المعلم غير صالح.');
   if (!String(text ?? '').trim()) throw new Error('اكتب نص الرسالة أولًا.');
+  if (String(text).includes(notePlaceholder)) throw new Error('اكتب ملاحظتك مكان «[اكتب ملاحظتك هنا]» قبل الإرسال.');
   return `https://wa.me/${number}?text=${encodeURIComponent(String(text).trim())}`;
+}
+
+// Opened from the monthly comparison page; the administration writes its note in the marked line.
+export const notePlaceholder = '[اكتب ملاحظتك هنا]';
+export function teacherComparisonText({ name, ring, months = [] }) {
+  const where = ring ? ` لحلقة ${ring}` : '';
+  const period = months.length ? ` (${months.join(' و')})` : '';
+  return `السلام عليكم ورحمة الله وبركاته\nأستاذ ${name} حفظكم الله،\nبخصوص مقارنة الحفظ والمراجعة${period}${where} على منصة يسرناه:\n${notePlaceholder}\nإدارة مدارس الأندلس الأهلية`;
 }
 
 export function teacherReminderText({ name, ring, monthLabel, status, completed = 0, total = 0 }) {

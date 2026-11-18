@@ -128,7 +128,8 @@ function printReport({ title, months, term, summary, juz }) {
   </article>`;
 }
 
-export function createMonthlyComparison({ repo, openPdf, openMonthlyReport }) {
+// canMessage/messageTeacher: the administration's WhatsApp button at the top of a teacher's comparison.
+export function createMonthlyComparison({ repo, openPdf, openMonthlyReport, canMessage = () => false, messageTeacher = null }) {
   let selected = '';
 
   function show(host, term, teachers) {
@@ -180,7 +181,11 @@ export function createMonthlyComparison({ repo, openPdf, openMonthlyReport }) {
         const title = [teacher.full_name, teacher.ring_name || teacher.class_name].filter(Boolean).join(' · ');
         snapshot = { title, teacher, months, term, summary, juz };
         status.textContent = rows.length ? '' : 'لا توجد مقادير حفظ أو مراجعة مسجّلة لهذه الحلقة في الشهرين.';
-        result.innerHTML = reportActions(title, months) + teacherSummary(summary) + juzSummary(juz, true);
+        const whatsapp = messageTeacher && canMessage(teacher.username)
+          ? `<div class="mc-whatsapp-bar"><div><strong>تواصل مع ${escape(teacher.full_name)}</strong><span>أرسل له ملاحظتك عن تقرير الحلقة مباشرة على واتساب.</span></div>
+            <button type="button" class="whatsapp-button" data-mc-whatsapp><span aria-hidden="true">💬</span> إرسال رسالة على واتساب</button></div>`
+          : messageTeacher ? '<p class="whatsapp-missing mc-whatsapp-missing">لا يوجد رقم هاتف مسجّل لهذا المعلم؛ لا يمكن إرسال رسالة واتساب.</p>' : '';
+        result.innerHTML = whatsapp + reportActions(title, months) + teacherSummary(summary) + juzSummary(juz, true);
         const sourceReports = [data.first, data.second].map((value, index) => value.report
           ? `<button type="button" class="light-button" data-mc-report="${index}">فتح تقرير ${periods[index]}</button>`
           : '').join('');
@@ -203,6 +208,10 @@ export function createMonthlyComparison({ repo, openPdf, openMonthlyReport }) {
     result.addEventListener('click', event => {
       const button = event.target.closest('button');
       if (!button || !snapshot) return;
+      if (button.hasAttribute('data-mc-whatsapp') && snapshot.teacher) {
+        messageTeacher(snapshot.teacher.username, snapshot.months.map(monthName));
+        return;
+      }
       if (button.hasAttribute('data-mc-report')) {
         openMonthlyReport(snapshot.teacher.username, snapshot.months[Number(button.dataset.mcReport)]);
         return;

@@ -2,13 +2,13 @@ import { brandLockup, platformName, schoolName } from './brand.mjs';
 import { createNimrWeeklyEditor } from './nimr-weekly-editor.mjs?v=2';
 import {reviewRosterRequests} from './roster-request-bulk.mjs?v=bulk-requests1';
 import {mountMyAccount} from './my-account.mjs?v=profile1';
-import {teacherReminderText, whatsappLink, whatsappNumber} from './whatsapp-message.mjs?v=1';
+import {notePlaceholder, teacherComparisonText, whatsappLink, whatsappNumber} from './whatsapp-message.mjs?v=2';
 import {mountTeacherAppearance} from './teacher-appearance.mjs?v=monthly-reading5';
 import {mountDashboardIdentity} from './dashboard-identity.mjs?v=monthly-reading5';
 import {buildMonthlyReadingTable,monthlyReadingHeading} from './monthly-report-view.mjs?v=monthly-range1';
 import {teacherWeeks} from './teacher-week-model.mjs?v=monthly-reading5';
 import { summarizeMonthlyTeachers } from './monthly-progress-model.mjs?v=monthly-range1';
-import { createMonthlyComparison } from './monthly-comparison-view.mjs?v=9';
+import { createMonthlyComparison } from './monthly-comparison-view.mjs?v=whatsapp1';
 import { emptyMonthly, monthlyFreeText, monthlyProblem, monthlyDraftProblem, termMonths, monthlyLabel, SURAHS, monthlyRangeText, monthlyProgress, applyMonthlyAmounts, copyMonthlyAmounts, copyMemorizationToRevision, monthlyAbsent, setMonthlyAbsent, mergeMonthlyRoster, monthlySavedComplete, monthlyStudentPayload, monthlyHasChanges } from './monthly-model.mjs?v=monthly-range1';
 import { SCORE_FIELDS, emptyScores, scoreTotal, validateScores, termWeeks, semesterSummary, weekNumber, weekEnd } from './evaluation-model.mjs?v=rosters2';
 import { applyEditedNominee, applySavedNominations, filterNominations, nominationGroups, nominationRoundLabels, nominationType, nominationFilterLabel, formatTestParts, testPartLabel, testPartOptions, normalizeIdentityNumber, validIdentityNumber, validTestParts } from './khairkom-model.mjs?v=nas-duha';
@@ -133,7 +133,7 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
   const teacherSelect = root.querySelector('#teacher-select');
   const dialog = root.querySelector('#dashboard-confirm');
   const reportPreview = root.querySelector('#report-preview');
-  const monthlyComparison = admin ? createMonthlyComparison({ repo, openPdf: showReportMarkup, openMonthlyReport: openComparedMonthlyReport }) : null;
+  const monthlyComparison = admin ? createMonthlyComparison({ repo, openPdf: showReportMarkup, openMonthlyReport: openComparedMonthlyReport, canMessage: username => !!whatsappNumber(teacherPhones.get(username)), messageTeacher: (username, months) => openWhatsappMessage(username, months) }) : null;
   const weeklyNarrative = weeklyNarrativeViewer ? createNimrWeeklyEditor({
     repo, author:()=>admin ? teachers.find(row=>row.username==='quran17')?.full_name || 'محمد نمر فوزي' : account.full_name,
     confirmReload:()=>confirm('جلب المسودة المحفوظة','سيظهر آخر نص محفوظ لهذا الأسبوع.'),
@@ -456,8 +456,8 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
     if (loadedMonthlyScope !== monthlyScope()) { renderMonthlyLoadError(); return; }
     content.innerHTML = `<div class="section-heading"><div><p class="section-kicker teal-text">متابعة الشهر</p><h2>إنجاز التقارير الشهرية</h2><p>متابعة اكتمال التقارير وفتح الشهر أو إغلاقه. لقراءة مقادير الحفظ والمراجعة افتح تقارير الحفظ الشهرية.</p></div><button class="teal-button" data-view="${admin?'monthly':'monthlyReport'}">▤ عرض تقارير الحفظ</button></div><div class="monthly-toolbar"><label>الشهر<select id="month-select">${termMonths(selectedTerm()).map(value=>`<option value="${value}" ${month===value?'selected':''}>${monthLabel(value)}</option>`).join('')}</select></label><button class="light-button" id="refresh-monthly-roster">↻ تحديث الإنجاز</button></div>${monthWorkflow()}${monthlyAdminSummary()}`;
   }
-  function openWhatsappMessage(username) {
-    const row = summarizeMonthlyTeachers(teachers, monthlyOverview).rows.find(t => t.username === username);
+  function openWhatsappMessage(username, months = []) {
+    const row = teachers.find(t => t.username === username);
     const phone = teacherPhones.get(username);
     if (!row || !whatsappNumber(phone)) { notify('لا يوجد رقم هاتف صالح لهذا المعلم.', true); return; }
     const modal = document.createElement('dialog');
@@ -469,7 +469,7 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
       <p class="bulk-error" role="alert"></p>
       <footer><button type="button" class="light-button" data-whatsapp-cancel>إلغاء</button><button type="submit" class="whatsapp-button">فتح واتساب للإرسال</button></footer></form>`;
     const text = modal.querySelector('textarea');
-    text.value = teacherReminderText({ name: row.full_name, ring: row.ring_name || row.class_name, monthLabel: monthLabel(month), status: row.status, completed: row.completed, total: row.total });
+    text.value = teacherComparisonText({ name: row.full_name, ring: row.ring_name || row.class_name, months });
     modal.addEventListener('close', () => modal.remove(), { once: true });
     modal.querySelector('[data-whatsapp-cancel]').addEventListener('click', () => modal.close());
     modal.querySelector('form').addEventListener('submit', event => {
@@ -483,6 +483,8 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
     document.body.append(modal);
     modal.showModal();
     text.focus();
+    const at = text.value.indexOf(notePlaceholder);
+    if (at >= 0) text.setSelectionRange(at, at + notePlaceholder.length);
   }
   function monthlyAdminSummary() {
     const p = summarizeMonthlyTeachers(teachers, monthlyOverview);
@@ -511,12 +513,12 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
       ${p.empty ? `<p class="monthly-empty-rings">${p.empty} حلقة بلا طلاب خارج حساب الإنجاز.</p>` : ''}
       <section id="monthly-teacher-cards" ${active ? '' : 'hidden'} aria-labelledby="monthly-teacher-heading">
         <div class="monthly-cards-toolbar"><h3 id="monthly-teacher-heading">${heading || ''}</h3><span>${visible.length} معلمًا</span></div>
-        ${visible.length ? `<div class="monthly-teacher-grid">${visible.map(t => `<div class="monthly-teacher-item"><button type="button" class="monthly-teacher-status ${t.status} ${t.username === teacherId ? 'selected' : ''}" data-monthly-teacher="${esc(t.username)}">
+        ${visible.length ? `<div class="monthly-teacher-grid">${visible.map(t => `<button type="button" class="monthly-teacher-status ${t.status} ${t.username === teacherId ? 'selected' : ''}" data-monthly-teacher="${esc(t.username)}">
           <span class="monthly-teacher-state">${statuses[t.status]}</span><h3>${esc(t.full_name)}</h3>
           <small>${esc(t.ring_name || t.class_name)}</small>
           <strong>${t.percent}%</strong><progress max="100" value="${t.percent}" aria-label="نسبة اكتمال تقرير ${esc(t.full_name)}"></progress>
           <span>${t.completed} من ${t.total} طالبًا · عرض تفاصيل الحلقة ←</span>
-        </button>${admin ? whatsappNumber(teacherPhones.get(t.username)) ? `<button type="button" class="whatsapp-button" data-whatsapp-teacher="${esc(t.username)}"><span aria-hidden="true">💬</span> إرسال رسالة على واتساب</button>` : '<span class="whatsapp-missing">لا يوجد رقم هاتف مسجّل لهذا المعلم</span>' : ''}</div>`).join('')}</div>` : active ? '<p class="monthly-empty-group">لا يوجد معلمون في هذه الحالة للشهر المختار.</p>' : ''}
+        </button>`).join('')}</div>` : active ? '<p class="monthly-empty-group">لا يوجد معلمون في هذه الحالة للشهر المختار.</p>' : ''}
       </section>
     </section>`;
   }
@@ -834,8 +836,6 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
       const opening=!monthOpen();if(!await confirm(opening?'فتح الشهر لجميع المعلمين؟':'إغلاق الشهر لجميع المعلمين؟',opening?'سيتمكن جميع المعلمين من إدخال التقارير الشهرية وحفظها وتعديلها.':'سيتوقف حفظ وتعديل تقارير هذا الشهر لجميع المعلمين، وتبقى البيانات المحفوظة متاحة للعرض.',opening?'نعم، فتح الشهر':'نعم، إغلاق الشهر'))return;
       await action(async()=>{await repo.setMonthOpen(termId,month,opening);await refreshMonthlyRoster();},opening?'تم فتح الشهر لجميع المعلمين.':'تم إغلاق الشهر لجميع المعلمين.');return;
     }
-    const whatsappTeacher=event.target.closest('[data-whatsapp-teacher]');
-    if(whatsappTeacher&&admin){openWhatsappMessage(whatsappTeacher.dataset.whatsappTeacher);return;}
     const monthlyTeacher=event.target.closest('[data-monthly-teacher]');
     if(monthlyTeacher&&monthlyReader&&!busy){teacherId=monthlyTeacher.dataset.monthlyTeacher;view=admin?'monthly':'monthlyReport';updateSelectors();await action(refreshMonthlyRoster,'');root.querySelector('.monthly-detail-title')?.scrollIntoView({block:'start',behavior:'smooth'});return;}
     if(event.target.closest('#print-monthly-overview')&&monthlyReader&&!busy){await action(async()=>{await refreshMonthlyRoster();openReport('monthly');},'');return;}

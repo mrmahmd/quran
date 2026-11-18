@@ -212,3 +212,6 @@
 .whatsapp-dialog header span{color:#d4fbe4;font-weight:800}.whatsapp-steps{margin:16px 0;padding:16px 36px 16px 18px;border-radius:16px;background:#e9fbf1;border:1px solid #b5ebcd;color:#14573f;font-weight:600;line-height:2}.whatsapp-text-label{display:grid;gap:8px;font-weight:700}.whatsapp-text-label textarea{width:100%;padding:14px;border:1px solid #b9cfd8;border-radius:14px;font:inherit;font-size:17px;line-height:1.9;resize:vertical}
 .my-account .my-account-hint{margin:0;color:#4d6170;font-size:.92em;line-height:1.9}.my-account form+form{border-top:1px solid #dbe6ea;padding-top:14px}
 @media print{.whatsapp-button,.whatsapp-missing{display:none!important}}
+.mc-whatsapp-bar{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin:0 0 18px;padding:18px 22px;border:1px solid #b5ebcd;border-radius:20px;background:linear-gradient(110deg,#e9fbf1,#f1fbff)}.mc-whatsapp-bar strong{display:block;color:#0f5b45;font-size:19px;font-weight:800}.mc-whatsapp-bar span{color:#3c6656;font-weight:600}.mc-whatsapp-bar .whatsapp-button span{color:#fff}.mc-whatsapp-missing{margin:0 0 18px}
+@media(max-width:600px){.mc-whatsapp-bar .whatsapp-button{width:100%}}
+@media print{.mc-whatsapp-bar,.mc-whatsapp-missing{display:none!important}}
