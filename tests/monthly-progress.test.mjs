@@ -14,3 +14,17 @@ test('monthly completion uses current roster, saved rows and absence rather than
  const detail=buildMonthlyReport({term:{name:'term'},label:'الشهر الأول',teachers,data,teacherUsername:'done'});assert.match(detail,/غائب — لم يحضر/);assert.match(detail,/new/);assert.doesNotMatch(detail,/>missing</);
 });
 
+
+test('a teacher with a range rule is not complete while free-written amounts remain',()=>{
+ const teachers=[{username:'quran09',full_name:'جمال',active:true},{username:'quran06',full_name:'آخر',active:true}];
+ const legacy=id=>({...emptyMonthly(id),memorization:{none:false,text:'سورة النبأ'},revision:{none:true,text:''}});
+ const data={students:[{id:'a',teacher_username:'quran09',full_name:'طالب أ',active:true},{id:'b',teacher_username:'quran06',full_name:'طالب ب',active:true}],
+  reports:[{id:'r1',teacher_username:'quran09'},{id:'r2',teacher_username:'quran06'}],
+  entries:[{...legacy('a'),teacher_username:'quran09',report_id:'r1'},{...legacy('b'),teacher_username:'quran06',report_id:'r2'}],
+  rangeRules:[{teacher_username:'quran09',month_start:'2026-09-01'}]};
+ const p=summarizeMonthlyTeachers(teachers,data);
+ assert.equal(p.rows[0].status,'draft');assert.equal(p.rows[1].status,'complete');
+ const detail=buildMonthlyReport({term:{name:'term'},label:'الشهر الأول',teachers,data,teacherUsername:'quran09'});
+ assert.match(detail,/بيانات ناقصة/);
+ assert.equal(summarizeMonthlyTeachers(teachers,{...data,rangeRules:[]}).rows[0].status,'complete','without the rule legacy text still counts');
+});

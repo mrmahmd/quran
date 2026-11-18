@@ -122,3 +122,24 @@ test('saved student becomes pending after edits and is complete again only after
  const payload=monthlyStudentPayload([draft],[saved],'student');
  assert.equal(saved.note,'');assert.ok(!monthlySavedComplete(draft,saved));assert.ok(monthlySavedComplete(draft,payload[0]));
 });
+
+test('a range-required month counts free-written amounts as incomplete', async () => {
+  const { monthlyFreeText, monthlyStudentPayload, monthlySavedComplete } = await import('../dist/assets/monthly-model.mjs');
+  const rule = { requireRange: true };
+  const range = { from_surah: 78, from_ayah: 1, to_surah: 78, to_ayah: 40 };
+  const ranged = { none: false, text: monthlyRangeText(range), range };
+  const legacy = { ...emptyMonthly('s1'), memorization: { none: false, text: 'سورة النبأ كاملة' }, revision: { none: true, text: '' } };
+  assert.equal(monthlyFreeText(legacy.memorization), true);
+  assert.equal(monthlyFreeText(ranged), false);
+  assert.equal(monthlyFreeText({ none: true, text: '' }), false);
+  assert.equal(monthlyProblem(legacy), '', 'other months keep accepting legacy text');
+  assert.equal(monthlyProblem(legacy, rule), 'الحفظ');
+  assert.equal(monthlyProblem({ ...legacy, memorization: ranged, revision: { none: false, text: 'جزء عم' } }, rule), 'المراجعة');
+  assert.equal(monthlyProblem({ ...legacy, memorization: ranged }, rule), '');
+  assert.equal(monthlyProblem(setMonthlyAbsent(legacy, true), rule), '', 'absent students are complete');
+  assert.deepEqual(monthlyProgress([legacy, { ...legacy, student_id: 's2', memorization: ranged }], rule), { total: 2, completed: 1, remaining: 1, percent: 50, complete: false });
+  assert.equal(monthlySavedComplete(legacy, legacy, rule), false);
+  assert.throws(() => monthlyStudentPayload([legacy], [], 's1', rule), /أكمل مقدار الحفظ والمراجعة/);
+  assert.throws(() => copyMemorizationToRevision(legacy, rule), /أكمل السور والآيات/);
+  assert.throws(() => copyMonthlyAmounts([legacy, { ...emptyMonthly('s2') }], 's1', ['s2'], rule), /أكمل مقدار الحفظ/);
+});

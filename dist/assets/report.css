@@ -201,3 +201,7 @@
 .monthly-cards-toolbar h3 { margin: 0; color: #16497a; }
 .monthly-empty-group, .monthly-empty-rings { color: #4d6177; padding: 8px 0; }
 .report-monthly .report-stats:has(.report-stat:nth-child(4)) { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+/* Month rule: the teacher records start and end verses instead of free text. */
+.monthly-range-required{padding:20px 24px;margin:20px 0;border:1px solid #f0c27b;border-inline-start:6px solid #d98a1c;border-radius:18px;background:#fff7e8;color:#7a4a08}.monthly-range-required strong{display:block;font-size:19px;font-weight:800}.monthly-range-required p{margin:8px 0 0;font-weight:600;line-height:1.9}
+.monthly-legacy-required{border-color:#f0c27b;background:#fff7e8}.monthly-legacy-required strong{color:#9a5a0a}.monthly-legacy-required p{white-space:pre-wrap;overflow-wrap:break-word;color:#5c4a2a}
+@media print{.monthly-range-required{display:none!important}}

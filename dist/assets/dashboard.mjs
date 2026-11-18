@@ -4,14 +4,14 @@ import {reviewRosterRequests} from './roster-request-bulk.mjs?v=bulk-requests1';
 import {mountMyAccount} from './my-account.mjs?v=1';
 import {mountTeacherAppearance} from './teacher-appearance.mjs?v=monthly-reading5';
 import {mountDashboardIdentity} from './dashboard-identity.mjs?v=monthly-reading5';
-import {buildMonthlyReadingTable,monthlyReadingHeading} from './monthly-report-view.mjs?v=monthly-reading5';
+import {buildMonthlyReadingTable,monthlyReadingHeading} from './monthly-report-view.mjs?v=monthly-range1';
 import {teacherWeeks} from './teacher-week-model.mjs?v=monthly-reading5';
-import { summarizeMonthlyTeachers } from './monthly-progress-model.mjs?v=monthly-progress2';
+import { summarizeMonthlyTeachers } from './monthly-progress-model.mjs?v=monthly-range1';
 import { createMonthlyComparison } from './monthly-comparison-view.mjs?v=9';
-import { emptyMonthly, monthlyProblem, monthlyDraftProblem, termMonths, monthlyLabel, SURAHS, monthlyRangeText, monthlyProgress, applyMonthlyAmounts, copyMonthlyAmounts, copyMemorizationToRevision, monthlyAbsent, setMonthlyAbsent, mergeMonthlyRoster, monthlySavedComplete, monthlyStudentPayload, monthlyHasChanges } from './monthly-model.mjs?v=monthly-save2';
+import { emptyMonthly, monthlyFreeText, monthlyProblem, monthlyDraftProblem, termMonths, monthlyLabel, SURAHS, monthlyRangeText, monthlyProgress, applyMonthlyAmounts, copyMonthlyAmounts, copyMemorizationToRevision, monthlyAbsent, setMonthlyAbsent, mergeMonthlyRoster, monthlySavedComplete, monthlyStudentPayload, monthlyHasChanges } from './monthly-model.mjs?v=monthly-range1';
 import { SCORE_FIELDS, emptyScores, scoreTotal, validateScores, termWeeks, semesterSummary, weekNumber, weekEnd } from './evaluation-model.mjs?v=rosters2';
 import { applyEditedNominee, applySavedNominations, filterNominations, nominationGroups, nominationRoundLabels, nominationType, nominationFilterLabel, formatTestParts, testPartLabel, testPartOptions, normalizeIdentityNumber, validIdentityNumber, validTestParts } from './khairkom-model.mjs?v=nas-duha';
-import { buildWeeklyReport, buildKhairkomReport, buildChampionsReport, buildTeacherProgressReport, buildMonthlyReport } from './report-layout.mjs?v=monthly-progress2';
+import { buildWeeklyReport, buildKhairkomReport, buildChampionsReport, buildTeacherProgressReport, buildMonthlyReport } from './report-layout.mjs?v=monthly-range1';
 import { summarizeTeacherProgress } from './admin-progress-model.mjs?v=monthly-admin1';
 
 const esc = value => String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]);
@@ -384,6 +384,9 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
     render();return true;
   }
   const monthLabel = value => monthlyLabel(selectedTerm(),value);
+  // Set by the school per teacher and month (monthly_range_requirements); the database enforces it too.
+  const rangeOpt = () => ({requireRange: monthlyData.rangeRequired === true});
+  const monthlyRangeNotice = () => `<section class="monthly-range-required" role="note"><strong>مطلوب في ${monthLabel(month)}: تحديد الآيات</strong><p>اكتب حفظ ومراجعة كل طالب بتحديد سورة وآية البداية وسورة وآية النهاية. المقدار المكتوب نصًا حرًا لا يُحتسب مكتملًا؛ اضغط «تحديد السور والآيات» تحته لتحويله ثم احفظ.</p></section>`;
   function monthlyRangeFields(range, fieldAttribute) {
     const fields = [['from','البداية'],['to','النهاية']].map(([side,title]) => {
       const surah = range[`${side}_surah`], ayah = range[`${side}_ayah`];
@@ -396,6 +399,7 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
     const row=monthlyRows.get(student.id)[kind];
     let amount;
     if (row.none) amount='<p class="zero-report">لا يوجد مقدار مسجّل لهذا الشهر.</p>';
+    else if (rangeOpt().requireRange && monthlyFreeText(row)) amount=`<div class="monthly-copy-summary monthly-legacy-required"><strong>مقدار مكتوب نصًا — يحتاج تحديد الآيات</strong><p>${esc(row.text)}</p></div><button type="button" class="monthly-copy-button" data-monthly-convert="${kind}">تحديد السور والآيات</button>`;
     else if (!row.range && row.text) amount=`<label>مقدار مسجّل سابقًا<textarea data-monthly-kind="${kind}" maxlength="1000" rows="3">${esc(row.text)}</textarea></label><button type="button" class="monthly-copy-button" data-monthly-convert="${kind}">تحديد السور والآيات</button>`;
     else amount=`${monthlyRangeFields(row.range||{},'data-monthly-range')}<p class="monthly-range-summary" aria-live="polite">${esc(row.text||'اختر السور وأدخل أرقام الآيات؛ من ١ إلى عدد آيات السورة.')}</p>`;
     return `<section class="monthly-section ${kind}" data-monthly-section="${kind}"><h4>مقدار ${label}</h4><label class="none-choice"><input type="checkbox" data-monthly-none="${kind}" ${row.none?'checked':''}>لا يوجد ${label} خلال الشهر</label>${amount}</section>`;
@@ -489,8 +493,8 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
   function monthWorkflow() {
     return `<section class="month-workflow ${monthOpen()?'':'closed'}"><div><strong>${monthLabel(month)} · ${monthOpen()?'مفتوح أمام المعلمين':'مغلق من الإدارة'}</strong><p>${monthOpen()?'يمكن للمعلمين إدخال التقارير وحفظها وتعديلها.':'التقارير المحفوظة متاحة للعرض؛ الإدخال والحفظ متوقفان حتى إعادة فتح الشهر.'}</p></div>${admin?`<button type="button" class="week-toggle ${monthOpen()?'':'closed'}" id="toggle-month-workflow" role="switch" aria-checked="${monthOpen()}" aria-label="${monthOpen()?'إغلاق':'فتح'} الشهر أمام جميع المعلمين" ${selectedTerm()?.active?'':'disabled'}><span class="week-toggle-track"><i></i></span><b>${monthOpen()?'مفتوح':'مغلق'}</b></button>`:''}</section>`;
   }
-  const monthlyFinished = id => monthlySavedComplete(monthlyRows.get(id),monthlyData.entries.find(row=>row.student_id===id));
-  const savedMonthlyProgress = () => monthlyProgress(mergeMonthlyRoster(context.students,monthlyData.entries).values());
+  const monthlyFinished = id => monthlySavedComplete(monthlyRows.get(id),monthlyData.entries.find(row=>row.student_id===id),rangeOpt());
+  const savedMonthlyProgress = () => monthlyProgress(mergeMonthlyRoster(context.students,monthlyData.entries).values(),rangeOpt());
   const monthlyFilteredStudents = () => monthlyStudents().filter(s=>monthlyStudentFilter==='all'||monthlyFinished(s.id)===(monthlyStudentFilter==='complete'));
   function monthlyStudentFilters(){
     const total=monthlyStudents().length,done=monthlyStudents().filter(s=>monthlyFinished(s.id)).length;
@@ -499,21 +503,21 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
   function renderMonthly() {
     if (loadedMonthlyScope !== monthlyScope()) { renderMonthlyLoadError(); return; }
     const savedComplete = monthlyData.report && savedMonthlyProgress().complete;
-    content.innerHTML = `<div class="section-heading"><div><p class="section-kicker teal-text">التقرير الشهري</p><h2>${monthlyOverviewMode()?'تقارير الحفظ والمراجعة الشهرية':'رحلة الحفظ والمراجعة'}</h2><p>${monthlyOverviewMode()?'اختر الشهر والمعلم لعرض مقدار حفظ ومراجعة كل طالب مباشرة، ثم اطبع تقرير الحلقة.':'اختر سورة البداية والنهاية وأرقام الآيات لكل طالب، أو اختر «لا يوجد». يمكنك تعديل التقرير بعد حفظه؛ وتظهر آخر نسخة محفوظة عند الإدارة.'}</p></div><span class="status-pill teal-status">${monthlyData.report ? savedComplete ? '✓ تقرير مكتمل ومحفوظ' : '◷ مسودة محفوظة · غير مكتملة' : monthlyOverviewMode()?'لم يُرسل تقرير':'تقرير جديد'}</span></div><div class="monthly-toolbar"><label>الشهر<select id="month-select">${termMonths(selectedTerm()).map(value => `<option value="${value}" ${month === value ? 'selected' : ''}>${monthLabel(value)}</option>`).join('')}</select></label>${monthlyOverviewMode()&&!admin?monthlyReaderPicker():''}${!monthlyReadonly() ? '<button class="teal-button" type="button" id="bulk-monthly" '+(!monthlyRows.size?'disabled':'')+'>⇄ تطبيق مقدار على عدة طلاب</button>' : ''}<button type="button" class="light-button" id="refresh-monthly-roster">↻ تحديث قائمة الطلاب</button><button class="light-button" id="print-monthly">▤ طباعة التقرير</button><span>${esc(teacher().full_name)} · ${esc(teacher().ring_name || teacher().class_name)}</span></div><div class="print-heading"><h2>التقرير الشهري — ${monthLabel(month)}</h2><p>${esc(teacher().full_name)} · ${esc(teacher().ring_name || teacher().class_name)}</p></div>${!monthlyOverviewMode()?monthWorkflow():''}${monthlyOverviewMode()?monthlyReadingHeading({teacher:teacher(),label:monthLabel(month)}):''}${!monthlyOverviewMode()?monthlyProgressCard():''}${monthlyReadonly() ? monthlyData.report ? monthlyTable() : empty('لم يُرسل تقرير هذا الشهر بعد', monthlyOverviewMode()?'لا يوجد تقرير محفوظ لهذه الحلقة في الشهر المختار.':monthOpen()?'سيظهر تقرير الحلقة هنا بعد حفظه بواسطة المعلم.':'هذا الشهر مغلق. يمكنك إعداد التقرير بعد أن تفتحه الإدارة.') : ` ${monthlyStudentFilters()}<div class="monthly-grid">${monthlyFilteredStudents().map(student => `<article class="monthly-card" data-monthly-student="${student.id}"><header><span class="student-avatar">${esc(student.full_name.slice(0, 1))}</span><h3>${esc(student.full_name)}</h3>${student.active ? '' : '<small>مؤرشف · تقرير محفوظ</small>'}</header><label class="monthly-absence"><input type="checkbox" data-monthly-absent ${monthlyAbsent(monthlyRows.get(student.id))?'checked':''}><span>غائب — لم يحضر</span></label>${monthlyAbsent(monthlyRows.get(student.id)) ? '<div class="monthly-absence-info">الطالب غائب؛ لا يُطلب له حفظ أو مراجعة، ولا يمنع اكتمال التقرير.</div>' : `${monthlySection(student, 'memorization', 'حفظ')}<button type="button" class="monthly-copy-button monthly-copy-revision" data-copy-revision="${student.id}">↓ نسخ الحفظ إلى المراجعة</button>${monthlySection(student, 'revision', 'مراجعة')}<label class="monthly-note">ملاحظة اختيارية<textarea data-monthly-note maxlength="500" rows="2" ${monthlyReadonly() ? 'disabled' : ''}>${esc(monthlyRows.get(student.id).note)}</textarea></label><button type="button" class="monthly-copy-button" data-copy-monthly="${student.id}">⇄ نسخ المقدار لطلاب آخرين</button>`}<button type="button" class="monthly-finish-button" data-finish-monthly="${student.id}" ${monthlyProblem(monthlyRows.get(student.id))?'disabled':''}>✓ تم الانتهاء من الطالب</button></article>`).join('') || (monthlyRows.size?empty(monthlyStudentFilter==='pending'?'اكتمل تقرير الشهر لجميع الطلاب 🎉':'لا يوجد طلاب مكتملون محفوظون بعد',monthlyStudentFilter==='pending'?'يمكنك عرض المكتملين والرجوع لتعديلهم ما دام الشهر مفتوحًا.':'أكمل بيانات الطالب واضغط «تم الانتهاء من الطالب» لحفظه.') : empty('لا توجد أسماء في الحلقة', 'أضف الطلاب قبل إعداد التقرير الشهري.'))}</div><div class="print-only">${monthlyTable()}</div>`}<div class="save-bar"><span id="monthly-save-state">${monthlyReadonly() ? 'اطلاع فقط · آخر نسخة محفوظة لدى المعلم' : monthlyDirty ? 'تغييرات لم تُحفظ بعد' : 'حفظ واحد لجميع طلاب الحلقة'}</span>${!monthlyReadonly() ? `<button class="teal-button" id="save-monthly" ${!monthlyRows.size ? 'disabled' : ''}>${monthlyData.report ? '✓ حفظ التعديلات' : '✓ حفظ التقرير الشهري'}</button>` : '<span>عرض تقرير الحلقة المحفوظ</span>'}</div>`;
+    content.innerHTML = `<div class="section-heading"><div><p class="section-kicker teal-text">التقرير الشهري</p><h2>${monthlyOverviewMode()?'تقارير الحفظ والمراجعة الشهرية':'رحلة الحفظ والمراجعة'}</h2><p>${monthlyOverviewMode()?'اختر الشهر والمعلم لعرض مقدار حفظ ومراجعة كل طالب مباشرة، ثم اطبع تقرير الحلقة.':'اختر سورة البداية والنهاية وأرقام الآيات لكل طالب، أو اختر «لا يوجد». يمكنك تعديل التقرير بعد حفظه؛ وتظهر آخر نسخة محفوظة عند الإدارة.'}</p></div><span class="status-pill teal-status">${monthlyData.report ? savedComplete ? '✓ تقرير مكتمل ومحفوظ' : '◷ مسودة محفوظة · غير مكتملة' : monthlyOverviewMode()?'لم يُرسل تقرير':'تقرير جديد'}</span></div><div class="monthly-toolbar"><label>الشهر<select id="month-select">${termMonths(selectedTerm()).map(value => `<option value="${value}" ${month === value ? 'selected' : ''}>${monthLabel(value)}</option>`).join('')}</select></label>${monthlyOverviewMode()&&!admin?monthlyReaderPicker():''}${!monthlyReadonly() ? '<button class="teal-button" type="button" id="bulk-monthly" '+(!monthlyRows.size?'disabled':'')+'>⇄ تطبيق مقدار على عدة طلاب</button>' : ''}<button type="button" class="light-button" id="refresh-monthly-roster">↻ تحديث قائمة الطلاب</button><button class="light-button" id="print-monthly">▤ طباعة التقرير</button><span>${esc(teacher().full_name)} · ${esc(teacher().ring_name || teacher().class_name)}</span></div><div class="print-heading"><h2>التقرير الشهري — ${monthLabel(month)}</h2><p>${esc(teacher().full_name)} · ${esc(teacher().ring_name || teacher().class_name)}</p></div>${!monthlyOverviewMode()?monthWorkflow():''}${!monthlyOverviewMode()&&rangeOpt().requireRange?monthlyRangeNotice():''}${monthlyOverviewMode()?monthlyReadingHeading({teacher:teacher(),label:monthLabel(month)}):''}${!monthlyOverviewMode()?monthlyProgressCard():''}${monthlyReadonly() ? monthlyData.report ? monthlyTable() : empty('لم يُرسل تقرير هذا الشهر بعد', monthlyOverviewMode()?'لا يوجد تقرير محفوظ لهذه الحلقة في الشهر المختار.':monthOpen()?'سيظهر تقرير الحلقة هنا بعد حفظه بواسطة المعلم.':'هذا الشهر مغلق. يمكنك إعداد التقرير بعد أن تفتحه الإدارة.') : ` ${monthlyStudentFilters()}<div class="monthly-grid">${monthlyFilteredStudents().map(student => `<article class="monthly-card" data-monthly-student="${student.id}"><header><span class="student-avatar">${esc(student.full_name.slice(0, 1))}</span><h3>${esc(student.full_name)}</h3>${student.active ? '' : '<small>مؤرشف · تقرير محفوظ</small>'}</header><label class="monthly-absence"><input type="checkbox" data-monthly-absent ${monthlyAbsent(monthlyRows.get(student.id))?'checked':''}><span>غائب — لم يحضر</span></label>${monthlyAbsent(monthlyRows.get(student.id)) ? '<div class="monthly-absence-info">الطالب غائب؛ لا يُطلب له حفظ أو مراجعة، ولا يمنع اكتمال التقرير.</div>' : `${monthlySection(student, 'memorization', 'حفظ')}<button type="button" class="monthly-copy-button monthly-copy-revision" data-copy-revision="${student.id}">↓ نسخ الحفظ إلى المراجعة</button>${monthlySection(student, 'revision', 'مراجعة')}<label class="monthly-note">ملاحظة اختيارية<textarea data-monthly-note maxlength="500" rows="2" ${monthlyReadonly() ? 'disabled' : ''}>${esc(monthlyRows.get(student.id).note)}</textarea></label><button type="button" class="monthly-copy-button" data-copy-monthly="${student.id}">⇄ نسخ المقدار لطلاب آخرين</button>`}<button type="button" class="monthly-finish-button" data-finish-monthly="${student.id}" ${monthlyProblem(monthlyRows.get(student.id),rangeOpt())?'disabled':''}>✓ تم الانتهاء من الطالب</button></article>`).join('') || (monthlyRows.size?empty(monthlyStudentFilter==='pending'?'اكتمل تقرير الشهر لجميع الطلاب 🎉':'لا يوجد طلاب مكتملون محفوظون بعد',monthlyStudentFilter==='pending'?'يمكنك عرض المكتملين والرجوع لتعديلهم ما دام الشهر مفتوحًا.':'أكمل بيانات الطالب واضغط «تم الانتهاء من الطالب» لحفظه.') : empty('لا توجد أسماء في الحلقة', 'أضف الطلاب قبل إعداد التقرير الشهري.'))}</div><div class="print-only">${monthlyTable()}</div>`}<div class="save-bar"><span id="monthly-save-state">${monthlyReadonly() ? 'اطلاع فقط · آخر نسخة محفوظة لدى المعلم' : monthlyDirty ? 'تغييرات لم تُحفظ بعد' : 'حفظ واحد لجميع طلاب الحلقة'}</span>${!monthlyReadonly() ? `<button class="teal-button" id="save-monthly" ${!monthlyRows.size ? 'disabled' : ''}>${monthlyData.report ? '✓ حفظ التعديلات' : '✓ حفظ التقرير الشهري'}</button>` : '<span>عرض تقرير الحلقة المحفوظ</span>'}</div>`;
   }
   function monthlyProgressCard(){
     const p=savedMonthlyProgress();
-    const entered=monthlyProgress(monthlyRows.values());
-    const ready=monthlyStudents().filter(student=>!monthlyProblem(monthlyRows.get(student.id))&&!monthlyFinished(student.id)).length;
+    const entered=monthlyProgress(monthlyRows.values(),rangeOpt());
+    const ready=monthlyStudents().filter(student=>!monthlyProblem(monthlyRows.get(student.id),rangeOpt())&&!monthlyFinished(student.id)).length;
     return `<section class="monthly-progress" id="monthly-progress" aria-live="polite"><div><strong>البيانات المكتملة والمحفوظة · ${monthLabel(month)}</strong><b>${p.percent}%</b></div><progress max="100" value="${p.percent}" aria-label="نسبة اكتمال البيانات المحفوظة"></progress><p>${p.completed} من ${p.total} طالبًا مكتملًا ومحفوظًا</p>${monthlyReadonly()?'':`<p>${entered.remaining} طالبًا يحتاج استكمال البيانات · ${ready} طالبًا جاهزًا للحفظ</p>${ready?'<p>اضغط زر حفظ التقرير لحفظ البيانات التي أدخلتها.</p>':''}`}</section>`;
   }
   function updateMonthlyProgress(){
     const old=root.querySelector('#monthly-progress');if(old)old.outerHTML=monthlyProgressCard();
     const filters=root.querySelector('.monthly-student-filters');if(filters)filters.outerHTML=monthlyStudentFilters().split('<p class="monthly-finish-hint">')[0];
-    root.querySelectorAll('[data-finish-monthly]').forEach(button=>{button.disabled=!!monthlyProblem(monthlyRows.get(button.dataset.finishMonthly));});
+    root.querySelectorAll('[data-finish-monthly]').forEach(button=>{button.disabled=!!monthlyProblem(monthlyRows.get(button.dataset.finishMonthly),rangeOpt());});
   }
   function monthlyTable() {
-    return buildMonthlyReadingTable({students:monthlyStudents(),rows:monthlyRows,className:teacher().class_name});
+    return buildMonthlyReadingTable({students:monthlyStudents(),rows:monthlyRows,className:teacher().class_name,requireRange:rangeOpt().requireRange});
   }
   function nominationFilterControls(data, owners) {
     const classes = [...new Set(data.students.map(s=>s.source_class || owners.find(t=>t.username===s.teacher_username)?.class_name || '').filter(Boolean))].sort();
@@ -699,7 +703,7 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
   }
   function openMonthlyBulk(sourceId=null) {
     const source=sourceId?monthlyRows.get(sourceId):null;
-    if(sourceId&&(!source||monthlyAbsent(source)||monthlyProblem(source))){notify('أكمل مقدار الحفظ والمراجعة للطالب أولًا، أو اختر «لا يوجد».',true);return;}
+    if(sourceId&&(!source||monthlyAbsent(source)||monthlyProblem(source,rangeOpt()))){notify('أكمل مقدار الحفظ والمراجعة للطالب أولًا، أو اختر «لا يوجد».',true);return;}
     const targets=monthlyStudents().filter(s=>s.id!==sourceId&&!monthlyAbsent(monthlyRows.get(s.id))),sourceName=monthlyStudents().find(s=>s.id===sourceId)?.full_name;
     if(!targets.length){notify('لا يوجد طلاب آخرون في الحلقة لنسخ المقدار إليهم.',true);return;}
     const modal=document.createElement('dialog');modal.className='monthly-bulk-dialog';modal.setAttribute('aria-label','تطبيق مقدار على عدة طلاب');
@@ -724,7 +728,7 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
       e.preventDefault();if(applying)return;
       const error=modal.querySelector('.bulk-error'),button=modal.querySelector('[type="submit"]'),mode=modal.querySelector('#bulk-monthly-kind').value,ids=[...modal.querySelectorAll('[name="bulk-student"]:checked')].map(c=>c.value),kinds=mode==='both'?['memorization','revision']:[mode],amounts={};error.textContent='';
       if(!source)for(const kind of kinds){const section=modal.querySelector(`[data-bulk-section="${kind}"]`),range=Object.fromEntries([...section.querySelectorAll('[data-bulk-range]')].map(f=>[f.dataset.bulkRange,f.value?Number(f.value):null]));amounts[kind]={none:false,text:monthlyRangeText(range),range};}
-      let next;try{next=source?copyMonthlyAmounts([...monthlyRows.values()],sourceId,ids):applyMonthlyAmounts([...monthlyRows.values()],ids,amounts);}catch(err){error.textContent=err.message;return;}
+      let next;try{next=source?copyMonthlyAmounts([...monthlyRows.values()],sourceId,ids,rangeOpt()):applyMonthlyAmounts([...monthlyRows.values()],ids,amounts,rangeOpt());}catch(err){error.textContent=err.message;return;}
       applying=true;button.disabled=true;
       try{
         const existing=ids.some(id=>kinds.some(kind=>{const value=monthlyRows.get(id)[kind];return value.none||value.text?.trim()||Object.values(value.range||{}).some(v=>v!==null&&v!==undefined&&v!=='');}));
@@ -774,15 +778,15 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
     const finishMonthly=event.target.closest('[data-finish-monthly]');
     if(finishMonthly&&!busy&&!monthlyReadonly()){
       const id=finishMonthly.dataset.finishMonthly;
-      if(monthlyProblem(monthlyRows.get(id))){notify('أكمل مقدار الحفظ والمراجعة للطالب أولًا، أو حدده غائبًا.',true);return;}
+      if(monthlyProblem(monthlyRows.get(id),rangeOpt())){notify('أكمل مقدار الحفظ والمراجعة للطالب أولًا، أو حدده غائبًا.',true);return;}
       await action(async()=>{
         if(!await refreshMonthlyRoster())return;
         if(monthlyReadonly())throw new Error('هذا الشهر مغلق من الإدارة؛ لا يمكن حفظ التقرير حتى إعادة فتحه.');
-        const payload=monthlyStudentPayload(monthlyRows.values(),monthlyData.entries,id);
+        const payload=monthlyStudentPayload(monthlyRows.values(),monthlyData.entries,id,rangeOpt());
         const version=monthlyData.report?.version||0;
         const saved=await repo.saveMonthly({p_teacher:teacherId,p_term:termId,p_month:month,p_rows:payload,p_version:version});
         if(!saved?.id || saved.version!==version+1)throw new Error('لم يصل تأكيد الحفظ. البيانات المدخلة ما زالت موجودة؛ حاول مرة أخرى.');
-        monthlyData={report:saved,entries:payload};
+        monthlyData={...monthlyData,report:saved,entries:payload};
         monthlyDirty=monthlyHasChanges(monthlyRows.values(),payload);
         renderMonthly();notify('تم حفظ بيانات الطالب بنجاح ونقله إلى المكتملين.');
       },'');return;
@@ -814,7 +818,7 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
     const copyRevision=event.target.closest('[data-copy-revision]');
     if(copyRevision&&!busy&&!monthlyReadonly()){
       const id=copyRevision.dataset.copyRevision,row=monthlyRows.get(id);let next;
-      try{next=copyMemorizationToRevision(row);}catch{notify('أكمل مقدار الحفظ أولًا، أو اختر «لا يوجد».');return;}
+      try{next=copyMemorizationToRevision(row,rangeOpt());}catch{notify('أكمل مقدار الحفظ أولًا، أو اختر «لا يوجد».');return;}
       const existing=row.revision.none||row.revision.text?.trim()||Object.values(row.revision.range||{}).some(v=>v!==null&&v!==undefined&&v!=='');
       if(existing&&!await confirm('استبدال مقدار المراجعة؟','المراجعة لهذا الطالب فيها بيانات. هل تريد استبدالها بنفس مقدار الحفظ؟','نعم، نسخ الحفظ'))return;
       monthlyRows.set(id,next);monthlyDirty=true;renderMonthly();
@@ -1049,12 +1053,12 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
         notify(`راجع خانة ${field} للطالب ${invalid.full_name} قبل الحفظ.`, true);
         return;
       }
-      const missing = students.filter(student => monthlyProblem(monthlyRows.get(student.id)));
+      const missing = students.filter(student => monthlyProblem(monthlyRows.get(student.id),rangeOpt()));
       root.querySelectorAll('.needs-attention').forEach(card => card.classList.remove('needs-attention'));
       if (dialog.open) return;
       if (missing.length) {
         const first = missing[0];
-        const field = monthlyProblem(monthlyRows.get(first.id));
+        const field = monthlyProblem(monthlyRows.get(first.id),rangeOpt());
         const message = `باقي ${missing.length} من الطلاب. أول طالب يحتاج استكمال خانة ${field} هو ${first.full_name}. يمكنك حفظ المدخلات الآن كمسودة.`;
         if (!await confirm('بعض الطلاب يحتاجون استكمال البيانات', message, 'حفظ مسودة')) {
           focusMonthlyStudent(first);
@@ -1066,7 +1070,7 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
       await action(async () => {
         try {
           const saved=await repo.saveMonthly({p_teacher:teacherId,p_term:termId,p_month:month,p_rows:[...monthlyRows.values()],p_version:monthlyData.report?.version || 0});
-          monthlyData={report:saved,entries:structuredClone([...monthlyRows.values()])};monthlyDirty=false;renderMonthly();
+          monthlyData={...monthlyData,report:saved,entries:structuredClone([...monthlyRows.values()])};monthlyDirty=false;renderMonthly();
           const message = saved.status==='complete' ? 'تم حفظ التقرير الشهري مكتملًا وتحديثه عند الإدارة.' : 'تم حفظ التقرير كمسودة. يمكنك العودة لاحقًا لاستكماله.';
           root.querySelector('#monthly-save-state').textContent=message;
           notify(message);

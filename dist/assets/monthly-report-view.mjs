@@ -1,4 +1,4 @@
-import {SURAHS, monthlyAbsent, monthlyProblem, monthlyRangeText, validMonthlyRange} from './monthly-model.mjs';
+import {SURAHS, monthlyAbsent, monthlyProblem, monthlyRangeText, validMonthlyRange} from './monthly-model.mjs?v=monthly-range1';
 
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const arabicNumber=value=>new Intl.NumberFormat('ar-EG',{useGrouping:false}).format(value);
@@ -19,15 +19,15 @@ export function monthlyAmountMarkup(value,kind) {
   return `<div class="monthly-amount-display amount-${kind} amount-${state}">${title}${body}</div>`;
 }
 
-export function monthlyStudentStatus(row){
-  const absent=monthlyAbsent(row),missing=!!monthlyProblem(row);
+export function monthlyStudentStatus(row,options){
+  const absent=monthlyAbsent(row),missing=!!monthlyProblem(row,options);
   return `<span class="monthly-reading-status status-${absent?'absent':missing?'missing':'complete'}">${absent?'— غائب':missing?'◷ بيانات ناقصة':'✓ مكتمل'}</span>`;
 }
 
-export function buildMonthlyReadingTable({students,rows,className=''}){
+export function buildMonthlyReadingTable({students,rows,className='',requireRange=false}){
   return `<div class="monthly-table-wrap monthly-reading-wrap"><table class="monthly-report-table monthly-reading-table"><colgroup><col class="reading-index"><col class="reading-student"><col class="reading-amount"><col class="reading-amount"><col class="reading-note"></colgroup><thead><tr><th scope="col">م</th><th scope="col">الطالب</th><th scope="col">الحفظ</th><th scope="col">المراجعة</th><th scope="col">الملاحظة</th></tr></thead><tbody>${students.filter(s=>rows.has(s.id)).map((student,index)=>{
     const row=rows.get(student.id);
-    return `<tr><td class="monthly-reading-index"><span>${arabicNumber(index+1)}</span></td><th scope="row" class="monthly-reading-student"><strong>${esc(student.full_name)}</strong><span class="monthly-reading-class">الحلقة <bdi dir="auto">${esc(student.source_class||className||'—')}</bdi></span>${monthlyStudentStatus(row)}${student.active===false?'<small class="monthly-reading-archived">مؤرشف · تقرير محفوظ</small>':''}</th><td class="monthly-reading-amount">${monthlyAmountMarkup(row.memorization,'memorization')}</td><td class="monthly-reading-amount">${monthlyAmountMarkup(row.revision,'revision')}</td><td class="monthly-reading-note"><span class="monthly-note-title">ملاحظة المعلم</span><p>${esc(row.note||'—')}</p></td></tr>`;
+    return `<tr><td class="monthly-reading-index"><span>${arabicNumber(index+1)}</span></td><th scope="row" class="monthly-reading-student"><strong>${esc(student.full_name)}</strong><span class="monthly-reading-class">الحلقة <bdi dir="auto">${esc(student.source_class||className||'—')}</bdi></span>${monthlyStudentStatus(row,{requireRange})}${student.active===false?'<small class="monthly-reading-archived">مؤرشف · تقرير محفوظ</small>':''}</th><td class="monthly-reading-amount">${monthlyAmountMarkup(row.memorization,'memorization')}</td><td class="monthly-reading-amount">${monthlyAmountMarkup(row.revision,'revision')}</td><td class="monthly-reading-note"><span class="monthly-note-title">ملاحظة المعلم</span><p>${esc(row.note||'—')}</p></td></tr>`;
   }).join('')}</tbody></table></div>`;
 }
 

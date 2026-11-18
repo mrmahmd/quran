@@ -2,12 +2,17 @@ import {SURAHS} from './quran-surahs.mjs';
 export {SURAHS};
 export const emptyMonthly = student_id => ({ student_id, memorization: { none: false, text: '', range: {from_surah:null,from_ayah:null,to_surah:null,to_ayah:null} }, revision: { none: false, text: '', range: {from_surah:null,from_ayah:null,to_surah:null,to_ayah:null} }, note: '' });
 const monthlyAmounts = [['memorization', 'الحفظ'], ['revision', 'المراجعة']];
-export function monthlyProblem(row) {
+// A written amount saved as free text, without start and end verses.
+export const monthlyFreeText = value => value?.none === false && typeof value.text === 'string' && !!value.text.trim() && (!value.range || typeof value.range !== 'object');
+// requireRange: the school asked this teacher, for this month, to give start and end verses
+// instead of free text. Legacy free-written amounts then count as incomplete.
+export function monthlyProblem(row, {requireRange = false} = {}) {
   for (const [key, label] of monthlyAmounts) {
     const value = row?.[key];
     if (typeof value?.none !== 'boolean' || typeof value.text !== 'string' || value.text.length > 1000) return label;
     if (value.none ? value.text !== '' : !value.text.trim()) return label;
     if (!value.none && value.range && !validMonthlyRange(value.range)) return label;
+    if (requireRange && monthlyFreeText(value)) return label;
   }
   return typeof row.note !== 'string' || row.note.length > 500 ? 'الملاحظة' : '';
 }
@@ -47,32 +52,32 @@ export function monthlyRangeText(r) {
  return `من سورة ${SURAHS[r.from_surah-1].name} آية ${r.from_ayah} إلى سورة ${SURAHS[r.to_surah-1].name} آية ${r.to_ayah}`;
 }
 
-export function monthlyProgress(rows) {
- const list=[...rows], total=list.length, completed=list.filter(row=>!monthlyProblem(row)).length;
+export function monthlyProgress(rows, options) {
+ const list=[...rows], total=list.length, completed=list.filter(row=>!monthlyProblem(row,options)).length;
  return {total,completed,remaining:total-completed,percent:total?Math.floor(completed*100/total):0,complete:total>0&&completed===total};
 }
 
-export function applyMonthlyAmounts(rows, studentIds, amounts) {
+export function applyMonthlyAmounts(rows, studentIds, amounts, options) {
  const ids=new Set(studentIds), kinds=Object.keys(amounts);
  if(!ids.size || !kinds.length || kinds.some(k=>!['memorization','revision'].includes(k))) throw new Error('اختر الطلاب والمقدار المطلوب تطبيقه.');
  const source=new Map(rows.map(r=>[r.student_id,r]));
  if([...ids].some(id=>!source.has(id))) throw new Error('أحد الطلاب ليس ضمن تقرير الحلقة.');
- for(const kind of kinds){const probe=emptyMonthly('check');probe.memorization={none:true,text:''};probe.revision={none:true,text:''};probe[kind]=amounts[kind];if(monthlyProblem(probe))throw new Error('أكمل السور والآيات الصحيحة للمقدار المحدد.');}
+ for(const kind of kinds){const probe=emptyMonthly('check');probe.memorization={none:true,text:''};probe.revision={none:true,text:''};probe[kind]=amounts[kind];if(monthlyProblem(probe,options))throw new Error('أكمل السور والآيات الصحيحة للمقدار المحدد.');}
  if(rows.some(row=>ids.has(row.student_id)&&monthlyAbsent(row))) throw new Error('ألغِ الغياب قبل تطبيق مقدار لهذا الطالب.');
  return rows.map(row=>ids.has(row.student_id)?{...row,...structuredClone(amounts)}:row);
 }
 
-export function copyMonthlyAmounts(rows, sourceId, studentIds) {
+export function copyMonthlyAmounts(rows, sourceId, studentIds, options) {
  const source=rows.find(row=>row.student_id===sourceId);
- if(!source || monthlyAbsent(source) || monthlyProblem(source)) throw new Error('أكمل مقدار الحفظ والمراجعة للطالب أولًا، أو اختر «لا يوجد».');
+ if(!source || monthlyAbsent(source) || monthlyProblem(source,options)) throw new Error('أكمل مقدار الحفظ والمراجعة للطالب أولًا، أو اختر «لا يوجد».');
  if(studentIds.includes(sourceId)) throw new Error('اختر طلابًا آخرين غير الطالب المصدر.');
- return applyMonthlyAmounts(rows,studentIds,{memorization:source.memorization,revision:source.revision});
+ return applyMonthlyAmounts(rows,studentIds,{memorization:source.memorization,revision:source.revision},options);
 }
 
-export function copyMemorizationToRevision(row) {
+export function copyMemorizationToRevision(row, options) {
  if (monthlyAbsent(row)) throw new Error('الطالب مسجل غائبًا.');
  if (!row) throw new Error('لم يتم العثور على بيانات الطالب.');
- return applyMonthlyAmounts([row],[row.student_id],{revision:row.memorization})[0];
+ return applyMonthlyAmounts([row],[row.student_id],{revision:row.memorization},options)[0];
 }
 
 // Attendance is stored inside the existing JSON amounts, through the same versioned save.
@@ -92,16 +97,16 @@ export function mergeMonthlyRoster(students, entries, pending=[]) {
 }
 
 const monthlyContent = row => JSON.stringify([row.memorization,row.revision,row.note]);
-export const monthlySavedComplete = (row,saved) => !!saved && !monthlyProblem(row) && monthlyContent(row)===monthlyContent(saved);
+export const monthlySavedComplete = (row,saved,options) => !!saved && !monthlyProblem(row,options) && monthlyContent(row)===monthlyContent(saved);
 export const monthlyHasChanges = (rows,entries) => {
  const saved=new Map(entries.map(r=>[r.student_id,r]));
  return [...rows].some(row=>monthlyContent(row)!==monthlyContent(saved.get(row.student_id)||emptyMonthly(row.student_id)));
 };
 // The existing versioned RPC requires the whole roster. Only the chosen student's
 // draft is submitted; other students retain their last saved amounts.
-export function monthlyStudentPayload(rows,entries,studentId) {
+export function monthlyStudentPayload(rows,entries,studentId,options) {
  const list=[...rows],selected=list.find(r=>r.student_id===studentId);
- if(!selected || monthlyProblem(selected))throw new Error('أكمل مقدار الحفظ والمراجعة للطالب أولًا، أو حدده غائبًا.');
+ if(!selected || monthlyProblem(selected,options))throw new Error('أكمل مقدار الحفظ والمراجعة للطالب أولًا، أو حدده غائبًا.');
  const saved=new Map(entries.map(r=>[r.student_id,r]));
  return list.map(row=>structuredClone(row.student_id===studentId?row:saved.get(row.student_id)||emptyMonthly(row.student_id)));
 }

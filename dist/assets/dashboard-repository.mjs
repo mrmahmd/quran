@@ -3,6 +3,15 @@ async function result(query) {
   if (error) throw error;
   return data;
 }
+// Teachers asked by the school to record start and end verses for a given month.
+async function rangeRules(client, term, month, teacher) {
+  let query = client.from('monthly_range_requirements').select('teacher_username,month_start').eq('term_id', term).eq('month_start', month);
+  if (teacher) query = query.eq('teacher_username', teacher);
+  const { data, error } = await query;
+  // Until the migration is applied the table is missing; the database rule is still the final check.
+  if (error) { if (['42P01', 'PGRST205'].includes(error.code)) return []; throw error; }
+  return data;
+}
 async function allRows(build) {
   const rows = [];
   for (let offset = 0; ; offset += 500) {
@@ -94,8 +103,11 @@ export function createDashboardRepository(client, { readOnly = false } = {}) {
       if (report && (report.teacher_username !== teacher || report.term_id !== term || report.month_start !== month)) {
         throw new Error('تعذّر مطابقة التقرير مع الشهر والحلقة المختارين. حدّث البيانات وأعد المحاولة.');
       }
-      const entries = report ? await allRows(() => client.from('monthly_entries').select('*').eq('report_id', report.id).order('student_id')) : [];
-      return { report, entries };
+      const [entries, rules] = await Promise.all([
+        report ? allRows(() => client.from('monthly_entries').select('*').eq('report_id', report.id).order('student_id')) : [],
+        rangeRules(client, term, month, teacher),
+      ]);
+      return { report, entries, rangeRequired: rules.length > 0 };
     },
     async monthlyComparison(teacher, term, [firstMonth, secondMonth]) {
       const [first, second, roster] = await Promise.all([
@@ -131,8 +143,8 @@ export function createDashboardRepository(client, { readOnly = false } = {}) {
         allRows(()=>client.from('monthly_reports').select('*').eq('term_id',term).eq('month_start',month).order('teacher_username')),
         allRows(()=>client.from('students').select('id,full_name,source_class,teacher_username,active').order('id')),
       ]);
-      const entries=await monthlyEntries(client, reports);
-      return {reports,students,entries};
+      const [entries,rules]=await Promise.all([monthlyEntries(client, reports),rangeRules(client,term,month)]);
+      return {reports,students,entries,rangeRules:rules};
     },
     async saveMonthly(args) {
       const saved = await result(client.rpc('save_monthly_report', args));
