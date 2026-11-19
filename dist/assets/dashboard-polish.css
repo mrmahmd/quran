@@ -1,0 +1,97 @@
+/* Visual polish for the teacher and administration dashboards (loaded last).
+   1. A compact top of page, so the work starts in the first screen.
+   2. One card language: same radius, border, shadow and heading rhythm everywhere.
+   Removing this file restores the previous look; it changes no behaviour. */
+
+.dashboard-shell {
+  --card-radius: 18px;
+  --card-border: #d9e5ec;
+  --card-shadow: 0 10px 26px -18px rgba(16, 40, 58, .45), 0 1px 3px rgba(16, 40, 58, .06);
+  --card-gap: 14px;
+}
+
+/* ---------- 1. Compact top of page ---------- */
+
+/* The large welcome card belongs to the home pages only. */
+.dashboard-shell[data-workspace]:not([data-workspace="home"]):not([data-workspace="reports"]) .welcome-banner { display: none; }
+.dashboard-shell .welcome-banner { padding: 18px 26px; }
+.dashboard-shell .welcome-banner h1 { font-size: calc(26px * var(--ui-scale, 1)); line-height: 1.5; margin: 2px 0; }
+.dashboard-shell .welcome-symbol { display: none; }
+
+/* Filters in one tidy row. */
+.dashboard-shell .dashboard-toolbar { padding: 12px 16px; margin: 14px 0; gap: 12px 16px; align-items: center; }
+.dashboard-shell .dashboard-toolbar label { display: flex; align-items: center; gap: 10px; white-space: nowrap; }
+.dashboard-shell .dashboard-toolbar { flex-wrap: wrap; }
+.dashboard-shell .dashboard-toolbar select { min-height: 44px; inline-size: auto; max-inline-size: 100%; }
+/* The term name is already in its select: its label stays for screen readers only. */
+.dashboard-shell .dashboard-toolbar label[data-filter="term"] { font-size: 0; gap: 0; }
+.dashboard-shell .dashboard-toolbar label[data-filter="term"] select { font-size: var(--ui-small, 16px); }
+.dashboard-shell .dashboard-toolbar .class-tag { padding: 8px 14px; }
+.dashboard-shell .dashboard-toolbar #refresh-dashboard { min-height: 44px; padding-inline: 14px; white-space: nowrap; }
+
+/* The save state is a small status chip, not a full-width strip. */
+.dashboard-shell .teacher-save-indicator { display: inline-flex; align-items: center; gap: 6px; inline-size: fit-content; max-inline-size: 100%;
+  margin: 0 0 12px; padding: 6px 14px; border: 1px solid #c9e0dd; border-radius: 999px; font-size: calc(14px * var(--ui-scale, 1)); }
+.dashboard-shell .teacher-save-indicator:empty { display: none; }
+
+/* «العودة للصفحة الرئيسية» becomes a light link button above the page title. */
+.dashboard-shell .teacher-workspace-return { position: static; padding: 0; margin: 4px 0 10px; border: 0; background: none; box-shadow: none; }
+.dashboard-shell .teacher-workspace-return button { inline-size: auto !important; min-height: 40px !important; padding: 8px 16px;
+  font-size: calc(15px * var(--ui-scale, 1)) !important; border-radius: 12px; }
+
+/* Page titles: same card as everything else, less height. */
+.dashboard-shell .section-heading { padding: 16px 22px; margin-bottom: var(--card-gap); }
+.dashboard-shell .section-heading h2 { line-height: 1.5; }
+.dashboard-shell .section-heading p { line-height: 1.8; margin-bottom: 0; }
+
+/* Admin overview hero: keep the message, drop the height. */
+.dashboard-shell .progress-hero { padding: 20px 26px; }
+.dashboard-shell .progress-hero h2 { font-size: calc(24px * var(--ui-scale, 1)); line-height: 1.5; margin: 4px 0; }
+
+/* ---------- 2. One card language ---------- */
+.dashboard-shell :is(.dashboard-toolbar, .section-heading, .admin-summary, .admin-student-card, .student-score-card, .monthly-card,
+  .teacher-task-card, .week-workflow, .month-workflow, .setup-card, .note-panel, .champions-grid > *, .admin-leaders, .mc-panel, .wi-section) {
+  border-radius: var(--card-radius);
+  border-color: var(--card-border);
+  box-shadow: var(--card-shadow);
+}
+.dashboard-shell :is(.admin-student-grid, .students-grid, .monthly-grid, .setup-grid, .champions-grid, .teacher-home-grid) { gap: var(--card-gap); }
+
+/* Section headings inside a page share one rhythm. */
+.dashboard-shell .admin-block-heading { margin: 22px 0 12px; }
+.dashboard-shell .admin-block-heading h3 { margin: 2px 0; line-height: 1.5; }
+
+/* Buttons: one height, one radius. */
+.dashboard-shell :is(.solid-button, .light-button, .teal-button, .gold-button) { border-radius: 12px; min-height: 44px; }
+
+/* Keyboard focus stays visible on every control. */
+.dashboard-shell :is(button, select, input, textarea, summary, a, [tabindex]):focus-visible { outline: 3px solid #2a78d6; outline-offset: 2px; }
+
+/* Room under the floating save bar, so it never covers the last card. */
+.dashboard-shell #dashboard-content:has(.save-bar) { padding-bottom: 24px; }
+
+/* ---------- Phone ---------- */
+@media (max-width: 700px) {
+  .dashboard-shell .dashboard-topbar { padding: 10px 14px; gap: 8px; }
+  .dashboard-shell .dashboard-topbar .brand-copy small { display: none; }
+  .dashboard-shell .dashboard-topbar .brand-copy strong { font-size: 15px; }
+  .dashboard-shell .dashboard-user > span { display: none; }
+  .dashboard-shell .dashboard-user { gap: 6px; }
+  .dashboard-shell .dashboard-user { flex-direction: row; flex-wrap: nowrap; }
+  .dashboard-shell .dashboard-user .light-button { min-height: 40px; padding: 6px 12px; font-size: 14px; white-space: nowrap; }
+  .dashboard-shell .welcome-banner { padding: 14px 18px; }
+  .dashboard-shell .welcome-banner h1 { font-size: 22px; }
+  .dashboard-shell .dashboard-toolbar label { flex-basis: 100%; display: grid; gap: 6px; white-space: normal; }
+  .dashboard-shell .dashboard-toolbar select { inline-size: 100%; min-width: 0; }
+  .dashboard-shell .dashboard-toolbar #refresh-dashboard { inline-size: 100%; }
+  .dashboard-shell .section-heading { padding: 14px 16px; }
+}
+
+/* Narrow phones: the two logos identify the school; the buttons stay on one row. */
+@media (max-width: 440px) {
+  .dashboard-shell .dashboard-topbar .brand-copy { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+}
+
+@media print {
+  .dashboard-shell :is(.dashboard-toolbar, .section-heading, .admin-summary, .admin-student-card, .student-score-card, .monthly-card, .mc-panel, .wi-section) { box-shadow: none; }
+}
