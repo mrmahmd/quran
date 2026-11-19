@@ -1,6 +1,7 @@
 import { brandLockup } from './brand.mjs';
 import { termMonths } from './monthly-model.mjs?v=monthly-finish1';
 import { ayatByMonth, buildMonthlyComparison, comparisonKinds, hasRecordedComparison, memorizationOutlierLimit, summarizeMonthlyComparison } from './monthly-comparison-model.mjs?v=7';
+import { foldSection } from './fold-section.mjs?v=1';
 import { bindChartTooltips, columnChart, divergingChart, formatAyatChange, formatPercentChange, kindColors } from './comparison-charts.mjs?v=3';
 import { buildJuzReport, juzCategories } from './monthly-juz-report.mjs?v=3';
 
@@ -278,7 +279,10 @@ export function createMonthlyComparison({ repo, openPdf, openMonthlyReport, canM
       status.textContent = rows.length ? '' : 'لا توجد مقادير حفظ أو مراجعة مسجّلة لهذه الحلقة في الشهرين.';
       result.innerHTML = whatsapp + reportActions(title, months)
         + notices({ summary, reports: [data.first.report, data.second.report], excludeOutliers })
-        + teacherSummary(summary) + `<div class="mc-chart-grid">${charts}</div>` + studentsChart(rows, chartKind, excludeOutliers) + juzSummary(juz, true);
+        + teacherSummary(summary)
+        + foldSection('mc-charts', 'رسما الشهرين والأشهر الأربعة', `الحفظ: <b>${summary.changes.memorization.compared ? number.format(summary.changes.memorization.first) + ' ← ' + number.format(summary.changes.memorization.second) : '—'}</b> آية · المراجعة: <b>${summary.changes.revision.compared ? number.format(summary.changes.revision.first) + ' ← ' + number.format(summary.changes.revision.second) : '—'}</b> آية`, `<div class="mc-chart-grid">${charts}</div>`)
+        + foldSection('mc-students', `تغيّر ${comparisonKinds[chartKind]} لكل طالب`, summary.changes[chartKind].compared ? `<span class="mc-up">↑ ${number.format(summary.changes[chartKind].improved)} زيادة</span> · <span class="mc-down">↓ ${number.format(summary.changes[chartKind].declined)} نقص</span> · = ${number.format(summary.changes[chartKind].unchanged)} ثابت` : 'لا يوجد طلاب أمكن عدّ مقدارهم', studentsChart(rows, chartKind, excludeOutliers))
+        + foldSection('mc-juz', 'الأجزاء المكتملة خلال الشهرين', `<b>${number.format(juz.measurable - juz.buckets.zero.length)}</b> من ${studentCount(juz.measurable)} أكملوا جزءًا أو أكثر`, juzSummary(juz, true));
       const sourceReports = [data.first, data.second].map((value, index) => value.report
         ? `<button type="button" class="light-button" data-mc-report="${index}">فتح تقرير ${periods[index]}</button>`
         : '').join('');

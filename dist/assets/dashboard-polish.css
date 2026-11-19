@@ -98,6 +98,28 @@
 .dashboard-shell details.progress-details[open] .when-closed { display: none; }
 @media print { .dashboard-shell .progress-details-toggle { display: none; } }
 
+/* Foldable detail sections (fold-section.mjs): one summary line + «عرض ▾ / إخفاء ▴». */
+.dashboard-shell details.fold-section { margin: 14px 0; border: 1px solid var(--card-border); border-radius: var(--card-radius); background: #fff; box-shadow: var(--card-shadow); overflow: hidden; }
+.dashboard-shell details.fold-section > summary { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 16px 20px; list-style: none; cursor: pointer;
+  background: linear-gradient(100deg, #f7fbff, #eef5fc); }
+.dashboard-shell details.fold-section > summary::-webkit-details-marker { display: none; }
+.dashboard-shell details.fold-section > summary:hover { background: linear-gradient(100deg, #eef6ff, #e5effa); }
+.dashboard-shell details.fold-section[open] > summary { border-bottom: 1px solid #e3ecf4; }
+.dashboard-shell .fold-title { display: grid; gap: 2px; min-width: 0; }
+.dashboard-shell .fold-title strong { color: #173e74; font-size: calc(19px * var(--ui-scale, 1)); font-weight: 800; line-height: 1.6; }
+.dashboard-shell .fold-summary { color: #4f6a82; font-size: calc(15px * var(--ui-scale, 1)); font-weight: 600; line-height: 1.8; }
+.dashboard-shell .fold-summary b { color: #10283a; font-weight: 800; }
+.dashboard-shell .fold-summary .mc-up { color: #0b6b0b; font-weight: 800; } .dashboard-shell .fold-summary .mc-down { color: #a12f2f; font-weight: 800; }
+.dashboard-shell .fold-toggle { flex: none; padding: 8px 16px; border-radius: 999px; background: #173e74; color: #fff; font-size: calc(15px * var(--ui-scale, 1)); font-weight: 800; }
+.dashboard-shell details.fold-section .when-open { display: none; }
+.dashboard-shell details.fold-section[open] .when-open { display: inline; }
+.dashboard-shell details.fold-section[open] .when-closed { display: none; }
+.dashboard-shell details.fold-section > .fold-body { padding: 16px; }
+/* Sections that bring their own card do not need a second frame inside the fold. */
+.dashboard-shell details.fold-section > .fold-body > :is(.admin-leaders, .setup-grid, .mc-panel) { margin-top: 0; }
+.dashboard-shell .wi-section details.fold-section { box-shadow: none; }
+@media print { .dashboard-shell .fold-toggle { display: none; } .dashboard-shell details.fold-section { box-shadow: none; break-inside: auto; } }
+
 /* Side menus follow the page and never hide sections: when a menu is taller than the screen,
    it scrolls on its own (the admin menu has 11 sections and used to overflow below the screen). */
 @media (min-width: 1001px) {
