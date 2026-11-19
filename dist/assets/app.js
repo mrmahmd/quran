@@ -73,7 +73,7 @@ async function showAccount(user) {
 
 async function openDashboard(account, userId) {
   const [{ mountDashboard }, { createDashboardRepository }] = await Promise.all([
-    import('./dashboard.mjs?v=fold3'), import('./dashboard-repository.mjs?v=charts1'),
+    import('./dashboard.mjs?v=restore1'), import('./dashboard-repository.mjs?v=charts1'),
   ]);
   const previousRoot = document.querySelector('#dashboard-root');
   const root = previousRoot.cloneNode(false);
@@ -240,6 +240,6 @@ restoreAccount(client, user => recoveryForm.hidden ? showAccount(user) : undefin
   if (!recoveryForm.hidden) return;
   showForm('login');
   showMessage(document.querySelector('#login-error'), 'تعذر استعادة لوحة التحكم الآن. جلستك محفوظة؛ أعد تحديث الصفحة أو حاول عند عودة الاتصال.');
-});
+}).finally(() => document.documentElement.classList.remove('restoring')); // dashboard open, or login form shown
 
 document.querySelector('#year').textContent = new Date().getFullYear();
