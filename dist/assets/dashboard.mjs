@@ -8,7 +8,9 @@ import {mountDashboardIdentity} from './dashboard-identity.mjs?v=monthly-reading
 import {buildMonthlyReadingTable,monthlyReadingHeading} from './monthly-report-view.mjs?v=monthly-range1';
 import {teacherWeeks} from './teacher-week-model.mjs?v=breaks1';
 import { summarizeMonthlyTeachers } from './monthly-progress-model.mjs?v=monthly-range1';
-import { createMonthlyComparison } from './monthly-comparison-view.mjs?v=cards1';
+import { createMonthlyComparison } from './monthly-comparison-view.mjs?v=insights1';
+import { weeklyInsights, evaluationSignature, WEEKLY_MAX } from './weekly-insights-model.mjs?v=1';
+import { bindChartTooltips, barDotChart, columnChart, sparkline } from './comparison-charts.mjs?v=2';
 import { emptyMonthly, monthlyFreeText, monthlyProblem, monthlyDraftProblem, termMonths, monthlyLabel, SURAHS, monthlyRangeText, monthlyProgress, applyMonthlyAmounts, copyMonthlyAmounts, copyMemorizationToRevision, monthlyAbsent, setMonthlyAbsent, mergeMonthlyRoster, monthlySavedComplete, monthlyStudentPayload, monthlyHasChanges } from './monthly-model.mjs?v=monthly-range1';
 import { SCORE_FIELDS, emptyScores, scoreTotal, validateScores, termWeeks, semesterSummary, weekNumber, weekEnd } from './evaluation-model.mjs?v=breaks1';
 import { applyEditedNominee, applySavedNominations, filterNominations, nominationGroups, nominationRoundLabels, nominationType, nominationFilterLabel, formatTestParts, testPartLabel, testPartOptions, normalizeIdentityNumber, validIdentityNumber, validTestParts } from './khairkom-model.mjs?v=nas-duha';
@@ -277,7 +279,7 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
       const nominations = termId ? await repo.khairkom(termId,contextNominationPeriod()) : { sets: [], rows: [], students: [] };
       if (ticket !== generation || scope !== monthlyScope()) return;
       loadedMonthlyScope = scope;
-      rosterRequests=requests; rosterDirty=false; editingStudent=''; nominationReport = combined; context = data; overview = report; weekStates = access; monthlyData = monthly; monthStates=monthsAccess; monthlyOverview=monthsOverview; champions = gallery; khairkomData = nominations; loadNomineeDraft(nominations,contextNominationPeriod()); nominationDirty = false; loadScores(); loadMonthlyRows(); updateSelectors(); render();
+      rosterRequests=requests; rosterDirty=false; editingStudent=''; nominationReport = combined; context = data; overview = report; weekStates = access; monthlyData = monthly; monthStates=monthsAccess; monthlyOverview=monthsOverview; champions = gallery; khairkomData = nominations; loadNomineeDraft(nominations,contextNominationPeriod()); nominationDirty = false; loadScores(); loadMonthlyRows(); updateSelectors(); insightsRefreshedAt = Date.now(); render();
     } catch (error) { if (ticket !== generation) return; content.innerHTML = '<div class="empty-state"><h2>تعذر تحميل البيانات</h2><p>اضغط تحديث البيانات للمحاولة مرة أخرى.</p></div>'; notify(errorText(error), true); }
   }
   function empty(title, text, symbol = '✦') { return `<div class="empty-state"><span class="empty-symbol">${symbol}</span><h2>${esc(title)}</h2><p>${esc(text)}</p></div>`; }
@@ -612,6 +614,80 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
     if (!summary.length) { content.innerHTML = empty('التكريم يبدأ برحلة التقييم', 'ستظهر النقاط التراكمية بعد اعتماد أول أسبوع. تُجمع نقاط التميز ضمن المجموع الفصلي.'); return; }
     content.innerHTML = `<div class="section-heading"><div><p class="section-kicker purple-text">التكريم الفصلي</p><h2>ثمرة رحلة من الاجتهاد</h2><p>اختر المكرَّمين بالنظر إلى النقاط والتحسن والاستمرارية والإتقان. عدد المكرَّمين يحدده قرار الإدارة.</p></div><span class="status-pill purple-status" id="honor-count">${selectedHonors.size} مختار للتكريم</span></div><div class="honors-list">${summary.map((student, i) => `<label class="honor-card ${selectedHonors.has(student.id) ? 'chosen' : ''}"><input type="checkbox" data-honor="${esc(student.id)}" ${selectedHonors.has(student.id) ? 'checked' : ''} ${!selectedTerm()?.active ? 'disabled' : ''}><span class="honor-order">${i + 1}</span><div class="honor-name"><h3>${esc(student.full_name)}</h3><small>${student.weeks} أسبوعًا معتمدًا</small></div><div class="honor-stats"><span>نقاط الفصل<strong>${student.total}</strong></span><span>نقاط التحسن<strong>${student.improvement}</strong></span><span>الحفظ والمراجعة<strong>${student.memorization_revision}</strong></span><span>الالتزام<strong>${student.commitment}</strong></span></div><span class="honor-icon">✦</span></label>`).join('')}</div><div class="note-panel"><label for="honor-note">ملاحظة التكريم <small>(اختياري)</small></label><textarea id="honor-note" maxlength="500" placeholder="ملاحظات عن التحسن والاستمرارية أو سبب الاختيار">${esc(context.honors[0]?.note || '')}</textarea></div><div class="save-bar"><span>النقاط من الأسابيع المعتمدة فقط، وتشمل نقاط التميز.</span><button class="purple-button" id="save-honors" ${!selectedTerm()?.active ? 'disabled' : ''}>حفظ قائمة التكريم ✦</button></div>`;
   }
+  // ---- Weekly evaluation insights (administration only) ----
+  const insightColors = { average: '#0f9f7f', selected: '#6250d6' };
+  const decimal = new Intl.NumberFormat('ar-EG', { maximumFractionDigits: 1 });
+  const percentFormat = new Intl.NumberFormat('ar-EG', { style: 'percent', maximumFractionDigits: 0 });
+  const timeFormat = new Intl.DateTimeFormat('ar-EG', { hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Riyadh' });
+  const arabic = new Intl.NumberFormat('ar-EG');
+  // Arabic counting: 1 طالب واحد, 2 طالبان, 3–10 طلاب, 11+ طالبًا.
+  const studentsWord = count => count === 1 ? 'طالب واحد' : count === 2 ? 'طالبان' : `${arabic.format(count)} ${count >= 3 && count <= 10 ? 'طلاب' : 'طالبًا'}`;
+  let insightsData = null, insightsRefreshedAt = null, insightsTimer;
+  const stateArrow = { up: '↑', down: '↓', drop: '↓', same: '=' };
+  function insightCardLine(studentId) {
+    const item = insightsData?.perStudent.find(row => row.id === studentId);
+    if (!item || (item.pastAverage === null && item.thisWeek === null)) return '';
+    const note = item.pastAverage === null ? 'أول أسبوع معتمد له'
+      : item.thisWeek === null ? `متوسطه ${decimal.format(item.pastAverage)} · لم يُقيَّم هذا الأسبوع`
+      : `متوسطه <b>${decimal.format(item.pastAverage)}</b> · هذا الأسبوع <b class="wi-${item.state}">${stateArrow[item.state] || ''} ${decimal.format(item.thisWeek)}</b>`;
+    return `<div class="wi-card-trend">${sparkline(item.history, { max: WEEKLY_MAX, color: insightColors.average, lastColor: insightColors.selected, label: 'تطور درجاته أسبوعًا بأسبوع' })}<span>${note}</span></div>`;
+  }
+  function adminInsights(students) {
+    const weeks = termWeeks(selectedTerm());
+    const data = insightsData = weeklyInsights({ students, reviews: context.reviews, evaluations: context.evaluations, weeks, week });
+    const number = arabic.format(weekNumber(selectedTerm(), weeks.indexOf(week)));
+    const of12 = value => value === null ? '—' : `${decimal.format(value)}<small> من ${decimal.format(WEEKLY_MAX)}</small>`;
+    const tone = data.weekChange === null ? 'na' : data.weekChange > 0.05 ? 'up' : data.weekChange < -0.05 ? 'down' : 'same';
+    const chip = data.weekChange === null ? '<span class="mc-chip mc-chip-na">لا يوجد أسبوع معتمد سابق</span>'
+      : `<span class="mc-chip mc-chip-${tone}">${{ up: '↑', down: '↓', same: '=' }[tone]} ${decimal.format(Math.abs(data.weekChange))}</span><span class="mc-kpi-sentence">عن الأسبوع ${arabic.format(weekNumber(selectedTerm(), weeks.indexOf(data.previousWeek)))} (${decimal.format(data.previousAverage)})</span>`;
+    const tile = (theme, icon, label, value, body, foot) => `<section class="mc-kpi mc-kpi-${theme}"><header class="mc-kpi-head"><span class="mc-kpi-icon" aria-hidden="true">${icon}</span><span class="mc-kpi-label">${label}</span></header><strong class="mc-kpi-value">${value}</strong>${body ? `<div class="mc-kpi-body">${body}</div>` : ''}${foot ? `<footer class="mc-kpi-foot">${foot}</footer>` : ''}</section>`;
+    const meter = fraction => `<span class="mc-kpi-meter" aria-hidden="true"><i style="inline-size:${Math.max(0, Math.min(1, fraction)) * 100}%"></i></span>`;
+    const tiles = [
+      tile('completion', '★', `متوسط الحلقة<small>الأسبوع ${number}${data.status === 'submitted' ? '' : data.status ? ' · مسودة غير معتمدة' : ''}</small>`, of12(data.weekAverage), data.weekAverage === null ? '' : chip,
+        `<span>قُيّم <b>${arabic.format(data.evaluated)}</b> من ${arabic.format(data.rosterSize)}</span>`),
+      tile('memorization', '∑', `متوسط الحلقة في الفصل<small>${data.approvedWeeks === 1 ? 'أسبوع معتمد واحد' : data.approvedWeeks === 2 ? 'أسبوعان معتمدان' : `${arabic.format(data.approvedWeeks)} ${data.approvedWeeks <= 10 ? 'أسابيع معتمدة' : 'أسبوعًا معتمدًا'}`}</small>`, of12(data.termAverage),
+        data.termAverage === null ? '' : meter(data.termAverage / WEEKLY_MAX), data.termAverage === null ? '' : `<span>نسبة الأداء: <b>${percentFormat.format(data.termAverage / WEEKLY_MAX)}</b></span>`),
+      tile('revision', '↑', 'طلاب تحسّنوا<small>مقارنة بمتوسطهم السابق</small>', `${arabic.format(data.improved)}<small> من ${studentsWord(data.evaluated)}</small>`,
+        data.evaluated ? meter(data.improved / data.evaluated) : '', '<span>درجتهم أعلى من متوسطهم</span>'),
+      tile('students', '!', 'يحتاجون متابعة<small>هذا الأسبوع</small>', `${arabic.format(data.followUp)}<small> ${data.followUp === 1 ? 'طالب' : data.followUp === 2 ? 'طالبان' : data.followUp <= 10 ? 'طلاب' : 'طالبًا'}</small>`, '',
+        `<span class="mc-down">↓ ${arabic.format(data.dropped)} تراجع ${arabic.format(3)} نقاط فأكثر</span><span class="mc-same">○ ${arabic.format(data.missing)} لم يُقيَّم</span>`),
+    ].join('');
+    const index = weeks.indexOf(week);
+    const trendWeeks = data.trend;
+    const trend = columnChart({
+      title: 'متوسط الحلقة أسبوعًا بأسبوع', caption: 'الأسابيع المعتمدة حتى الأسبوع المختار؛ «—» أسبوع لم يُعتمد.',
+      categories: trendWeeks.map(item => `الأسبوع ${arabic.format(weekNumber(selectedTerm(), weeks.indexOf(item.week)))}`),
+      series: [{ name: 'متوسط الحلقة', color: insightColors.average, values: trendWeeks.map(item => item.approved || item.week === week ? item.average : null),
+        colors: trendWeeks.map(item => item.week === week ? insightColors.selected : insightColors.average) }],
+      legendItems: [{ name: 'متوسط أسبوع معتمد', color: insightColors.average }, { name: `الأسبوع المختار (${number})`, color: insightColors.selected }],
+      unit: 'من ١٢', max: WEEKLY_MAX, format: value => decimal.format(value),
+      labelValues: i => trendWeeks.length <= 6 || trendWeeks[i].week === week || i === trendWeeks.length - 1,
+    });
+    const criteria = columnChart({
+      title: 'نقاط القوة والضعف في الحلقة', caption: 'متوسط كل معيار كنسبة من درجته الكاملة.',
+      categories: data.criteria.map(item => item.label.split(' ')[0]),
+      series: [{ name: `الأسبوع ${number}`, color: insightColors.selected, values: data.criteria.map(item => item.week === null ? null : Math.round(item.week * 100)) },
+        { name: 'متوسط الفصل', color: insightColors.average, values: data.criteria.map(item => item.term === null ? null : Math.round(item.term * 100)) }],
+      unit: '٪', max: 100, format: value => `${decimal.format(value)}٪`,
+    });
+    const rows = data.perStudent.slice().sort((a, b) => (b.pastAverage ?? -1) - (a.pastAverage ?? -1) || (b.thisWeek ?? -1) - (a.thisWeek ?? -1))
+      .map(item => ({ label: item.name, bar: item.pastAverage, dot: item.thisWeek, arrow: stateArrow[item.state] || '' }));
+    const studentsChart = barDotChart({ title: 'متوسط كل طالب ودرجته هذا الأسبوع', caption: 'العمود متوسط أسابيعه المعتمدة السابقة، والنقطة درجته في الأسبوع المختار (من ١٢).',
+      rows, max: WEEKLY_MAX, format: value => decimal.format(value), barName: 'متوسط الأسابيع السابقة', dotName: 'هذا الأسبوع', barHead: 'المتوسط', dotHead: 'الأسبوع', barColor: insightColors.average, dotColor: insightColors.selected });
+    return `<section class="wi-section" aria-labelledby="wi-title"><header class="wi-heading"><div><span>◆ لوحة الإدارة فقط</span><h3 id="wi-title">مؤشرات الحلقة</h3><p>متوسطات من الأسابيع المعتمدة، وتتحدث تلقائيًا كل دقيقة عند حفظ المعلم.</p></div><span class="wi-refreshed" id="wi-refreshed">${insightsRefreshedAt ? `آخر تحديث ${timeFormat.format(insightsRefreshedAt)}` : ''}</span></header>
+      <div class="mc-kpis">${tiles}</div><div class="wi-charts">${trend}${criteria}</div>${studentsChart}</section>`;
+  }
+  async function refreshAdminInsights() {
+    if (!admin || view !== 'evaluation' || busy || document.hidden || dashboardClosed || !teacherId || !termId) return;
+    const scope = [teacherId, termId, week].join('|');
+    try {
+      const data = await repo.context(teacherId, termId);
+      if (scope !== [teacherId, termId, week].join('|') || view !== 'evaluation' || busy) return;
+      insightsRefreshedAt = Date.now();
+      if (evaluationSignature(data) !== evaluationSignature(context)) { context = data; renderAdminStudents(); return; }
+      const label = root.querySelector('#wi-refreshed'); if (label) label.textContent = `آخر تحديث ${timeFormat.format(insightsRefreshedAt)}`;
+    } catch { /* the next tick retries; the page keeps the last good data */ }
+  }
   function renderAdminStudents() {
     const students = context.students.filter(student => student.active || context.evaluations.some(row => row.student_id === student.id && row.review_id === review()?.id));
     const evaluated = students.filter(student => context.evaluations.some(row => row.student_id === student.id && row.review_id === review()?.id && row.total !== null));
@@ -620,13 +696,15 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
     const knight = context.students.find(student => student.id === review()?.knight_student_id);
     content.innerHTML = `<div class="section-heading"><div><p class="section-kicker">تقرير الحلقة · الأسبوع ${weekNumber(selectedTerm(), termWeeks(selectedTerm()).indexOf(week))}</p><h2>${esc(teacher().full_name)} · <bdi dir="auto">${esc(teacher().ring_name || teacher().class_name)}</bdi></h2><p>تقييمات محفوظة من لوحة المعلم مباشرة. الصفر درجة مسجلة، والشرطة تعني أن التقييم لم يُسجل.</p></div><button class="light-button" data-view="reports">← جميع المعلمين</button></div>
     <div class="admin-summary"><div><strong>${students.length}</strong><span>طلاب الحلقة</span></div><div><strong>${evaluated.length}</strong><span>تم تقييمهم</span></div><div><strong>${students.length-evaluated.length}</strong><span>لم يُقيّموا بعد</span></div><div class="gold-summary"><strong>${esc(knight?.full_name || 'لم يُختر بعد')}</strong><span>★ فارس الأسبوع · اختيار المعلم</span></div></div>
+    ${adminInsights(students)}
     <section class="admin-leaders"><div class="admin-block-heading"><div><span>✦ تميّز هذا الأسبوع</span><h3>الطلاب الأعلى نقاطًا</h3><p>ترتيب تلقائي لنقاط التقييم المسجلة في الحلقة، مستقل عن فارس الأسبوع.</p></div><span>${leaders.length ? `${leaders.length} طلاب` : 'بانتظار التقييم'}</span></div>${leaders.length ? `<div class="admin-leader-grid">${leaders.map((student,index)=>`<article class="admin-leader-card leader-${index+1}"><span class="admin-leader-rank">${['١','٢','٣'][index]}</span><span class="admin-leader-icon">${['★','✦','✧'][index]}</span><small>${esc(student.source_class || teacher().class_name)}</small><h4>${esc(student.full_name)}</h4><strong>${grades.get(student.id).total}<small> / ١٢ نقطة</small></strong></article>`).join('')}</div>` : '<div class="admin-leader-empty">ستظهر البطاقات بعد أن يسجل المعلم تقييمات الطلاب لهذا الأسبوع.</div>'}</section>
     <div class="admin-block-heading admin-students-heading"><div><span>▦ سجل الحلقة</span><h3>جميع الطلاب وتقييماتهم</h3><p>بطاقات واضحة لكل طالب، مع تفاصيل النقاط وحالة التقييم.</p></div><span>${students.length} طالبًا</span></div>
-    ${students.length ? `<div class="admin-student-grid">${students.map(student=>{const row=grades.get(student.id), done=!!row;return `<article class="admin-student-card ${done?'rated':'pending'}"><div class="admin-student-top"><span class="admin-student-avatar">${esc(student.full_name.slice(0,1))}</span><div><h4>${esc(student.full_name)}</h4><small>${esc(student.source_class || teacher().class_name)}</small></div><strong>${done?`${row.total}<small>/ ١٢</small>`:'—'}</strong></div><div class="admin-student-scores">${[['الحفظ','memorization'],['المراجعة','revision'],['التحسن','improvement'],['الالتزام','commitment']].map(([label,field])=>`<span>${label}<strong>${done ? esc(row[field]) : '—'}</strong></span>`).join('')}<span>التميز<strong>${done ? (row.bonus_memorization || 0)+(row.bonus_revision || 0) : '—'}</strong></span></div><div class="admin-student-foot"><span class="status-pill ${done?'approved':''}">${done?'✓ تم التقييم':'بانتظار التقييم'}</span></div></article>`;}).join('')}</div>` : empty('لا توجد أسماء طلاب مرتبطة بهذه الحلقة', 'لم تُضف قائمة هذه الحلقة بعد. يمكن للإدارة إضافتها من إدارة قوائم الطلاب.', '✦')}
+    ${students.length ? `<div class="admin-student-grid">${students.map(student=>{const row=grades.get(student.id), done=!!row;return `<article class="admin-student-card ${done?'rated':'pending'}"><div class="admin-student-top"><span class="admin-student-avatar">${esc(student.full_name.slice(0,1))}</span><div><h4>${esc(student.full_name)}</h4><small>${esc(student.source_class || teacher().class_name)}</small></div><strong>${done?`${row.total}<small>/ ١٢</small>`:'—'}</strong></div><div class="admin-student-scores">${[['الحفظ','memorization'],['المراجعة','revision'],['التحسن','improvement'],['الالتزام','commitment']].map(([label,field])=>`<span>${label}<strong>${done ? esc(row[field]) : '—'}</strong></span>`).join('')}<span>التميز<strong>${done ? (row.bonus_memorization || 0)+(row.bonus_revision || 0) : '—'}</strong></span></div>${insightCardLine(student.id)}<div class="admin-student-foot"><span class="status-pill ${done?'approved':''}">${done?'✓ تم التقييم':'بانتظار التقييم'}</span></div></article>`;}).join('')}</div>` : empty('لا توجد أسماء طلاب مرتبطة بهذه الحلقة', 'لم تُضف قائمة هذه الحلقة بعد. يمكن للإدارة إضافتها من إدارة قوائم الطلاب.', '✦')}
     <details class="admin-detail-table"><summary>عرض التقييمات في جدول</summary>
     ${students.length ? `<div class="monthly-table-wrap"><table class="monthly-report-table admin-score-table"><thead><tr><th>الطالب</th><th>الحفظ</th><th>المراجعة</th><th>التحسن</th><th>الالتزام</th><th>التميز</th><th>المجموع</th><th>الحالة</th></tr></thead><tbody>${students.map(student=>{const row=context.evaluations.find(e=>e.student_id===student.id&&e.review_id===review()?.id);const complete=row?.total!==null&&row?.total!==undefined;return `<tr><td><strong>${esc(student.full_name)}</strong><small>${esc(student.source_class || '')}</small></td>${['memorization','revision','improvement','commitment'].map(field=>`<td>${esc(row?.[field] ?? '—')}</td>`).join('')}<td>${row ? (row.bonus_memorization ?? 0)+(row.bonus_revision ?? 0) : '—'}</td><td><strong><bdi dir="ltr">${complete?row.total+' / 12':'—'}</bdi></strong></td><td><span class="status-pill ${complete?'approved':''}">${complete?'تم التقييم':'لم يُقيّم بعد'}</span></td></tr>`;}).join('')}</tbody></table></div>` : empty('لا توجد أسماء طلاب مرتبطة بهذه الحلقة', 'لم تُضف قائمة هذه الحلقة بعد. يمكن للإدارة إضافتها من إدارة قوائم الطلاب؛ لا تعني هذه الرسالة وجود تقييمات ناقصة.', '✦')}
     </details>
     <div class="save-bar"><span>${review()?.status==='submitted'?'✓ التقييم معتمد':'التقييم لم يُعتمد بعد'} · عرض للمتابعة فقط</span><div><button class="solid-button" id="print-admin-report">تقرير هذه الحلقة PDF</button>${review()?.status==='submitted'?'<button class="light-button" id="reopen-week">إعادة فتح التقييم</button>':''}<button class="teal-button" data-view="monthly">التقرير الشهري</button><button class="light-button" data-view="setup">إدارة الطلاب</button></div></div>`;
+    const insightsHost = content.querySelector('.wi-section'); if (insightsHost) bindChartTooltips(insightsHost);
   }
   function renderReports() {
     const progress = adminProgress();
@@ -1197,7 +1275,7 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
     }, 'تم تحديث البيانات.');
     if (id === 'dashboard-logout' && !busy && await mayLeave()) {
       if (weeklyNarrative?.hasUnsaved() && !await confirm('مسودة تقرير لم تُحفظ','هل تريد تسجيل الخروج قبل حفظ التقرير الأسبوعي؟')) return;
-      try { await onLogout(); dashboardClosed=true;clearInterval(rosterPollTimer);teacherAppearance?.destroy();dashboardIdentity.destroy(); for (const type of ['input','change','click']) root.removeEventListener(type,queueTeacherSaveState); clearTimeout(messageTimer); window.removeEventListener('beforeunload', beforeUnload); }
+      try { await onLogout(); dashboardClosed=true;clearInterval(rosterPollTimer);clearInterval(insightsTimer);teacherAppearance?.destroy();dashboardIdentity.destroy(); for (const type of ['input','change','click']) root.removeEventListener(type,queueTeacherSaveState); clearTimeout(messageTimer); window.removeEventListener('beforeunload', beforeUnload); }
       catch (error) { notify(errorText(error), true); }
     }
   });
@@ -1355,6 +1433,6 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
     termId = terms.find(term => term.active && term.starts_on <= today() && term.ends_on >= today())?.id || terms.find(term => term.active)?.id || terms[0]?.id || '';
     const weeks = selectedTerm() ? termWeeks(selectedTerm()) : [];
     week = weeks.filter(value => value <= today()).at(-1) || weeks[0] || '';
-    updateSelectors(); await loadContext();rosterPollTimer=setInterval(pollRosterRequests,30000);
+    updateSelectors(); await loadContext();rosterPollTimer=setInterval(pollRosterRequests,30000);if(admin)insightsTimer=setInterval(refreshAdminInsights,60000);
   } catch (error) { content.innerHTML = empty('تعذر تحميل لوحة التحكم', 'اضغط تحديث البيانات بعد التأكد من اتصال الإنترنت.'); notify(errorText(error), true); }
 }

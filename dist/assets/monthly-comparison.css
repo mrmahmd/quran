@@ -284,3 +284,22 @@
 }
 .mc-chart-narrow { display: none; }
 @media screen and (max-width: 620px) { .mc-chart-wide { display: none; } .mc-chart-narrow { display: block; } }
+
+/* ---- Weekly evaluation insights (admin «تقييم الحلقة») ---- */
+.wi-section { --mc-ink: #17354a; --mc-muted: #4a6172; --mc-line: #dbe5eb; position: relative; display: grid; gap: 16px; margin: 22px 0; padding: clamp(16px, 2.4vw, 26px);
+  border: 1px solid #d7e3ea; border-radius: 24px; background: linear-gradient(180deg, #f6f9fc, #fff 55%); font-family: Alexandria, Tahoma, sans-serif; color: var(--mc-ink); }
+.wi-heading { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
+.wi-heading > div > span { color: #6250d6; font-size: .8rem; font-weight: 800; }
+.wi-heading h3 { margin: 2px 0; font-size: clamp(1.2rem, 2.4vw, 1.5rem); font-weight: 800; color: var(--mc-ink); }
+.wi-heading p { margin: 0; color: var(--mc-muted); font-size: .85rem; font-weight: 600; }
+.wi-refreshed { padding: 6px 12px; border-radius: 999px; background: #eef2fb; color: #3f319a; font-size: .78rem; font-weight: 700; }
+.wi-refreshed:empty { display: none; }
+.wi-charts { display: grid; gap: 14px; }
+.wi-section .mc-chart { padding: clamp(14px, 2vw, 20px); border: 1px solid var(--mc-line); border-radius: 18px; background: #fff; }
+.mc-chart-col-head { fill: var(--mc-muted, #4a6172); font-size: 12px; font-weight: 800; }
+.mc-chart-dot-value { fill: #3f319a; }
+.wi-card-trend { display: flex; align-items: center; gap: 10px; margin: 10px 0 4px; padding: 8px 10px; border-radius: 12px; background: #f4f6fb; color: #3a5162; font-size: .82rem; font-weight: 600; line-height: 1.7; }
+.wi-card-trend b { color: #10283a; font-weight: 800; }
+.wi-card-trend .wi-up { color: #0b6b0b; } .wi-card-trend :is(.wi-down, .wi-drop) { color: #a12f2f; }
+.mc-sparkline { flex: none; inline-size: 96px; block-size: 28px; }
+@media print { .wi-refreshed { display: none; } .wi-section { break-inside: avoid; } }
