@@ -73,7 +73,7 @@ async function showAccount(user) {
 
 async function openDashboard(account, userId) {
   const [{ mountDashboard }, { createDashboardRepository }] = await Promise.all([
-    import('./dashboard.mjs?v=cards1'), import('./dashboard-repository.mjs?v=charts1'),
+    import('./dashboard.mjs?v=breaks1'), import('./dashboard-repository.mjs?v=charts1'),
   ]);
   const previousRoot = document.querySelector('#dashboard-root');
   const root = previousRoot.cloneNode(false);
@@ -209,6 +209,22 @@ activationForm.addEventListener('submit', async (event) => {
       }),
     });
     const result = await response.json();
+    if (response.status === 403) {
+      // Usually an account that is already active: the same code resets the password instead.
+      showMessage(status, 'لم يُقبل الرمز. إذا كان حسابك مفعّلًا من قبل ونسيت كلمة المرور، فاستخدم الرمز نفسه في «نسيت كلمة المرور؟».');
+      const move = document.createElement('button');
+      move.type = 'button';
+      move.className = 'inline-link activation-to-recovery';
+      move.textContent = 'انتقل إلى استعادة كلمة المرور ←';
+      move.addEventListener('click', () => {
+        showForm('recovery');
+        document.querySelector('#recovery-username').value = identifier.split('@')[0];
+        document.querySelector('#recovery-code').value = code;
+        document.querySelector('#recovery-password').focus();
+      });
+      status.append(document.createElement('br'), move);
+      return;
+    }
     if (!response.ok) throw new Error(result.message || 'تعذر تفعيل الحساب');
     activationForm.reset();
     showForm('login');

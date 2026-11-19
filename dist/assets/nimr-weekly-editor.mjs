@@ -1,4 +1,4 @@
-import { termWeeks, weekEnd, weekNumber } from './evaluation-model.mjs?v=rosters2';
+import { termWeeks, weekEnd, weekNumber } from './evaluation-model.mjs?v=breaks1';
 import { formatSelection, narrativeBlock, narrativeDate, parseNarrative } from './nimr-weekly-model.mjs?v=1';
 
 export function createNimrWeeklyEditor({repo,author,showPdf,confirmReload,readOnly=false}) {

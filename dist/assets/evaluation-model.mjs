@@ -20,9 +20,12 @@ export function termWeeks(term) {
   const end = new Date(`${term.ends_on}T00:00:00Z`);
   if (!Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime()) || start > end) return [];
   start.setUTCDate(start.getUTCDate() - start.getUTCDay());
+  // Break weeks (school_terms.skipped_weeks) are left out, so numbering continues after them.
+  const skipped = new Set(Array.isArray(term.skipped_weeks) ? term.skipped_weeks : []);
   const weeks = [];
   while (start <= end && weeks.length < 105) {
-    weeks.push(start.toISOString().slice(0, 10));
+    const day = start.toISOString().slice(0, 10);
+    if (!skipped.has(day)) weeks.push(day);
     start.setUTCDate(start.getUTCDate() + 7);
   }
   return weeks;

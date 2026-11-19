@@ -48,3 +48,16 @@ test('semester totals include bonuses and exclude drafts and incomplete weeks', 
   assert.equal(summary[0].weeks, 1);
   assert.equal(summary[0].improvement, 2);
 });
+test('a break week is left out and the following week takes the next number', () => {
+  const term={starts_on:'2026-09-27',ends_on:'2026-12-24',first_week_number:4,skipped_weeks:['2026-11-22']};
+  const weeks=termWeeks(term);
+  const number=day=>weekNumber(term,weeks.indexOf(day));
+  assert.equal(weeks.includes('2026-11-22'),false);
+  assert.equal(number('2026-09-27'),4);
+  assert.equal(number('2026-11-08'),10);
+  assert.equal(number('2026-11-15'),11);
+  assert.equal(number('2026-11-29'),12);
+  assert.equal(number('2026-12-20'),15);
+  assert.equal(weeks.length,12);
+  assert.deepEqual(termWeeks({...term,skipped_weeks:null}),termWeeks({starts_on:term.starts_on,ends_on:term.ends_on}));
+});

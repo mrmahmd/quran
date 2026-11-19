@@ -1,4 +1,4 @@
-import { termWeeks, weekNumber, validateScores } from './evaluation-model.mjs?v=rosters2';
+import { termWeeks, weekNumber, validateScores } from './evaluation-model.mjs?v=breaks1';
 
 // Summaries use persisted context only. Unsaved point/knight selections never count.
 export function teacherWeeks(term, context, nominations, username, today) {
