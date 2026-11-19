@@ -87,6 +87,17 @@
   .dashboard-shell .section-heading { padding: 14px 16px; }
 }
 
+/* Admin overview: the teachers' list is folded until asked for (a card above opens it). */
+.dashboard-shell details.progress-details > summary { list-style: none; cursor: pointer; }
+.dashboard-shell details.progress-details > summary::-webkit-details-marker { display: none; }
+.dashboard-shell details.progress-details:not([open]) > summary { border-bottom: 0; }
+.dashboard-shell details.progress-details > summary:hover { background: linear-gradient(100deg, #eef6ff, #e6f0fb); }
+.dashboard-shell .progress-details-toggle { flex: none; padding: 8px 16px; border-radius: 999px; background: #173e74; color: #fff; font-size: calc(15px * var(--ui-scale, 1)); font-weight: 800; }
+.dashboard-shell details.progress-details .when-open { display: none; }
+.dashboard-shell details.progress-details[open] .when-open { display: inline; }
+.dashboard-shell details.progress-details[open] .when-closed { display: none; }
+@media print { .dashboard-shell .progress-details-toggle { display: none; } }
+
 /* Side menus follow the page and never hide sections: when a menu is taller than the screen,
    it scrolls on its own (the admin menu has 11 sections and used to overflow below the screen). */
 @media (min-width: 1001px) {

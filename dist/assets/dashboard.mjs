@@ -51,7 +51,7 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
   const readRoundAccess = async () => termId
     ? repo.khairkomRoundState ? repo.khairkomRoundState(termId) : {2:await repo.khairkomSecondMonthState(termId)}
     : {2:false};
-  let progressFocus = 'weekly', weeklyEditing = false;
+  let progressFocus = 'weekly', weeklyEditing = false, progressDetailsOpen = false; // teachers' list on the overview: folded until asked for
   let nominationFilters = {parts:[], mode:'all', teacher:'', className:''}, nominationReport = null;
   const nominationViewer = account.role === 'admin' || account.khairkom_viewer === true;
   const identityEditor = !readOnly && (account.role === 'admin' || account.khairkom_identity_editor === true);
@@ -739,8 +739,8 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
       `<button class="roster-request-alert" data-view="rosterRequests">◷ طلبات إضافة وحذف الطلاب <b>${rosterRequests.filter(r=>r.status==='pending').length}</b> بانتظار مراجعتك ←</button>` +
       '<div class="progress-report-action"><button type="button" id="preview-teacher-progress"><span aria-hidden="true">▤</span> تحميل تقرير إنجاز المعلمين PDF</button><button type="button" class="champions-download" id="download-champions"><span aria-hidden="true">★</span> تحميل فرسان الأسبوع PDF</button></div>' +
       '<div class="progress-summary-grid' + (progress.khairkomRequired ? '' : ' three-cards') + '">' + cards + '</div>' +
-      '<section class="progress-details"><div class="progress-details-heading"><div><span>تقرير إنجاز المعلمين</span><h3>' + labels[focus] + '</h3><p>' + descriptions[focus] + ' · أنجز ' + progress.completed[focus] + ' من أصل ' + progress.total + ' معلمًا.</p></div><span class="progress-details-percent">' + progress.percent[focus] + '%</span></div>' +
-      '<div class="progress-teacher-list">' + (rows || '<p class="progress-empty">لا توجد حسابات معلمين نشطة.</p>') + '</div></section>' +
+      '<details class="progress-details" id="progress-details"' + (progressDetailsOpen ? ' open' : '') + '><summary class="progress-details-heading"><div><span>تقرير إنجاز المعلمين</span><h3>' + labels[focus] + '</h3><p>' + descriptions[focus] + ' · أنجز ' + progress.completed[focus] + ' من أصل ' + progress.total + ' معلمًا.</p></div><span class="progress-details-percent">' + progress.percent[focus] + '%</span><span class="progress-details-toggle" aria-hidden="true"><span class="when-closed">عرض المعلمين ▾</span><span class="when-open">إخفاء ▴</span></span></summary>' +
+      '<div class="progress-teacher-list">' + (rows || '<p class="progress-empty">لا توجد حسابات معلمين نشطة.</p>') + '</div></details>' +
       '<div class="report-intro"><div><strong>التقرير الأسبوعي المجمّع</strong><span>جميع المعلمين في ملف واحد، مع قسم لكل حلقة وتفاصيل تقييم طلابها.</span></div><button class="solid-button" id="preview-weekly-all">معاينة وحفظ PDF</button></div>';
   }
   const requestKind={add:'إضافة طالب',archive:'حذف من الحلقة',restore:'استعادة طالب'};
@@ -1024,7 +1024,7 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
       },'');return;
     }
     const progressCard = event.target.closest('[data-progress-focus]');
-    if (progressCard && admin && !busy) { progressFocus = progressCard.dataset.progressFocus; renderReports(); return; }
+    if (progressCard && admin && !busy) { progressFocus = progressCard.dataset.progressFocus; progressDetailsOpen = true; renderReports(); root.querySelector('#progress-details')?.scrollIntoView({ block: 'start', behavior: 'smooth' }); return; }
     if (event.target.closest('#toggle-week-workflow') && admin && !busy && termId && week) {
       const nextOpen = !weekOpen(week);
       await action(async () => { await repo.setWeekOpen(termId, week, nextOpen); await loadContext(); }, nextOpen ? 'تم فتح الأسبوع لجميع المعلمين.' : 'تم إغلاق الأسبوع أمام جميع المعلمين.');
@@ -1380,6 +1380,8 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
     row.text=monthlyRangeText(row.range);section.querySelector('.monthly-range-summary').textContent=row.text||'أكمل السور والآيات الصحيحة؛ آية النهاية لا تسبق البداية داخل السورة نفسها.';
     monthlyDirty=true;root.querySelector('#monthly-save-state').textContent='تغييرات لم تُحفظ بعد';updateMonthlyProgress();
   }
+  // <details> toggle does not bubble: listen in the capture phase to remember the teachers' list state.
+  root.addEventListener('toggle', event => { if (event.target.id === 'progress-details') progressDetailsOpen = event.target.open; }, true);
   root.addEventListener('input', event => {
     if(event.target.hasAttribute('data-roster-note'))captureRequestNotes();
     if(event.target.closest('#students-form,#student-edit-form')||event.target.hasAttribute('data-roster-note'))rosterDirty=true;
