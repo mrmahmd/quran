@@ -1,7 +1,7 @@
 import { brandLockup } from './brand.mjs';
 import { termMonths } from './monthly-model.mjs?v=monthly-finish1';
 import { ayatByMonth, buildMonthlyComparison, comparisonKinds, hasRecordedComparison, memorizationOutlierLimit, summarizeMonthlyComparison } from './monthly-comparison-model.mjs?v=7';
-import { bindChartTooltips, columnChart, divergingChart, formatAyatChange, formatPercentChange, kindColors } from './comparison-charts.mjs?v=2';
+import { bindChartTooltips, columnChart, divergingChart, formatAyatChange, formatPercentChange, kindColors } from './comparison-charts.mjs?v=3';
 import { buildJuzReport, juzCategories } from './monthly-juz-report.mjs?v=3';
 
 const escape = value => String(value ?? '').replace(/[&<>"']/g, char => ({

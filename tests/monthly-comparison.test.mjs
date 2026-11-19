@@ -134,3 +134,17 @@ test('flags memorization outliers, can leave them out of the rate, and counts co
     { memorization: { ayat: 45, students: 3 }, revision: { ayat: 10, students: 3 } },
     { memorization: { ayat: 0, students: 0 }, revision: { ayat: 0, students: 0 } }]);
 });
+
+test('long student names are shortened to fit the chart, keeping compound and duplicate names readable', async () => {
+  const { fitRowLabels } = await import('../dist/assets/comparison-charts.mjs');
+  const names = ['سعيد محمد سعيد عبد الرحمن جعباص', 'عبد الرحمن صبري محمد رزق شحاته', 'محمد أحمد علي حسن', 'محمد أحمد سمير فتحي', 'علي', 'يحيي محمد صبري أبو علم محمد الأمين'];
+  const shown = fitRowLabels(names, 170);
+  // Long names keep the first two names; «عبد الرحمن» is one name; short enough names stay whole.
+  assert.deepEqual(shown, ['سعيد محمد', 'عبد الرحمن صبري', 'محمد أحمد علي حسن', 'محمد أحمد سمير فتحي', 'علي', 'يحيي محمد']);
+  // Two rows that would both read «محمد أحمد» use the last name instead.
+  assert.deepEqual(fitRowLabels(['محمد أحمد علي حسن السيد', 'محمد أحمد سمير فتحي يوسف'], 120), ['محمد السيد', 'محمد يوسف']);
+  // Narrow: whole words are dropped before any word is cut.
+  assert.deepEqual(fitRowLabels(['جمال عبد الرحيم · 5/A'], 92), ['جمال']);
+  for (const text of fitRowLabels(names, 60)) assert.ok(text.length <= Math.floor(60 / 7.6));
+  assert.deepEqual(fitRowLabels(['جمال عبد الرحيم · 5/A'], 300), ['جمال عبد الرحيم · 5/A']);
+});

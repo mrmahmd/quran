@@ -92,6 +92,33 @@ function columnSvg({ width, title, categories, series, unit, labelValues, max, f
   </svg>`;
 }
 
+// Row names must stay inside their column: SVG text never wraps or clips by itself.
+// Long names show the first two names (compound names such as «عبد الرحمن» count as one);
+// if two rows would read the same, the last name is used instead; anything still too wide
+// ends with «…». The full name stays in the tooltip and the table.
+const NAME_CHAR_WIDTH = 7.6; // average width of a 13px Alexandria letter, in SVG units
+const joinsNext = new Set(['عبد', 'ابو', 'أبو', 'أبي', 'ابي', 'بن', 'ابن']);
+function nameParts(label) {
+  const words = String(label).split(' · ')[0].trim().split(/\s+/), parts = [];
+  for (let i = 0; i < words.length; i++) parts.push(joinsNext.has(words[i]) && words[i + 1] ? `${words[i]} ${words[++i]}` : words[i]);
+  return parts;
+}
+export function fitRowLabels(labels, room) {
+  const max = Math.max(4, Math.floor(room / NAME_CHAR_WIDTH));
+  const fits = text => text.length <= max;
+  const parts = labels.map(nameParts);
+  const short = parts.map(list => list.slice(0, 2).join(' '));
+  const seen = new Map();
+  short.forEach(text => seen.set(text, (seen.get(text) || 0) + 1));
+  return labels.map((label, index) => {
+    // Drop whole words before cutting one: full name, name without the class, two names, one name.
+    const base = String(label).split(' · ')[0].trim();
+    const two = seen.get(short[index]) > 1 && parts[index].length > 2 ? `${parts[index][0]} ${parts[index].at(-1)}` : short[index];
+    const choice = [String(label), base, two, parts[index][0]].find(fits);
+    return choice ?? `${parts[index][0].slice(0, max - 1)}…`;
+  });
+}
+
 // Horizontal bars from a zero line: increases grow toward the reading direction (left in RTL).
 // rows: [{ label, value, note? }]; value null = not comparable (listed under the chart).
 export function divergingChart({ title, caption, rows, format = value => signed.format(value), unit = 'آية', emptyText = 'لا توجد بيانات للمقارنة.' }) {
@@ -111,6 +138,7 @@ function divergingSvg({ width, title, measured, format }) {
   const rowHeight = 30, top = 8, labelWidth = narrow ? 112 : 170, valueRoom = narrow ? 74 : 116;
   const height = top * 2 + measured.length * rowHeight;
   const plot = width - labelWidth - valueRoom * 2;
+  const shown = fitRowLabels(measured.map(row => row.label), labelWidth - 12);
   const maximum = Math.max(1, ...measured.map(row => Math.abs(row.value)));
   const hasDown = measured.some(row => row.value < 0), hasUp = measured.some(row => row.value > 0);
   // Zero line: centred when both directions exist, otherwise at the edge with room for one side.
@@ -126,7 +154,7 @@ function divergingSvg({ width, title, measured, format }) {
     const tx = flat ? zero - 8 : up ? x - 8 : x + size + 8;
     return `<g class="mc-chart-mark" tabindex="0" role="img" aria-label="${escape(tip)}" data-tip="${escape(tip)}">
       <rect x="0" y="${y}" width="${width}" height="${rowHeight}" fill="transparent"/>
-      <text class="mc-chart-row-label" x="${width - 6}" y="${y + rowHeight / 2 + 5}" text-anchor="start">${escape(row.label)}</text>
+      <text class="mc-chart-row-label" x="${width - 6}" y="${y + rowHeight / 2 + 5}" text-anchor="start">${escape(shown[index])}</text>
       ${flat ? '' : `<rect x="${x}" y="${y + 7}" width="${Math.max(2, size)}" height="16" rx="4" fill="${color}"/>`}
       <text class="mc-chart-value" x="${tx}" y="${y + rowHeight / 2 + 5}" text-anchor="${flat || up ? 'start' : 'end'}">${escape(valueText)}</text></g>`;
     // (direction:rtl on the svg: "start" is the right edge of the text, "end" its left edge.)
@@ -154,19 +182,20 @@ export function barDotChart({ title, caption, rows, max, format = value => numbe
 
 function barDotSvg({ width, title, rows, max, fmt, barName, dotName, barHead, dotHead, barColor, dotColor, unit }) {
   const narrow = width < 500;
-  const rowHeight = 32, top = 30, labelWidth = narrow ? 96 : 170, columns = narrow ? 116 : 132, gap = 12;
+  const rowHeight = 32, top = 30, labelWidth = narrow ? 98 : 180, columns = narrow ? 126 : 132, gap = narrow ? 10 : 18;
   const height = top + rows.length * rowHeight + 6;
   // RTL: names on the right, the scale grows leftwards from the names, numbers on the far left.
   const plotRight = width - labelWidth - gap, plotLeft = columns + gap, plotWidth = plotRight - plotLeft;
+  const shown = fitRowLabels(rows.map(row => row.label), labelWidth - 10);
   const x = value => plotRight - value / max * plotWidth;
   const ticks = [0, max / 4, max / 2, max * 3 / 4, max];
-  const colA = columns * 0.72, colB = columns * 0.24;
+  const colA = columns * 0.74, colB = columns * 0.22;
   const marks = rows.map((row, index) => {
     const y = top + index * rowHeight, mid = y + rowHeight / 2;
     const tip = `${row.label} · ${barName}: ${fmt(row.bar)} · ${dotName}: ${fmt(row.dot)}${row.arrow ? ' ' + row.arrow : ''}`;
     return `<g class="mc-chart-mark" tabindex="0" role="img" aria-label="${escape(tip)}" data-tip="${escape(tip)}">
       <rect x="0" y="${y}" width="${width}" height="${rowHeight}" fill="transparent"/>
-      <text class="mc-chart-row-label" x="${width - 6}" y="${mid + 5}" text-anchor="start">${escape(row.label)}</text>
+      <text class="mc-chart-row-label" x="${width - 6}" y="${mid + 5}" text-anchor="start">${escape(shown[index])}</text>
       ${row.bar == null ? '' : `<rect x="${x(row.bar)}" y="${mid - 7}" width="${Math.max(2, plotRight - x(row.bar))}" height="14" rx="4" fill="${barColor}" opacity=".9"/>`}
       ${row.dot == null ? '' : `<circle cx="${x(row.dot)}" cy="${mid}" r="6.5" fill="${dotColor}" stroke="#fff" stroke-width="2.5"/>`}
       <text class="mc-chart-value" x="${colA}" y="${mid + 5}" text-anchor="middle">${escape(fmt(row.bar))}</text>
