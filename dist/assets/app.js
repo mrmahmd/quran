@@ -80,6 +80,8 @@ async function openDashboard(account, userId) {
   previousRoot.replaceWith(root);
   document.querySelector('.page-shell').hidden = true;
   root.hidden = false;
+  // The dashboard shows its own loading state: the restore screen goes as soon as it appears.
+  document.documentElement.classList.remove('restoring');
   await mountDashboard(root, {
     account, repository: createDashboardRepository(client, { readOnly: account.readOnly }),
     onChangePassword: account.readOnly ? undefined : async password => {

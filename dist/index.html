@@ -22,6 +22,8 @@
       html.restoring #restore-splash img { width: 96px; height: 96px; object-fit: contain; animation: restore-pulse 1.4s ease-in-out infinite; }
       html.restoring #restore-splash p { margin: 0; font-size: 18px; font-weight: 700; }
       html.restoring .page-shell { display: none !important; }
+      /* Safety net: once the dashboard is visible the restore screen never stays above it. */
+      html.restoring:has(#dashboard-root:not([hidden])) #restore-splash { display: none; }
       @keyframes restore-pulse { 50% { transform: scale(.92); opacity: .75; } }
       @media (prefers-reduced-motion: reduce) { html.restoring #restore-splash img { animation: none; } }
     </style>
@@ -182,6 +184,6 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.1/dist/umd/supabase.min.js"></script>
     <script src="assets/supabase-config.js"></script>
     <div id="dashboard-root" hidden></div>
-    <script type="module" src="assets/app.js?v=order1"></script>
+    <script type="module" src="assets/app.js?v=splash2"></script>
   </body>
 </html>
