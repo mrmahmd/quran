@@ -108,6 +108,13 @@ export function createDashboardRepository(client, { readOnly = false } = {}) {
       if (error) { if (error.code === 'PGRST202') return []; throw error; }
       return data || [];
     },
+    // Class changes (class-changes.sql): the teacher reads his own, the administration all.
+    // Notices only, so a missing table or a failed read shows no notice instead of an error.
+    async classChanges() {
+      const { data, error } = await client.from('class_changes').select('*').order('changed_on');
+      if (error) { if (['42P01', 'PGRST205'].includes(error.code)) return []; throw error; }
+      return data || [];
+    },
     async monthly(teacher, term, month) {
       const reports = await result(client.from('monthly_reports').select('*').eq('teacher_username', teacher).eq('term_id', term).eq('month_start', month));
       const report = reports[0] || null;

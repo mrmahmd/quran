@@ -10,7 +10,7 @@ import {mountDashboardIdentity} from './dashboard-identity.mjs?v=monthly-reading
 import {buildMonthlyReadingTable,monthlyReadingHeading} from './monthly-report-view.mjs?v=monthly-range1';
 import {teacherWeeks} from './teacher-week-model.mjs?v=breaks1';
 import { summarizeMonthlyTeachers } from './monthly-progress-model.mjs?v=monthly-range1';
-import { createMonthlyComparison } from './monthly-comparison-view.mjs?v=order1';
+import { createMonthlyComparison } from './monthly-comparison-view.mjs?v=cc1';
 import { weeklyInsights, evaluationSignature, WEEKLY_MAX } from './weekly-insights-model.mjs?v=1';
 import { bindChartTooltips, barDotChart, columnChart, sparkline } from './comparison-charts.mjs?v=3';
 import { emptyMonthly, monthlyFreeText, monthlyProblem, monthlyDraftProblem, termMonths, monthlyLabel, SURAHS, monthlyRangeText, monthlyProgress, applyMonthlyAmounts, copyMonthlyAmounts, copyMemorizationToRevision, monthlyAbsent, setMonthlyAbsent, mergeMonthlyRoster, monthlySavedComplete, monthlyStudentPayload, monthlyHasChanges } from './monthly-model.mjs?v=monthly-range1';
@@ -18,6 +18,7 @@ import { SCORE_FIELDS, emptyScores, scoreTotal, validateScores, termWeeks, semes
 import { applyEditedNominee, applySavedNominations, filterNominations, nominationGroups, nominationRoundLabels, nominationType, nominationFilterLabel, formatTestParts, testPartLabel, testPartOptions, normalizeIdentityNumber, validIdentityNumber, validTestParts } from './khairkom-model.mjs?v=order1';
 import { buildWeeklyReport, buildKhairkomReport, buildChampionsReport, buildTeacherProgressReport, buildMonthlyReport } from './report-layout.mjs?v=order1';
 import { summarizeTeacherProgress } from './admin-progress-model.mjs?v=monthly-admin1';
+import { classChangeFor, classChangeBanner, classChangeSchoolNote, weekBeforeChange, monthBeforeChange, monthsBeforeChange } from './class-change.mjs?v=1';
 
 const esc = value => String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]);
 const dateLabel = date => new Intl.DateTimeFormat('ar-EG', { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(new Date(`${date}T00:00:00Z`));
@@ -36,7 +37,7 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
   const readOnly = account.readOnly === true;
   root.classList.toggle('dashboard-read-only', readOnly);
   let terms = [], teachers = [], termId = '', teacherId = account.username || '', week = '', view = account.role === 'admin' ? 'reports' : 'home';
-  let teacherPhones = new Map(), context = { students: [], reviews: [], evaluations: [], honors: [] }, overview = null, weekStates = [], monthStates = [], monthlyOverview = {reports:[],entries:[],students:[]};
+  let classChanges = [], classChangesLoaded = false, teacherPhones = new Map(), context = { students: [], reviews: [], evaluations: [], honors: [] }, overview = null, weekStates = [], monthStates = [], monthlyOverview = {reports:[],entries:[],students:[]};
   let loadedMonthlyScope = '';
   let scores = new Map(), dirty = false, honorDirty = false, knightDirty = false, busy = false, generation = 0, monthlyDirty = false, month = '', monthlyData = { report: null, entries: [] }, monthlyRows = new Map(), champions = [], chosenKnight = '', selectedHonors = new Set(), khairkomData = { sets: [], rows: [], students: [] }, nominatedStudents = new Map(), identityNumbers = new Map(), nominationDirty = false;
   let messageTimer, editingStudent = '', rosterDirty = false, monthlyTeacherFilter = null, monthlyStudentFilter = 'pending';
@@ -144,7 +145,7 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
   const teacherSelect = root.querySelector('#teacher-select');
   const dialog = root.querySelector('#dashboard-confirm');
   const reportPreview = root.querySelector('#report-preview');
-  const monthlyComparison = admin ? createMonthlyComparison({ repo, openPdf: showReportMarkup, openMonthlyReport: openComparedMonthlyReport, canMessage: username => !!whatsappNumber(teacherPhones.get(username)), messageTeacher: (username, months) => openWhatsappMessage(username, months) }) : null;
+  const monthlyComparison = admin ? createMonthlyComparison({ repo, openPdf: showReportMarkup, openMonthlyReport: openComparedMonthlyReport, canMessage: username => !!whatsappNumber(teacherPhones.get(username)), messageTeacher: (username, months) => openWhatsappMessage(username, months), classChangeNotice: comparisonClassNotice }) : null;
   const weeklyNarrative = weeklyNarrativeViewer ? createNimrWeeklyEditor({
     repo, author:()=>admin ? teachers.find(row=>row.username==='quran17')?.full_name || 'محمد نمر فوزي' : account.full_name,
     confirmReload:()=>confirm('جلب المسودة المحفوظة','سيظهر آخر نص محفوظ لهذا الأسبوع.'),
@@ -275,6 +276,7 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
       if (ticket !== generation || scope !== monthlyScope()) return;
       const monthly = teacherId && termId && month ? await repo.monthly(teacherId, termId, month) : { report: null, entries: [] };
       const monthsAccess = termId ? await repo.monthStates(termId) : [];
+      if (!classChangesLoaded) { classChanges = await repo.classChanges?.().catch(() => []) || []; classChangesLoaded = true; }
       if (admin && !teacherPhones.size) teacherPhones = new Map((await repo.teacherContacts().catch(() => [])).filter(row => row.phone).map(row => [row.username, row.phone]));
       const monthsOverview = monthlyReader && ['monthly','monthlyReport','monthlyProgress'].includes(view) && monthlyOverviewMode() && termId && month ? await repo.monthlyOverview(termId,month) : {reports:[],entries:[],students:[]};
       const gallery = manager && termId ? await repo.champions(termId, week) : [];
@@ -315,7 +317,41 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
   const placeKey = `yassarnah.place.${account.role}.${account.username || account.email || 'viewer'}`;
   function readPlace() { try { return JSON.parse(sessionStorage.getItem(placeKey) || 'null') || {}; } catch { return {}; } }
   function savePlace() { try { sessionStorage.setItem(placeKey, JSON.stringify({ view, teacherId, termId, week, month })); } catch { /* storage off: a reload starts at the home page */ } }
-  function render() {
+  function render() { renderView(); injectClassChangeNotice(); }
+  // Class changes (class-change.mjs): pages recorded before a ring changed class say whose students they show.
+  // Called after every render of the pages concerned; it replaces its own earlier notice.
+  function injectClassChangeNotice() {
+    content.querySelectorAll('[data-cc-notice]').forEach(node => node.remove());
+    const change = termId && classChangeFor(classChanges, teacherId);
+    if (!change) return;
+    const about = admin || teacherId !== account.username;
+    const options = { change, teacherName: teacher()?.full_name || '', admin: about, canSwitch: admin };
+    let html = '', anchor = content.querySelector(':scope > .section-heading');
+    if (['evaluation', 'knight'].includes(view) && weekBeforeChange(change, week)) html = classChangeBanner({ ...options, period: 'week' });
+    else if (['monthly', 'monthlyReport'].includes(view) && monthBeforeChange(change, month) && loadedMonthlyScope === monthlyScope()) html = classChangeBanner({ ...options, period: 'month' });
+    else if (view === 'honors' || admin && view === 'evaluation' && termWeeks(selectedTerm()).some(day => weekBeforeChange(change, day))) {
+      html = classChangeBanner({ ...options, period: 'trend', compact: true });
+      if (admin && view === 'evaluation') anchor = content.querySelector('.wi-section')?.previousElementSibling || anchor;
+    }
+    if (!html) return;
+    const holder = document.createElement('div');
+    holder.innerHTML = html;
+    const notice = holder.firstElementChild;
+    notice.dataset.ccNotice = '';
+    anchor ? anchor.after(notice) : content.prepend(notice);
+  }
+  function comparisonClassNotice(username, months, teacherNames) {
+    if (!username) return classChangeSchoolNote(classChanges, teacherNames, months);
+    const change = classChangeFor(classChanges, username);
+    const before = monthsBeforeChange(change, months);
+    if (!before.length) return '';
+    const name = teacherNames.get(username)?.full_name || '';
+    const period = before.length === months.length ? 'months' : 'trend';
+    return { screen: classChangeBanner({ change, teacherName: name, admin: true, switchAttr: 'data-mc-switch-teacher', period }),
+      print: classChangeBanner({ change, teacherName: name, admin: true, period, print: true }),
+      classThen: period === 'months' ? change.class_before : '' };
+  }
+  function renderView() {
     savePlace();
     if (!admin && account.roster_manager && teacherId !== account.username && !['champions','setup','khairkomReport','nimrWeekly','account',...(monthlyReader?['monthlyReport','monthlyProgress']:[])].includes(view)) view = 'setup';
     teacherAppearance?.setView(view);
@@ -350,7 +386,8 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
     const row = scores.get(student.id), total = scoreTotal(row);
     return `<article class="student-score-card" data-student="${esc(student.id)}"><header><span class="student-avatar" aria-hidden="true">${esc(student.full_name.trim().slice(0, 1))}</span><div><h3>${esc(student.full_name)}</h3><small>${student.source_class ? `الفصل الأصلي: <bdi dir="ltr">${esc(student.source_class)}</bdi>` : student.student_code && !/^(DOC17-|TRANSFER-)/.test(student.student_code) ? `رقم الطالب: ${esc(student.student_code)}` : student.active ? 'طالب الحلقة' : 'طالب مؤرشف · تقييم محفوظ'}</small></div><span class="total-badge">${total === null ? '—' : total}<small>/ ١٢</small></span></header><div class="score-groups">${SCORE_FIELDS.map(field => `<div class="score-group"><span id="label-${esc(student.id)}-${field.key}">${field.label}<small>${field.max} نقاط</small></span><div role="group" aria-labelledby="label-${esc(student.id)}-${field.key}">${Array.from({ length: field.max + 1 }, (_, n) => `<button type="button" class="point-chip" data-score="${field.key}" data-point="${n}" aria-pressed="${row[field.key] === n}" aria-label="${field.label}: ${n} نقاط" ${readonly() ? 'disabled' : ''}>${n}</button>`).join('')}</div></div>`).join('')}</div><div class="bonus-row"><label><input type="checkbox" data-bonus="bonus_memorization" ${row.bonus_memorization ? 'checked' : ''} ${readonly() ? 'disabled' : ''}>تميز الحفظ <b>+١</b></label><label><input type="checkbox" data-bonus="bonus_revision" ${row.bonus_revision ? 'checked' : ''} ${readonly() ? 'disabled' : ''}>تميز المراجعة <b>+١</b></label></div></article>`;
   }
-  function renderEvaluation() {
+  function renderEvaluation() { renderEvaluationPage(); injectClassChangeNotice(); }
+  function renderEvaluationPage() {
     const students = weekStudents();
     content.innerHTML = `<div class="section-heading"><div><p class="section-kicker">التقييم الأسبوعي</p><h2>تقييم طلاب الحلقة</h2><p>ضع النقاط لجميع الطلاب، وأضف نقاط التميز إن أردت، ثم احفظ التقييم مرة واحدة. تظل جميع البطاقات ظاهرة للمراجعة والتعديل؛ الصفر تقييم صحيح.</p></div><span class="status-pill ${review()?.status === 'submitted' ? 'approved' : ''}">${weeklyEditing?'✎ تعديل تقييم محفوظ':review()?.status === 'submitted' ? '✓ أسبوع معتمد' : 'بانتظار الحفظ والاعتماد'}</span></div>
     <div class="evaluation-tools"><div id="rating-progress" class="progress-copy"></div><span class="help-pill">✓ الحفظ ٤ · المراجعة ٢ · التحسن ٢ · الالتزام ٢ · التميز ٢</span></div>
@@ -549,7 +586,8 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
     const total=monthlyStudents().length,done=monthlyStudents().filter(s=>monthlyFinished(s.id)).length;
     return `<div class="monthly-student-filters" role="group" aria-label="عرض طلاب التقرير"><button type="button" data-monthly-filter="pending" aria-pressed="${monthlyStudentFilter==='pending'}">بانتظار الاستكمال أو الحفظ <b>${total-done}</b></button><button type="button" data-monthly-filter="complete" aria-pressed="${monthlyStudentFilter==='complete'}">مكتمل ومحفوظ <b>${done}</b></button><button type="button" data-monthly-filter="all" aria-pressed="${monthlyStudentFilter==='all'}">جميع الطلاب <b>${total}</b></button></div><p class="monthly-finish-hint">احفظ بيانات طالب واحد من بطاقته، أو اضغط زر حفظ التقرير لحفظ كل المدخلات دفعة واحدة.</p>`;
   }
-  function renderMonthly() {
+  function renderMonthly() { renderMonthlyPage(); injectClassChangeNotice(); }
+  function renderMonthlyPage() {
     savePlace();
     if (loadedMonthlyScope !== monthlyScope()) { renderMonthlyLoadError(); return; }
     const savedComplete = monthlyData.report && savedMonthlyProgress().complete;
@@ -711,7 +749,8 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
       const label = root.querySelector('#wi-refreshed'); if (label) label.textContent = `آخر تحديث ${timeFormat.format(insightsRefreshedAt)}`;
     } catch { /* the next tick retries; the page keeps the last good data */ }
   }
-  function renderAdminStudents() {
+  function renderAdminStudents() { renderAdminStudentsPage(); injectClassChangeNotice(); }
+  function renderAdminStudentsPage() {
     const students = context.students.filter(student => student.active || context.evaluations.some(row => row.student_id === student.id && row.review_id === review()?.id));
     const evaluated = students.filter(student => context.evaluations.some(row => row.student_id === student.id && row.review_id === review()?.id && row.total !== null));
     const grades = new Map(context.evaluations.filter(row => row.review_id === review()?.id && row.total != null).map(row => [row.student_id, row]));
@@ -728,6 +767,11 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
     </details>
     <div class="save-bar"><span>${review()?.status==='submitted'?'✓ التقييم معتمد':'التقييم لم يُعتمد بعد'} · عرض للمتابعة فقط</span><div><button class="solid-button" id="print-admin-report">تقرير هذه الحلقة PDF</button>${review()?.status==='submitted'?'<button class="light-button" id="reopen-week">إعادة فتح التقييم</button>':''}<button class="teal-button" data-view="monthly">التقرير الشهري</button><button class="light-button" data-view="setup">إدارة الطلاب</button></div></div>`;
     const insightsHost = content.querySelector('.wi-section'); if (insightsHost) bindChartTooltips(insightsHost);
+  }
+  // Overview rows of a week before a class change: the class whose students that week shows.
+  function classBeforeTag(username) {
+    const change = classChangeFor(classChanges, username);
+    return weekBeforeChange(change, week) ? ` <span class="cc-tag" title="تغيّر فصل الحلقة بعد هذا الأسبوع">⇆ هذا الأسبوع لطلاب <bdi>${esc(change.class_before)}</bdi></span>` : '';
   }
   function renderReports() {
     const progress = adminProgress();
@@ -747,7 +791,7 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
       const done = focus === 'weekly' ? row.weeklyComplete : row[focus];
       return '<article class="progress-teacher-row ' + (done ? 'complete' : 'pending') + '">' +
         '<span class="progress-teacher-avatar">' + esc(row.full_name.slice(0, 1)) + '</span>' +
-        '<div class="progress-teacher-name"><strong>' + esc(row.full_name) + '</strong><small>' + esc(row.ring_name || row.class_name) + '</small></div>' +
+        '<div class="progress-teacher-name"><strong>' + esc(row.full_name) + '</strong><small>' + esc(row.ring_name || row.class_name) + classBeforeTag(row.username) + '</small></div>' +
         '<div class="progress-teacher-checks"><span class="' + (row.evaluation ? 'done' : '') + '">✓ التقييم: ' + (row.evaluation ? 'معتمد' : 'لم يُعتمد') + '</span>' +
         '<span class="' + (row.champion ? 'done' : '') + '">★ الفارس: ' + (row.champion ? 'اختير' : 'لم يُختر') + '</span>' +
         '<span class="' + (row.khairkom && progress.khairkomRequired ? 'done' : '') + '">◆ خيركم: ' + (progress.khairkomRequired ? (row.khairkom ? row.nominations + ' مرشح' : 'لم يُرشَّح') : 'غير مطلوب') + '</span></div>' +
@@ -1266,6 +1310,8 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
       chip.parentElement.querySelectorAll('button').forEach(button => button.setAttribute('aria-pressed', button === chip ? 'true' : 'false'));
       const total = scoreTotal(row); card.querySelector('.total-badge').innerHTML = `${total === null ? '—' : total}<small>/ ١٢</small>`; updateProgress(); return;
     }
+    const switchTeacher = event.target.closest('[data-switch-teacher]');
+    if (switchTeacher && admin && !busy && teachers.some(row => row.username === switchTeacher.dataset.switchTeacher)) { if (!await mayLeave()) return; teacherId = switchTeacher.dataset.switchTeacher; updateSelectors(); await loadContext(); content.querySelector('[data-cc-notice]')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); notify(`تم فتح سجل ${teacher().full_name}.`); return; }
     const report = event.target.closest('[data-teacher-report]');
     if (report && !busy) { if (!await mayLeave()) return; teacherId = report.dataset.teacherReport; view = 'evaluation'; updateSelectors(); await loadContext(); return; }
     const id = event.target.closest('button')?.id;

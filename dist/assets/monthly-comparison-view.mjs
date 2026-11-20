@@ -222,10 +222,11 @@ function juzStudents(rows, teachers) {
     }).join('')}</tbody></table></div>`;
 }
 
-function printReport({ title, months, term, summary, juz, charts = '' }) {
+function printReport({ title, months, term, summary, juz, charts = '', notice = '' }) {
   return `<article class="report-document mc-document" lang="ar" dir="rtl">
     <header class="mc-print-header"><div class="mc-print-brand">${brandLockup()}</div>
       <div><h1>${escape(title)}</h1><p>${escape(term.name)} · ${months.map(monthName).join(' · ')}</p></div></header>
+    ${notice}
     ${summary ? teacherSummary(summary) : ''}
     ${charts}
     ${juzSummary(juz, false)}
@@ -233,7 +234,9 @@ function printReport({ title, months, term, summary, juz, charts = '' }) {
 }
 
 // canMessage/messageTeacher: the administration's WhatsApp button at the top of a teacher's comparison.
-export function createMonthlyComparison({ repo, openPdf, openMonthlyReport, canMessage = () => false, messageTeacher = null }) {
+// classChangeNotice(username | '', months, teacherNames): a class-change notice for months recorded before
+// the ring changed class — markup for the school summary, { screen, print } for a teacher (class-change.mjs).
+export function createMonthlyComparison({ repo, openPdf, openMonthlyReport, canMessage = () => false, messageTeacher = null, classChangeNotice = () => '' }) {
   let selected = '', excludeOutliers = false, chartKind = 'memorization';
 
   function show(host, term, teachers) {
@@ -266,19 +269,22 @@ export function createMonthlyComparison({ repo, openPdf, openMonthlyReport, canM
       if (!source) return;
       if (source.school) {
         const { school, juz } = source;
+        const note = classChangeNotice('', months, teacherNames) || '';
         snapshot = { title: 'ملخص المدرسة', months, term, juz, charts: schoolRanking(school, teacherNames, 'memorization') };
-        result.innerHTML = reportActions(snapshot.title, months) + schoolRanking(school, teacherNames, chartKind) + juzSummary(juz, true);
+        result.innerHTML = reportActions(snapshot.title, months) + note + schoolRanking(school, teacherNames, chartKind) + juzSummary(juz, true);
         return;
       }
       const { teacher, data, trend, whatsapp } = source;
       const rows = buildMonthlyComparison(data.students, data.first.entries, data.second.entries);
       const summary = summarizeMonthlyComparison(data.students, data.first.entries, data.second.entries, rows, { excludeOutliers });
       const juz = buildJuzReport(data.students, data.first.entries, data.second.entries)[2];
-      const title = [teacher.full_name, teacher.ring_name || teacher.class_name].filter(Boolean).join(' · ');
+      const change = classChangeNotice(teacher.username, months, teacherNames) || {};
+      // Both months before a class change: the title names the class whose students they show.
+      const title = [teacher.full_name, change.classThen ? `${change.classThen} (قبل تبديل الفصول)` : teacher.ring_name || teacher.class_name].filter(Boolean).join(' · ');
       const charts = comparisonChart(summary.changes) + trendChart(trend, termMonths(term));
-      snapshot = { title, teacher, months, term, summary, juz, charts: charts + studentsChart(rows, 'memorization', excludeOutliers) };
+      snapshot = { title, teacher, months, term, summary, juz, notice: change.print || '', charts: charts + studentsChart(rows, 'memorization', excludeOutliers) };
       status.textContent = rows.length ? '' : 'لا توجد مقادير حفظ أو مراجعة مسجّلة لهذه الحلقة في الشهرين.';
-      result.innerHTML = whatsapp + reportActions(title, months)
+      result.innerHTML = whatsapp + reportActions(title, months) + (change.screen || '')
         + notices({ summary, reports: [data.first.report, data.second.report], excludeOutliers })
         + teacherSummary(summary)
         + foldSection('mc-charts', 'رسما الشهرين والأشهر الأربعة', `الحفظ: <b>${summary.changes.memorization.compared ? number.format(summary.changes.memorization.first) + ' ← ' + number.format(summary.changes.memorization.second) : '—'}</b> آية · المراجعة: <b>${summary.changes.revision.compared ? number.format(summary.changes.revision.first) + ' ← ' + number.format(summary.changes.revision.second) : '—'}</b> آية`, `<div class="mc-chart-grid">${charts}</div>`)
@@ -350,6 +356,13 @@ export function createMonthlyComparison({ repo, openPdf, openMonthlyReport, canM
       }
       const button = event.target.closest('button');
       if (!button || !snapshot) return;
+      // Class-change notice: open the ring whose saved history belongs to this teacher's current class.
+      if (button.hasAttribute('data-mc-switch-teacher') && options.some(item => item.username === button.dataset.mcSwitchTeacher)) {
+        selected = button.dataset.mcSwitchTeacher;
+        select.value = selected;
+        load();
+        return;
+      }
       if (button.hasAttribute('data-mc-whatsapp') && snapshot.teacher) {
         messageTeacher(snapshot.teacher.username, snapshot.months.map(monthName));
         return;
