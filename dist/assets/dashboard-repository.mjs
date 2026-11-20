@@ -1,3 +1,5 @@
+import { sortByClass } from './class-order.mjs?v=1';
+
 async function result(query) {
   const { data, error } = await query;
   if (error) throw error;
@@ -66,7 +68,8 @@ export function createDashboardRepository(client, { readOnly = false } = {}) {
       3: row.khairkom_third_round_open,
     })),
     setKhairkomThirdRoundOpen: (term, open) => result(client.rpc('set_khairkom_third_round_open', {p_term:term,p_open:open})),
-    teachers: () => result(client.from('teacher_accounts').select('username, full_name, class_name, ring_name, active').eq('active', true).order('username')),
+    // Rings are shown by class (1A, 1B … 10B) everywhere in the administration.
+    teachers: () => result(client.from('teacher_accounts').select('username, full_name, class_name, ring_name, active').eq('active', true).order('username')).then(sortByClass),
     weekStates: term => result(client.from('weekly_workflow_access').select('week_start,is_open,updated_at').eq('term_id', term).order('week_start')),
     setWeekOpen: (term, week, open) => result(client.rpc('set_week_workflow_open', {p_term:term,p_week:week,p_open:open})),
     async context(teacher, term) {
@@ -89,7 +92,7 @@ export function createDashboardRepository(client, { readOnly = false } = {}) {
     },
     async teacherProgress(term, week) {
       const [teachers, reviews, champions, nominations] = await Promise.all([
-        result(client.from('teacher_accounts').select('username,full_name,class_name,ring_name,active').eq('active', true).order('username')),
+        result(client.from('teacher_accounts').select('username,full_name,class_name,ring_name,active').eq('active', true).order('username')).then(sortByClass),
         allRows(() => client.from('weekly_reviews').select('teacher_username,week_start,status,knight_student_id').eq('term_id', term).eq('week_start', week).order('teacher_username')),
         champions(term, week),
         loadKhairkom(client, term),

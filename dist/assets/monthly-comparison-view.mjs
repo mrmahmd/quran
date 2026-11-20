@@ -2,6 +2,7 @@ import { brandLockup } from './brand.mjs';
 import { termMonths } from './monthly-model.mjs?v=monthly-finish1';
 import { ayatByMonth, buildMonthlyComparison, comparisonKinds, hasRecordedComparison, memorizationOutlierLimit, summarizeMonthlyComparison } from './monthly-comparison-model.mjs?v=7';
 import { foldSection } from './fold-section.mjs?v=1';
+import { compareByClass } from './class-order.mjs?v=1';
 import { bindChartTooltips, columnChart, divergingChart, formatAyatChange, formatPercentChange, kindColors } from './comparison-charts.mjs?v=3';
 import { buildJuzReport, juzCategories } from './monthly-juz-report.mjs?v=3';
 
@@ -237,7 +238,7 @@ export function createMonthlyComparison({ repo, openPdf, openMonthlyReport, canM
 
   function show(host, term, teachers) {
     const months = termMonths(term).slice(0, 2);
-    const options = teachers.slice().sort((a, b) => a.full_name.localeCompare(b.full_name, 'ar'));
+    const options = teachers.slice().sort(compareByClass);
     const teacherNames = new Map(options.map(teacher => [teacher.username, teacher]));
     if (!options.some(teacher => teacher.username === selected)) selected = '';
     host.innerHTML = `<section class="mc-workspace" aria-labelledby="mc-title">

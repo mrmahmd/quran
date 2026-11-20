@@ -10,13 +10,13 @@ import {mountDashboardIdentity} from './dashboard-identity.mjs?v=monthly-reading
 import {buildMonthlyReadingTable,monthlyReadingHeading} from './monthly-report-view.mjs?v=monthly-range1';
 import {teacherWeeks} from './teacher-week-model.mjs?v=breaks1';
 import { summarizeMonthlyTeachers } from './monthly-progress-model.mjs?v=monthly-range1';
-import { createMonthlyComparison } from './monthly-comparison-view.mjs?v=fold2';
+import { createMonthlyComparison } from './monthly-comparison-view.mjs?v=order1';
 import { weeklyInsights, evaluationSignature, WEEKLY_MAX } from './weekly-insights-model.mjs?v=1';
 import { bindChartTooltips, barDotChart, columnChart, sparkline } from './comparison-charts.mjs?v=3';
 import { emptyMonthly, monthlyFreeText, monthlyProblem, monthlyDraftProblem, termMonths, monthlyLabel, SURAHS, monthlyRangeText, monthlyProgress, applyMonthlyAmounts, copyMonthlyAmounts, copyMemorizationToRevision, monthlyAbsent, setMonthlyAbsent, mergeMonthlyRoster, monthlySavedComplete, monthlyStudentPayload, monthlyHasChanges } from './monthly-model.mjs?v=monthly-range1';
 import { SCORE_FIELDS, emptyScores, scoreTotal, validateScores, termWeeks, semesterSummary, weekNumber, weekEnd } from './evaluation-model.mjs?v=breaks1';
-import { applyEditedNominee, applySavedNominations, filterNominations, nominationGroups, nominationRoundLabels, nominationType, nominationFilterLabel, formatTestParts, testPartLabel, testPartOptions, normalizeIdentityNumber, validIdentityNumber, validTestParts } from './khairkom-model.mjs?v=nas-duha';
-import { buildWeeklyReport, buildKhairkomReport, buildChampionsReport, buildTeacherProgressReport, buildMonthlyReport } from './report-layout.mjs?v=monthly-range1';
+import { applyEditedNominee, applySavedNominations, filterNominations, nominationGroups, nominationRoundLabels, nominationType, nominationFilterLabel, formatTestParts, testPartLabel, testPartOptions, normalizeIdentityNumber, validIdentityNumber, validTestParts } from './khairkom-model.mjs?v=order1';
+import { buildWeeklyReport, buildKhairkomReport, buildChampionsReport, buildTeacherProgressReport, buildMonthlyReport } from './report-layout.mjs?v=order1';
 import { summarizeTeacherProgress } from './admin-progress-model.mjs?v=monthly-admin1';
 
 const esc = value => String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]);
@@ -1084,7 +1084,7 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
       const reportTerm = selectedTerm();
       await action(async () => {
         const snapshot = await repo.khairkomReport(reportTerm.id,nominationPeriod);
-        const { prepareKhairkomTeachersReport, createKhairkomTeachersPdf } = await import('./khairkom-teachers-report.mjs?v=round3');
+        const { prepareKhairkomTeachersReport, createKhairkomTeachersPdf } = await import('./khairkom-teachers-report.mjs?v=order1');
         const pages = await prepareKhairkomTeachersReport({term:reportTerm,snapshot,roundLabel:nominationRoundLabel()});
         const blob = await createKhairkomTeachersPdf(pages);
         clearAchievementDownload();

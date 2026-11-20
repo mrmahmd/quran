@@ -1,3 +1,4 @@
+import { compareByClass } from './class-order.mjs?v=1';
 const arabicNumber = value => new Intl.NumberFormat('ar-EG').format(value);
 
 export const nominationRoundLabels = { 1: 'الترشيح الأول', 2: 'الترشيح الثاني', 3: 'الترشيح الثالث' };
@@ -82,7 +83,7 @@ export function filterNominations(data, teachers, filters = {}, period = 1) {
     if (!parts.length) return true;
     const selected = row.test_parts || [];
     return filters.mode === 'any' ? parts.some(p => selected.includes(p)) : parts.every(p => selected.includes(p));
-  }).sort((a,b) => (a.teacher_username || '').localeCompare(b.teacher_username || '') || (students.get(a.student_id)?.full_name || '').localeCompare(students.get(b.student_id)?.full_name || '', 'ar'));
+  }).sort((a,b) => compareByClass(owners.get(a.teacher_username) || { full_name: a.teacher_username }, owners.get(b.teacher_username) || { full_name: b.teacher_username }) || (students.get(a.student_id)?.full_name || '').localeCompare(students.get(b.student_id)?.full_name || '', 'ar'));
 }
 
 export function nominationFilterLabel(filters, teachers, period = 1) {

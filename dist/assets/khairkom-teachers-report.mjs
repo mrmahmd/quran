@@ -1,5 +1,6 @@
 import { brandLockup, platformName, schoolName } from './brand.mjs';
-import { nominationRoundLabels } from './khairkom-model.mjs?v=round3';
+import { compareByClass } from './class-order.mjs?v=1';
+import { nominationRoundLabels } from './khairkom-model.mjs?v=order1';
 import { preparePdfExport } from './champions-pdf.mjs?v=grouped-khairkom1';
 
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, character => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' })[character]);
@@ -18,9 +19,9 @@ export function khairkomAchievement(snapshot) {
   const collator = new Intl.Collator('ar');
   const teachers = [...new Map((snapshot.teachers || []).map(teacher => [teacher.username,teacher])).values()]
     .map(teacher => ({username:teacher.username,name:teacher.full_name || teacher.username,
-      className:teacher.ring_name || teacher.class_name || '—',done:reviewed.has(teacher.username),
+      className:teacher.ring_name || teacher.class_name || '—',classRaw:teacher.class_name,done:reviewed.has(teacher.username),
       count:nominees.get(teacher.username)?.size || 0}))
-    .sort((a,b) => collator.compare(a.name,b.name));
+    .sort((a,b) => compareByClass({class_name:a.classRaw,full_name:a.name},{class_name:b.classRaw,full_name:b.name}) || collator.compare(a.name,b.name));
   const done = teachers.filter(teacher=>teacher.done), pending = teachers.filter(teacher=>!teacher.done);
   return {done,pending,total:teachers.length,percent:teachers.length?Math.round(done.length*100/teachers.length):0};
 }

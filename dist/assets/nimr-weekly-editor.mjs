@@ -150,7 +150,7 @@ export function createNimrWeeklyEditor({repo,author,showPdf,confirmReload,readOn
     updateControls();
     notice('جارٍ تجهيز ملف PDF…');
     try {
-      const {prepareNarrativePdf}=await import('./nimr-weekly-pdf.mjs?v=1');
+      const {prepareNarrativePdf}=await import('./nimr-weekly-pdf.mjs?v=order1');
       const output=await prepareNarrativePdf(details,exporting.body);
       if (draft!==exporting) return;
       if(panel.isConnected) showPdf(output,'التقرير-الأسبوعي-'+details.weekNumber+'-'+week+'.pdf');

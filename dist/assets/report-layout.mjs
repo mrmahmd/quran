@@ -1,5 +1,5 @@
 import { brandLockup, platformName, schoolName } from './brand.mjs';
-import { formatTestParts, nominationGroups } from './khairkom-model.mjs?v=nas-duha';
+import { formatTestParts, nominationGroups } from './khairkom-model.mjs?v=order1';
 import {summarizeMonthlyTeachers} from './monthly-progress-model.mjs?v=monthly-range1';
 import {mergeMonthlyRoster} from './monthly-model.mjs?v=monthly-admin1';
 import {buildMonthlyReadingTable} from './monthly-report-view.mjs?v=monthly-range1';

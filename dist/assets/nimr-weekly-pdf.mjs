@@ -1,5 +1,5 @@
 import { narrativeBlock, narrativePage, parseNarrative } from './nimr-weekly-model.mjs?v=1';
-import { createA4ReportPdf } from './khairkom-teachers-report.mjs?v=nimr-weekly1';
+import { createA4ReportPdf } from './khairkom-teachers-report.mjs?v=order1';
 
 export async function prepareNarrativePdf(details, value) {
   await Promise.all([400,600,800].map(weight => document.fonts.load(weight+' 24px Alexandria','التقرير الأسبوعي')));
