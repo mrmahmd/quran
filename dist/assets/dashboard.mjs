@@ -663,9 +663,19 @@ export async function mountDashboard(root, { repository: repo, account, onLogout
     nominationDirty = true;
     root.querySelector('#khairkom-save-state').textContent = 'تغييرات لم تُحفظ';
   }
+  // Compact board: one small card per chosen knight (class order), then the rings still waiting as chips.
+  function championBoard(selected) {
+    const waiting = champions.filter(row => !row.student_name);
+    const ring = row => `<bdi dir="auto">${esc(row.ring_name || row.class_name)}</bdi>`;
+    const tiles = selected.map(row => `<article class="champ-tile"><span class="champ-star" aria-hidden="true">★</span><div class="champ-body"><div class="champ-meta"><span class="champ-class">${ring(row)}</span><span class="champ-teacher">${esc(row.teacher_name)}</span></div><h3>${esc(row.student_name)}</h3>${row.note ? `<p class="champ-note" title="${esc(row.note)}">${esc(row.note)}</p>` : ''}</div></article>`).join('');
+    if (!champions.length) return empty('لا توجد حلقات', 'تظهر الحلقات النشطة هنا.', '★');
+    return `<div class="champ-week"><span>★ ${dateLabel(week)} – ${dateLabel(weekEnd(week))}</span></div>`
+      + (tiles ? `<div class="champ-board">${tiles}</div>` : empty('لم يُختر أي فارس بعد', 'تظهر اختيارات المعلمين هنا فور حفظها.', '☆'))
+      + (waiting.length ? `<section class="champ-waiting" aria-label="حلقات لم تختر فارسها"><h3>☆ بانتظار اختيار الفارس <b>${waiting.length}</b></h3><div>${waiting.map(row => `<span class="champ-waiting-chip">${ring(row)} · ${esc(row.teacher_name)}</span>`).join('')}</div></section>` : '');
+  }
   function renderChampions() {
     const selected = champions.filter(row => row.student_name);
-    content.innerHTML = `<div class="section-heading"><div><p class="section-kicker gold-text">فرسان الأسبوع</p><h2>نجوم حلقاتنا.. مجتمعون</h2><p>اختيارات المعلمين اليدوية للأسبوع المحدد أعلى الصفحة.</p></div><span class="status-pill gold-status">★ ${selected.length} / ${champions.length} حلقة اختارت فارسًا</span></div><div class="report-intro"><div><strong>تقرير فرسان الأسبوع المجمّع</strong><span>الأسماء وأسباب الاختيار في ملف واحد أنيق.</span></div><button class="gold-button" id="preview-champions">معاينة وحفظ PDF ★</button></div><div class="champions-grid">${champions.map(row => `<article class="champion-card ${row.student_name ? '' : 'pending-champion'}"><span class="champion-symbol">${row.student_name ? '★' : '☆'}</span><span class="report-class">${esc(row.ring_name || row.class_name)}</span><h3>${esc(row.student_name || 'بانتظار اختيار الفارس')}</h3><p>${esc(row.teacher_name)}</p><small>${dateLabel(week)} – ${dateLabel(weekEnd(week))}</small>${row.note ? `<blockquote>${esc(row.note)}</blockquote>` : ''}<span class="status-pill gold-status">${row.student_name ? 'اختيار المعلم' : 'لم يُختر بعد'}</span></article>`).join('') || empty('لا توجد حلقات', 'تظهر الحلقات النشطة هنا.', '★')}</div>`;
+    content.innerHTML = `<div class="section-heading"><div><p class="section-kicker gold-text">فرسان الأسبوع</p><h2>نجوم حلقاتنا.. مجتمعون</h2><p>اختيارات المعلمين اليدوية للأسبوع المحدد أعلى الصفحة.</p></div><span class="status-pill gold-status">★ ${selected.length} / ${champions.length} حلقة اختارت فارسًا</span></div><div class="report-intro"><div><strong>تقرير فرسان الأسبوع المجمّع</strong><span>الأسماء وأسباب الاختيار في ملف واحد أنيق.</span></div><button class="gold-button" id="preview-champions">معاينة وحفظ PDF ★</button></div>${championBoard(selected)}`;
   }
   function renderHonors() {
     if (admin) { const names = context.honors.map(h=>context.students.find(s=>s.id===h.student_id)?.full_name).filter(Boolean); content.innerHTML = `<div class="section-heading"><div><p class="section-kicker">التكريم الفصلي</p><h2>مكرّمو ${esc(teacher().full_name)}</h2><p>اختيارات المعلم المحفوظة للفصل الدراسي.</p></div></div><div class="champions-grid">${names.map(name=>`<article class="champion-card"><span class="champion-symbol">✦</span><h3>${esc(name)}</h3></article>`).join('') || empty('لم تُحفظ قائمة التكريم بعد', 'تظهر هنا اختيارات المعلم عند حفظها.', '✦')}</div>`; return; }
