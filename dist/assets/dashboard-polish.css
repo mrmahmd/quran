@@ -191,30 +191,30 @@
 
 /* Weekly knights board (administration): compact cards, then the rings still waiting as chips. */
 .champ-week { display: flex; justify-content: flex-start; margin: 0 0 12px; }
-.champ-week span { padding: 4px 14px; border-radius: 999px; background: #fff3cc; color: #7a5a12; font-weight: 700; font-size: .85rem; border: 1px solid #efd78f; }
+.champ-week span { padding: 4px 14px; border-radius: 999px; background: #fff; color: #4a5568; font-weight: 700; font-size: .85rem; border: 1px solid #dfe5ee; }
 .champ-board { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 12px; align-items: start; }
 .dashboard-shell .champ-tile {
   display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; min-width: 0;
-  border: 1px solid #ecd697; border-radius: 16px; background: linear-gradient(115deg, #fff7df, #fffdf7);
-  box-shadow: 0 6px 16px -12px rgba(157, 116, 39, .55); transition: transform .15s ease, box-shadow .15s ease;
+  border: 1px solid #e3e8ef; border-radius: 16px; background: #fff;
+  box-shadow: 0 4px 14px -10px rgba(30, 50, 80, .35); transition: transform .15s ease, box-shadow .15s ease;
 }
-.dashboard-shell .champ-tile:hover { transform: translateY(-2px); box-shadow: 0 10px 22px -14px rgba(157, 116, 39, .7); }
+.dashboard-shell .champ-tile:hover { transform: translateY(-2px); box-shadow: 0 10px 22px -14px rgba(30, 50, 80, .45); }
 .champ-star {
   flex: none; display: grid; place-items: center; width: 38px; height: 38px; border-radius: 50%;
   background: linear-gradient(135deg, #f3c34b, #d49b21); color: #fff; font-size: 1.15rem; box-shadow: 0 4px 10px -5px #b07d12;
 }
 .champ-body { min-width: 0; flex: 1; }
-.champ-meta { display: flex; align-items: center; gap: 6px; min-width: 0; font-size: .8rem; color: #7d6a45; font-weight: 600; }
-.champ-class { flex: none; padding: 1px 8px; border-radius: 8px; background: #e6f0ff; color: #1f5bb5; font-weight: 800; font-size: .76rem; }
+.champ-meta { display: flex; align-items: center; gap: 6px; min-width: 0; font-size: .8rem; color: #6b778a; font-weight: 600; }
+.champ-class { flex: none; padding: 1px 8px; border-radius: 8px; background: #f1f4f8; color: #3d4a5c; border: 1px solid #e1e6ee; font-weight: 800; font-size: .76rem; }
 .champ-teacher { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.dashboard-shell .champ-tile h3 { margin: 4px 0 0; color: #5c4313; font-size: 1rem; font-weight: 800; line-height: 1.6; overflow-wrap: anywhere; }
+.dashboard-shell .champ-tile h3 { margin: 4px 0 0; color: #1f2d3d; font-size: 1rem; font-weight: 800; line-height: 1.6; overflow-wrap: anywhere; }
 .champ-note {
-  margin: 6px 0 0; padding: 0 9px; border-inline-start: 3px solid #f0c860; color: #6a5223; font-size: .8rem; line-height: 1.7;
+  margin: 6px 0 0; padding: 0 9px; border-inline-start: 3px solid #e1e6ee; color: #566273; font-size: .8rem; line-height: 1.7;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
-.champ-waiting { margin-top: 16px; padding: 12px 14px; border: 1px dashed #c9d4e2; border-radius: 16px; background: #f8fafd; }
+.champ-waiting { margin-top: 16px; padding: 12px 14px; border: 1px dashed #d5dce6; border-radius: 16px; background: #fff; }
 .champ-waiting h3 { margin: 0 0 8px; font-size: .92rem; color: #5d6b82; }
-.champ-waiting h3 b { display: inline-grid; place-items: center; min-width: 24px; padding: 0 6px; margin-inline-start: 4px; border-radius: 999px; background: #e3e9f2; color: #44536b; }
+.champ-waiting h3 b { display: inline-grid; place-items: center; min-width: 24px; padding: 0 6px; margin-inline-start: 4px; border-radius: 999px; background: #f1f4f8; color: #44536b; }
 .champ-waiting div { display: flex; flex-wrap: wrap; gap: 6px; }
 .champ-waiting-chip { padding: 3px 10px; border-radius: 999px; background: #fff; border: 1px solid #d8e0eb; color: #536179; font-size: .8rem; font-weight: 600; }
 @media (max-width: 640px) { .champ-board { grid-template-columns: 1fr; gap: 8px; } }
